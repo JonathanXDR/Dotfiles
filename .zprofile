@@ -2,7 +2,6 @@
 [[ -f "$HOME/.fig/shell/zprofile.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zprofile.pre.zsh"
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-
 # Added by Toolbox App
 export PATH="$PATH:/Users/jonathan/Library/Application Support/JetBrains/Toolbox/scripts"
 
