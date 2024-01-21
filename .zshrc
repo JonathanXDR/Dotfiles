@@ -10,6 +10,7 @@ PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:${PATH}"
 export PATH
 
 eval "$(pyenv init --path)"
+alias python='python3'
 autoload -U add-zsh-hook
 
 nvm:update() {
