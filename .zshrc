@@ -160,6 +160,13 @@ dock:reset() {
   killall Dock
 }
 
+alias ls='ls -G'
+alias ll='ls -lG'
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
+export MAVEN_HOME=/usr/local/Cellar/maven/3.9.3
+export GRADLE_HOME=/usr/local/Cellar/gradle@6/6.9.4
+export PATH="$JAVA_HOME/bin:$MAVEN_HOME/libexec:$GRADLE_HOME/bin:$PATH"
+
 # bun completions
 [ -s "/Users/jonathan/.bun/_bun" ] && source "/Users/jonathan/.bun/_bun"
 
