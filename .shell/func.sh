@@ -55,13 +55,13 @@ proxy:probe() {
   local matchDNS="dns"
   local withDNS="${1}"
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &> /dev/null; then
-    # echo "proxyProbe: Detected VPN, turning on proxy."
+    echo "Detected VPN, turning on proxy."
     proxySet "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
       changeWSLDNS "${PROXY_DNS},${NO_PROXY_DNS}"
     fi
   else
-    # echo "proxyProbe: Detected normal network, turning off proxy."
+    echo "Detected normal network, turning off proxy."
     proxyUnset
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
       changeWSLDNS "${NO_PROXY_DNS},${PROXY_DNS}"
@@ -116,12 +116,6 @@ wsl:set-display() {
   export DISPLAY=$("${ipconfig}" | grep -A 5 "vEthernet (WSL)" | "${grepip[@]}"):0.0
 }
 
-cluster:change() {
-  local clusterName="${1:-${AWS_CLUSTER_NAME}}"
-  export AWS_CLUSTER_NAME="${clusterName}"
-  aws eks update-kubeconfig --name "${AWS_CLUSTER_NAME}" --region "${AWS_REGION}"
-}
-
 #SSH Reagent (http://tychoish.com/post/9-awesome-ssh-tricks/)
 ssh:reagent () {
   for agent in /tmp/ssh-*/agent.*; do
@@ -137,4 +131,123 @@ ssh:reagent () {
 
 ssh:agent() {
   pgrep -x ssh-agent &> /dev/null && sshReagent &> /dev/null || eval $(ssh-agent) &> /dev/null
+}
+
+cluster:change() {
+  local clusterName="${1:-${AWS_CLUSTER_NAME}}"
+  export AWS_CLUSTER_NAME="${clusterName}"
+  aws eks update-kubeconfig --name "${AWS_CLUSTER_NAME}" --region "${AWS_REGION}"
+}
+
+docker:cleanup() {
+  keywords="$*"
+
+  if [[ -z "${keywords}" ]]; then
+    docker stop $(docker ps -a -q)
+    docker rm $(docker ps -a -q)
+    docker rmi $(docker images -q)
+  else
+    containers_to_stop=$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -v -E "(${keywords})" | awk '{print $1}')
+    docker stop "${containers_to_stop}"
+    docker rm "${containers_to_stop}"
+
+    images_to_remove=$(docker images --format '{{.ID}} {{.Repository}}' | grep -v -E "(${keywords})" | awk '{print $1}')
+    docker rmi "${images_to_remove}"
+  fi
+}
+
+dock:reset() {
+  defaults delete com.apple.dock
+  killall Dock
+  sleep 5
+
+  apps=("Arc" "Notion" "Visual Studio Code" "Microsoft Teams (work or school)" "Discord" "GitKraken")
+
+  for app in "${apps[@]}"; do
+    defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
+  done
+
+  defaults write com.apple.dock mineffect -string "scale"
+  defaults write com.apple.dock minimize-to-application -bool true
+  defaults write com.apple.dock launchanim -bool false
+  defaults write com.apple.dock show-recents -bool false
+  defaults write com.apple.dock expose-group-apps -bool true
+
+  killall Dock
+}
+
+nvm:update() {
+  local response
+
+  response=$(nvm install node --latest-npm 2>&1)
+
+  if [[ "$response" != *"already installed"* ]]; then
+    nvm use node
+  fi
+}
+
+nvmrc:load() {
+  local nvmrc_path
+  nvmrc_path="$(nvm_find_nvmrc)"
+
+  if [ -n "$nvmrc_path" ]; then
+    local nvmrc_node_version
+    nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+
+    if [ "$nvmrc_node_version" = "N/A" ]; then
+      nvm install
+    elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
+      nvm use
+    fi
+  elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
+    echo "Reverting to nvm default version"
+    nvm use default
+  fi
+}
+
+npm:update() {
+  npm i -g npm-check-updates
+  ncu -u
+  rm -rf node_modules
+  rm -f package-lock.json
+  npm install
+}
+
+git:date() {
+  if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+    echo "This directory is not a Git repository."
+    return 1
+  fi
+
+  echo "Enter the commit hash (e.g., abcd1234) or press Enter to use the latest commit:"
+  read COMMIT_HASH
+
+  if [[ -z "${COMMIT_HASH}" ]]; then
+    COMMIT_HASH=$(git rev-parse HEAD)
+  fi
+
+  AUTHOR_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+  echo "Enter the AUTHOR_DATE (in 'YYYY-MM-DD HH:MM:SS' format) or press Enter to use current date [${AUTHOR_DATE}]:"
+  vared -p '' -c AUTHOR_DATE
+
+  COMMITTER_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+  echo "Enter the COMMITTER_DATE (in 'YYYY-MM-DD HH:MM:SS' format) or press Enter to use current date [${COMMITTER_DATE}]:"
+  vared -p '' -c COMMITTER_DATE
+
+  [[ -z "${AUTHOR_DATE}" ]] && AUTHOR_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+  [[ -z "${COMMITTER_DATE}" ]] && COMMITTER_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
+  if [[ "${COMMIT_HASH}" == $(git rev-parse HEAD) ]]; then
+    GIT_AUTHOR_DATE="${AUTHOR_DATE}" GIT_COMMITTER_DATE="${COMMITTER_DATE}" git commit --amend --no-edit --date "${AUTHOR_DATE}"
+  else
+    FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --env-filter "
+      if test \$GIT_COMMIT = '${COMMIT_HASH}'
+      then
+        export GIT_AUTHOR_DATE='${AUTHOR_DATE}'
+        export GIT_COMMITTER_DATE='${COMMITTER_DATE}'
+      fi
+        " "${COMMIT_HASH}"^..HEAD </dev/null
+  fi
+
+  echo "Date changed successfully!"
 }
