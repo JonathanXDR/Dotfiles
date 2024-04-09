@@ -1,3 +1,44 @@
+cmd:exists() {
+  [[ -z "$1" ]] && echo "No argument supplied" && exit 1
+  command -v "$1" &> /dev/null
+}
+
+RESOLF='/etc/resolv.conf'
+dns:change() {
+  if (( $# < 1 )) ; then
+    return 1;
+  fi
+
+  local nameservers=("${(@s/,/)1}")
+
+  sudo truncate -s 0 "${RESOLF}"
+  for nameServerIP in ${nameservers[@]}; do
+    echo "nameserver ${nameServerIP}" | sudo tee -a "${RESOLF}" > /dev/null
+  done
+}
+
+wsl:change-dns() {
+  sudo chattr -i "${RESOLF}"
+  dns:change "${1}"
+  sudo chattr +i "${RESOLF}"
+}
+
+wsl:set-display() {
+  local ipconfig="/mnt/c/Windows/System32/ipconfig.exe"
+  local grepip=("grep" "-oP" '(?<=IPv4 Address(?:\.\s){11}:\s)((?:\d+\.){3}\d+)')
+
+  if [[ ! -d "/mnt/c/Windows" ]]; then
+    return
+  fi
+
+  local display=$("${ipconfig}" | grep -A 3 "${ENTERPRISE_DOMAIN}" | "${grepip[@]}")
+  if [[ -n "${display}" ]]; then
+    export DISPLAY="${display}:0.0"
+    return
+  fi
+  export DISPLAY=$("${ipconfig}" | grep -A 5 "vEthernet (WSL)" | "${grepip[@]}"):0.0
+}
+
 proxy:compose-addr() {
   if (( $# != 3 )) ; then
     return 1;
@@ -12,7 +53,7 @@ proxy:compose-addr() {
 
 proxy:set() {
   if (( $# < 3 )) ; then
-    echo "Syntax: proxySet proxyProtocol proxyHost proxyPort [noProxy]"
+    echo "Syntax: proxy:set proxyProtocol proxyHost proxyPort [noProxy]"
     return 1
   fi
 
@@ -56,64 +97,28 @@ proxy:probe() {
   local withDNS="${1}"
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &> /dev/null; then
     echo "Detected VPN, turning on proxy."
-    proxySet "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
+    proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
-      changeWSLDNS "${PROXY_DNS},${NO_PROXY_DNS}"
+      wsl:change-dns "${PROXY_DNS},${NO_PROXY_DNS}"
     fi
   else
     echo "Detected normal network, turning off proxy."
-    proxyUnset
+    proxy:unset
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
-      changeWSLDNS "${NO_PROXY_DNS},${PROXY_DNS}"
+      wsl:change-dns "${NO_PROXY_DNS},${PROXY_DNS}"
     fi
   fi
 }
 
 proxy:aws() {
   local proxyArgs=("${AWS_PROXY_PROTOCOL}" "${AWS_PROXY_HOST}" "${AWS_PROXY_PORT}")
-  local proxyAddr="$(composeProxyAddr ${proxyArgs[@]})"
+  local proxyAddr="$(proxy:compose-addr ${proxyArgs[@]})"
 
   if [[ "${http_proxy}" != "${proxyAddr}" ]]; then
-    proxySet ${proxyArgs[@]}
+    proxy:set ${proxyArgs[@]}
   else
-    proxyUnset
+    proxy:unset
   fi
-}
-
-RESOLF='/etc/resolv.conf'
-dns:change() {
-  if (( $# < 1 )) ; then
-    return 1;
-  fi
-
-  local nameservers=("${(@s/,/)1}")
-
-  sudo truncate -s 0 "${RESOLF}"
-  for nameServerIP in ${nameservers[@]}; do
-    echo "nameserver ${nameServerIP}" | sudo tee -a "${RESOLF}" > /dev/null
-  done
-}
-
-wsl:change-dns() {
-  sudo chattr -i "${RESOLF}"
-  changeDNS "${1}"
-  sudo chattr +i "${RESOLF}"
-}
-
-wsl:set-display() {
-  local ipconfig="/mnt/c/Windows/System32/ipconfig.exe"
-  local grepip=("grep" "-oP" '(?<=IPv4 Address(?:\.\s){11}:\s)((?:\d+\.){3}\d+)')
-
-  if [[ ! -d "/mnt/c/Windows" ]]; then
-    return
-  fi
-
-  local display=$("${ipconfig}" | grep -A 3 "${ENTERPRISE_DOMAIN}" | "${grepip[@]}")
-  if [[ -n "${display}" ]]; then
-    export DISPLAY="${display}:0.0"
-    return
-  fi
-  export DISPLAY=$("${ipconfig}" | grep -A 5 "vEthernet (WSL)" | "${grepip[@]}"):0.0
 }
 
 #SSH Reagent (http://tychoish.com/post/9-awesome-ssh-tricks/)
