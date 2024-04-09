@@ -3,40 +3,20 @@ cmd:exists() {
   command -v "$1" &> /dev/null
 }
 
-RESOLF='/etc/resolv.conf'
 dns:change() {
-  if (( $# < 1 )) ; then
+  if (( $# < 2 )) ; then
+    echo "Usage: dns:change <network service name> <DNS IPs separated by commas>"
     return 1;
   fi
 
-  local nameservers=("${(@s/,/)1}")
+  local networkServiceName="$1"
+  local nameservers=("${(@s/,/)2}") 
 
-  sudo truncate -s 0 "${RESOLF}"
+  sudo networksetup -setdnsservers "${networkServiceName}" "Empty"
+
   for nameServerIP in ${nameservers[@]}; do
-    echo "nameserver ${nameServerIP}" | sudo tee -a "${RESOLF}" > /dev/null
+    sudo networksetup -setdnsservers "${networkServiceName}" "${nameServerIP}"
   done
-}
-
-wsl:change-dns() {
-  sudo chattr -i "${RESOLF}"
-  dns:change "${1}"
-  sudo chattr +i "${RESOLF}"
-}
-
-wsl:set-display() {
-  local ipconfig="/mnt/c/Windows/System32/ipconfig.exe"
-  local grepip=("grep" "-oP" '(?<=IPv4 Address(?:\.\s){11}:\s)((?:\d+\.){3}\d+)')
-
-  if [[ ! -d "/mnt/c/Windows" ]]; then
-    return
-  fi
-
-  local display=$("${ipconfig}" | grep -A 3 "${ENTERPRISE_DOMAIN}" | "${grepip[@]}")
-  if [[ -n "${display}" ]]; then
-    export DISPLAY="${display}:0.0"
-    return
-  fi
-  export DISPLAY=$("${ipconfig}" | grep -A 5 "vEthernet (WSL)" | "${grepip[@]}"):0.0
 }
 
 proxy:compose-addr() {
@@ -52,17 +32,17 @@ proxy:compose-addr() {
 }
 
 proxy:set() {
-  if (( $# < 3 )) ; then
-    echo "Syntax: proxy:set proxyProtocol proxyHost proxyPort [noProxy]"
-    return 1
+  if [[ -z "${PROXY_PROTOCOL}" || -z "${PROXY_HOST}" || -z "${PROXY_PORT}" ]]; then
+    source "${HOME}/.shell/vars.sh"
   fi
 
-  local proxyProtocol="${1}"
-  local proxyHost="${2}"
-  local proxyPort="${3}"
-  local noProxy="${4}"
+  local proxyProtocol="${1:-${PROXY_PROTOCOL}}"
+  local proxyHost="${2:-${PROXY_HOST}}"
+  local proxyPort="${3:-${PROXY_PORT}}"
+  local noProxy="${4:-${NOPROXY}}"
+  
   local proxyAddr="$(proxy:compose-addr "${proxyProtocol}" "${proxyHost}" "${proxyPort}")"
-
+  
   export http_proxy="${proxyAddr}"
   export HTTP_PROXY="${proxyAddr}"
   export https_proxy="${proxyAddr}"
@@ -75,6 +55,12 @@ proxy:set() {
   export no_proxy="${noProxy}"
   export NO_PROXY="${noProxy}"
   export MAVEN_OPTS="-Dhttp.proxyHost=${proxyHost} -Dhttp.proxyPort=${proxyPort} -Dhttps.proxyHost=${proxyHost} -Dhttps.proxyPort=${proxyPort}"
+
+  if [[ -z "${proxyProtocol}" || -z "${proxyHost}" || -z "${proxyPort}" ]]; then
+    echo "Syntax: proxy:set proxyProtocol proxyHost proxyPort [noProxy]"
+    echo "Or ensure PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT are set in ${HOME}/.shell/vars.sh"
+    return 1
+  fi
 }
 
 proxy:unset() {
