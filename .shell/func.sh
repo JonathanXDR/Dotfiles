@@ -55,13 +55,13 @@ proxy:probe() {
   local matchDNS="dns"
   local withDNS="${1}"
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &> /dev/null; then
-    # echo "proxyProbe: Detected VPN, turning on proxy."
+    echo "Detected VPN, turning on proxy."
     proxySet "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
       changeWSLDNS "${PROXY_DNS},${NO_PROXY_DNS}"
     fi
   else
-    # echo "proxyProbe: Detected normal network, turning off proxy."
+    echo "Detected normal network, turning off proxy."
     proxyUnset
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
       changeWSLDNS "${NO_PROXY_DNS},${PROXY_DNS}"
