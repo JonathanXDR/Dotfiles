@@ -88,7 +88,7 @@ proxy:probe() {
       wsl:change-dns "${PROXY_DNS},${NO_PROXY_DNS}"
     fi
   else
-    echo "Detected normal network, turning off proxy."
+    # echo "Detected normal network, turning off proxy."
     proxy:unset
     if [[ "${(L)withDNS}" = "${matchDNS}" ]]; then
       wsl:change-dns "${NO_PROXY_DNS},${PROXY_DNS}"
