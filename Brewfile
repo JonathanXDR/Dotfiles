@@ -1,22 +1,23 @@
 tap "buo/cask-upgrade"
 tap "coursier/formulas"
+tap "domt4/autoupdate"
 tap "elastic/tap"
+tap "hashicorp/tap"
 tap "homebrew/autoupdate"
 tap "homebrew/bundle"
-tap "homebrew/cask"
-tap "homebrew/cask-fonts"
-tap "homebrew/cask-versions"
-tap "homebrew/core"
 tap "homebrew/services"
 tap "hpedrorodrigues/tools"
 tap "majd/repo"
 tap "mongodb/brew"
+tap "samuong/alpaca"
 tap "ubuntu/microk8s"
 brew "act"
 brew "openssl@3"
 brew "automake"
 brew "bash"
 brew "bash-completion@2"
+brew "node"
+brew "bower"
 brew "brew-gem"
 brew "ghc"
 brew "cabal-install"
@@ -25,19 +26,19 @@ brew "certifi"
 brew "cf"
 brew "cloudflared"
 brew "cmake"
+brew "qemu"
 brew "colima"
 brew "curl"
 brew "php"
 brew "composer"
 brew "coreutils"
-brew "cowsay"
 brew "displayplacer"
 brew "dockutil"
 brew "dos2unix"
 brew "emacs"
-brew "node"
 brew "eslint"
 brew "ffmpeg"
+brew "firebase-cli"
 brew "gh"
 brew "git"
 brew "git-lfs"
@@ -49,6 +50,7 @@ brew "google-java-format"
 brew "gradle"
 brew "grep"
 brew "groovy"
+brew "grunt-cli"
 brew "gulp-cli"
 brew "helm"
 brew "ifstat"
@@ -69,6 +71,7 @@ brew "mtr"
 brew "nvm"
 brew "opa"
 brew "openjdk@11"
+brew "p7zip"
 brew "pandoc"
 brew "pillow"
 brew "pinentry-mac"
@@ -91,10 +94,13 @@ brew "tailscale"
 brew "tcpflow"
 brew "tectonic"
 brew "telnet"
+brew "tor"
 brew "vercel-cli"
 brew "vite"
 brew "watchman"
 brew "wget"
+brew "wireguard-go"
+brew "wireguard-tools"
 brew "xdelta"
 brew "yt-dlp"
 brew "zlib"
@@ -102,18 +108,19 @@ brew "zsh"
 brew "coursier/formulas/coursier"
 brew "elastic/tap/elasticsearch-full"
 brew "mongodb/brew/mongodb-community"
-cask "adobe-acrobat-reader", args: { appdir: "/Applications" }
+brew "samuong/alpaca/alpaca"
 cask "aldente", args: { appdir: "/Applications" }
 cask "amazon-q"
 cask "android-platform-tools"
 cask "android-studio", args: { appdir: "/Applications" }
-cask "arc", args: { appdir: "/Applications" }
-cask "autodesk-fusion", args: { appdir: "/Applications" }
-cask "bartender", args: { appdir: "/Applications" }
+cask "arc"
+cask "asset-catalog-tinkerer"
+cask "bartender"
 cask "basictex"
 cask "bettertouchtool"
 cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
+cask "chatgpt"
 cask "citrix-workspace", args: { appdir: "/Applications" }
 cask "desmume", args: { appdir: "/Applications" }
 cask "discord", args: { appdir: "/Applications" }
@@ -127,14 +134,14 @@ cask "focusrite-control-2", args: { appdir: "/Applications" }
 cask "github", args: { appdir: "/Applications" }
 cask "gitkraken", args: { appdir: "/Applications" }
 cask "google-chrome", args: { appdir: "/Applications" }
-cask "gulp"
+cask "hashicorp-vagrant"
 cask "httpie", args: { appdir: "/Applications" }
 cask "insomnia"
 cask "intellij-idea", args: { appdir: "/Applications" }
 cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox", args: { appdir: "/Applications" }
-cask "logi-options-plus", args: { appdir: "/Applications" }
+cask "logi-options+"
 cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
 cask "minecraft", args: { appdir: "/Applications" }
@@ -153,10 +160,14 @@ cask "steam", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
 cask "temurin"
 cask "tg-pro", args: { appdir: "/Applications" }
+cask "tor-browser"
 cask "unity-hub", args: { appdir: "/Applications" }
+cask "vagrant"
+cask "vagrant-vmware-utility"
 cask "visual-studio-code", args: { appdir: "/Applications" }
 cask "vivid", args: { appdir: "/Applications" }
 cask "vmware-fusion"
+cask "wakatime"
 cask "warp"
 cask "zulu"
 mas "AdBlock Pro", id: 1018301773
@@ -166,7 +177,7 @@ mas "Affinity Publisher 2", id: 1606941598
 mas "Alto's Adventure The Spirit of the Mountain", id: 1576663233
 mas "AngryBirdsReloaded", id: 1539172625
 mas "Apple Configurator", id: 1037126344
-mas "Asphalt 9", id: 1491129197
+mas "Asphalt", id: 1491129197
 mas "com.jbapps.MangoMacos", id: 1549961729
 mas "Compressor", id: 424390742
 mas "DaisyDisk", id: 411643860
@@ -181,6 +192,7 @@ mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "JapanRural", id: 1634749545
 mas "Keynote", id: 409183694
+mas "Little Snitch Mini", id: 1629008763
 mas "Logic Pro", id: 634148309
 mas "MainStage", id: 634159523
 mas "Microsoft Excel", id: 462058435
@@ -202,7 +214,7 @@ mas "TestFlight", id: 899247664
 mas "The Lost City", id: 1538650027
 mas "The Unarchiver", id: 425424353
 mas "UTM", id: 1538878817
-mas "Xcode", id: 497799835
+mas "WireGuard", id: 1451685025
 mas "‎WhatsApp", id: 310633997
 vscode "aaron-bond.better-comments"
 vscode "akamud.vscode-theme-onedark"
@@ -214,8 +226,10 @@ vscode "amazonwebservices.amazon-q-vscode"
 vscode "amazonwebservices.aws-toolkit-vscode"
 vscode "amazonwebservices.codewhisperer-for-command-line-companion"
 vscode "angular.ng-template"
+vscode "antfu.iconify"
 vscode "austenc.tailwind-docs"
 vscode "axmmisaka.felonious-cpp-formatter"
+vscode "bbenoist.vagrant"
 vscode "benjaminbenais.copilot-theme"
 vscode "bierner.markdown-preview-github-styles"
 vscode "bmewburn.vscode-intelephense-client"
@@ -400,6 +414,7 @@ vscode "tamasfe.even-better-toml"
 vscode "testdouble.vscode-standard-ruby"
 vscode "timonvs.reactsnippetsstandard"
 vscode "timonwong.shellcheck"
+vscode "toba.vsfire"
 vscode "tobiah.unity-tools"
 vscode "tomoki1207.pdf"
 vscode "tonybaloney.vscode-pets"
@@ -407,6 +422,7 @@ vscode "trunk.io"
 vscode "tsandall.opa"
 vscode "unclebeast.har-viewer"
 vscode "unifiedjs.vscode-mdx"
+vscode "unifiedjs.vscode-remark"
 vscode "usernamehw.errorlens"
 vscode "virejdasani.incredibly-in-your-face"
 vscode "visualstudioexptteam.intellicode-api-usage-examples"
