@@ -10,7 +10,7 @@ eval "$(pyenv init --path)"
 autoload -U add-zsh-hook
 
 # bun completions
-[ -s "/Users/jonathan/.bun/_bun" ] && source "/Users/jonathan/.bun/_bun"
+[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
 
 # Load custom files
 for file in vars func aliases; do
@@ -22,11 +22,11 @@ add-zsh-hook chpwd nvmrc:load
 nvm:update
 nvmrc:load
 
-# Set up proxy if in VPN or not
-[[ "${ALWAYS_PROXY_PROBE}" == "true" ]]
-
 # Load Angular CLI autocompletion.
 source <(ng completion script)
+
+# Set up proxy if in VPN or not
+[[ "${ALWAYS_PROXY_PROBE}" == "true" ]]
 
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.zsh" ]] && builtin source "$HOME/.fig/export/dotfiles/dotfile.zsh"
 
