@@ -172,13 +172,13 @@ dock:reset() {
 }
 
 nvm:update() {
-  local response
-
-  response=$(nvm install node --latest-npm 2>&1)
-
-  if [[ "${response}" != *"already installed"* ]]; then
+  if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
     nvm use node
   fi
+}
+
+bun:update() {
+  bun upgrade &>/dev/null
 }
 
 nvmrc:load() {
