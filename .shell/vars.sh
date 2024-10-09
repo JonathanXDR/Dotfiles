@@ -15,6 +15,8 @@ export NOPROXY=${NOPROXY:-localhost,127.0.0.1}
 export AWS_CLUSTER_NAME=${AWS_CLUSTER_NAME:-default-cluster}
 export AWS_REGION=${AWS_REGION:-us-west-2}
 
+export NTLM_CREDENTIALS=${NTLM_CREDENTIALS}
+
 export BUN_INSTALL="${HOME}/.bun"
 export NVM_DIR="${HOME}/.nvm"
 export EDITOR="nano"
