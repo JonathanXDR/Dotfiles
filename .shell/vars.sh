@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
-if [ -f .env ]; then
+if [ -f "${HOME}"/.env ]; then
   set -o allexport
-  source .env
+  source "${HOME}/.env"
   set +o allexport
+else
+  echo ".env file not found"
 fi
 
 export PROXY_PROTOCOL=${PROXY_PROTOCOL:-http}
