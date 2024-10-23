@@ -205,51 +205,223 @@ ncu:update() {
 git:diff() {
   local source_branch="$1"
   local target_branch="$2"
+  local exclude_pattern="$3"
 
-  git diff --name-only "$source_branch...$target_branch" | while read -r file; do
-    echo -e "\n$file:\n"
-    git show "$target_branch:$file"
-  done | pbcopy
+  if [[ -n "$exclude_pattern" ]]; then
+    git diff --name-only "$source_branch...$target_branch" -- ":!$exclude_pattern" | while read -r file; do
+      echo -e "\n$file:\n"
+      git show "$target_branch:$file"
+    done | pbcopy
+  else
+    git diff --name-only "$source_branch...$target_branch" | while read -r file; do
+      echo -e "\n$file:\n"
+      git show "$target_branch:$file"
+    done | pbcopy
+  fi
 
   echo "Diff output copied to clipboard."
 }
 
-git:author() {
-  [[ $# -eq 4 ]] || {
-    echo "Usage: git:author <repo_path> <branch_name> <new_author_name> <new_author_email>" >&2
+git:history() {
+  editor="code"
+  editor_args=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    --editor)
+      shift
+      if [ $# -eq 0 ]; then
+        printf 'Error: --editor requires an argument.\n' >&2
+        return 1
+      fi
+      editor="$1"
+      shift
+      ;;
+    --)
+      shift
+      editor_args="$*"
+      break
+      ;;
+    *)
+      printf 'Usage: git:history [--editor <editor>] [-- <editor_args>]\n' >&2
+      return 1
+      ;;
+    esac
+  done
+
+  if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    printf 'Error: Not a git repository.\n' >&2
+    return 1
+  fi
+
+  tmpfile=$(mktemp -t git-history-XXXXXX)
+  git log --reverse --pretty=medium >"$tmpfile"
+
+  if ! command -v "$editor" >/dev/null 2>&1; then
+    printf 'Error: Editor "%s" not found.\n' "$editor" >&2
+    rm -f "$tmpfile"
+    return 1
+  fi
+
+  if [ -z "$editor_args" ]; then
+    case "$editor" in
+    code | idea)
+      editor_args="--wait"
+      ;;
+    esac
+  fi
+
+  if [ -n "$editor_args" ]; then
+    $editor "$editor_args" "$tmpfile" || {
+      printf 'Error: Editor exited with an error.\n' >&2
+      rm -f "$tmpfile"
+      return 1
+    }
+  else
+    $editor "$tmpfile" || {
+      printf 'Error: Editor exited with an error.\n' >&2
+      rm -f "$tmpfile"
+      return 1
+    }
+  fi
+
+  printf 'Are you sure you want to rewrite the entire git history? (Yes/No): '
+  read confirmation
+  case "$confirmation" in
+  Yes | yes) ;;
+  *)
+    printf 'Aborted by user.\n'
+    rm -f "$tmpfile"
+    return 1
+    ;;
+  esac
+
+  commits_env=""
+  authors_env=""
+  emails_env=""
+  dates_env=""
+  messages_env=""
+
+  commit_hash=""
+  author=""
+  email=""
+  date=""
+  message=""
+  in_message=0
+  first_message_line=1
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    commit\ *)
+      if [ -n "$commit_hash" ]; then
+        commits_env="${commits_env}${commits_env:+
+}$commit_hash"
+        authors_env="${authors_env}${authors_env:+
+}$author"
+        emails_env="${emails_env}${emails_env:+
+}$email"
+        dates_env="${dates_env}${dates_env:+
+}$date"
+        messages_env="${messages_env}${messages_env:+
+}$message"
+      fi
+      commit_hash=$(printf '%s' "$line" | sed 's/^commit //')
+      author=""
+      email=""
+      date=""
+      message=""
+      in_message=0
+      first_message_line=1
+      ;;
+    Merge:\ *) ;;
+    Author:\ *)
+      author_line=$(printf '%s' "$line" | sed 's/^Author: //')
+      author=$(printf '%s' "$author_line" | sed 's/ <.*//')
+      email=$(printf '%s' "$author_line" | sed 's/^.*<//; s/>$//')
+      ;;
+    Date:\ *)
+      date=$(printf '%s' "$line" | sed 's/^Date: //; s/^ *//; s/ *$//')
+      ;;
+    "")
+      if [ $in_message -eq 1 ]; then
+        message="$message
+"
+      else
+        in_message=1
+        first_message_line=1
+      fi
+      ;;
+    *)
+      if [ $in_message -eq 1 ]; then
+        trimmed=$(printf '%s' "$line" | sed 's/^    //')
+        if [ $first_message_line -eq 1 ]; then
+          message="$message$trimmed"
+          first_message_line=0
+        else
+          message="$message
+$trimmed"
+        fi
+      fi
+      ;;
+    esac
+  done <"$tmpfile"
+
+  if [ -n "$commit_hash" ]; then
+    commits_env="${commits_env}${commits_env:+
+}$commit_hash"
+    authors_env="${authors_env}${authors_env:+
+}$author"
+    emails_env="${emails_env}${emails_env:+
+}$email"
+    dates_env="${dates_env}${dates_env:+
+}$date"
+    messages_env="${messages_env}${messages_env:+
+}$message"
+  fi
+
+  rm -f "$tmpfile"
+  export commits_env authors_env emails_env dates_env messages_env
+
+  FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
+    --env-filter '
+    idx=$(printf "%s\n" "$commits_env" | awk -v c="$GIT_COMMIT" "BEGIN{i=0}{if(\$0==c){print i;exit}i++}")
+    if [ -n "$idx" ]; then
+      line_number=$(expr "$idx" + 1)
+      a=$(printf "%s\n" "$authors_env" | sed -n "${line_number}p")
+      e=$(printf "%s\n" "$emails_env" | sed -n "${line_number}p")
+      d=$(printf "%s\n" "$dates_env"  | sed -n "${line_number}p")
+
+      if [ -n "$a" ]; then
+        GIT_AUTHOR_NAME="$a"
+        GIT_AUTHOR_EMAIL="$e"
+        GIT_AUTHOR_DATE="$d"
+        GIT_COMMITTER_NAME="$a"
+        GIT_COMMITTER_EMAIL="$e"
+        GIT_COMMITTER_DATE="$d"
+        export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE
+        export GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+      fi
+    fi
+  ' \
+    --msg-filter '
+  idx=$(printf "%s\n" "$commits_env" | awk -v c="$GIT_COMMIT" "BEGIN{i=0}{if(\$0==c){print i;exit}i++}")
+  if [ -n "$idx" ]; then
+    line_number=$(expr "$idx" + 1)
+    m=$(printf "%s\n" "$messages_env" | sed -n "${line_number}p")
+    if [ -n "$m" ]; then
+      printf "%s\n" "$m"
+    else
+      cat
+    fi
+  else
+    cat
+  fi
+  ' \
+    -- --all || {
+    printf 'Error: Failed to rewrite Git history.\n' >&2
     return 1
   }
 
-  local repo_path="$1" branch_name="$2" new_author_name="$3" new_author_email="$4"
-
-  [[ -d "$repo_path/.git" ]] || {
-    echo "Error: '$repo_path' is not a Git repository." >&2
-    return 1
-  }
-
-  cd "$repo_path" || {
-    echo "Error: Unable to change to directory '$repo_path'." >&2
-    return 1
-  }
-
-  git rev-parse --verify "$branch_name" >/dev/null 2>&1 || {
-    echo "Error: Branch '$branch_name' does not exist." >&2
-    return 1
-  }
-
-  git filter-branch -f --env-filter "
-        GIT_AUTHOR_NAME='$new_author_name'
-        GIT_AUTHOR_EMAIL='$new_author_email'
-        GIT_COMMITTER_NAME='$new_author_name'
-        GIT_COMMITTER_EMAIL='$new_author_email'
-        export GIT_AUTHOR_NAME
-        export GIT_AUTHOR_EMAIL
-        export GIT_COMMITTER_NAME
-        export GIT_COMMITTER_EMAIL
-    " "$branch_name" || {
-    echo "Error: Failed to rewrite Git history." >&2
-    return 1
-  }
-
-  echo "Git history has been rewritten successfully."
+  printf 'Git history has been rewritten successfully.\n'
+  printf 'Note: If you have already pushed this branch, you will need to force push:\n'
+  printf 'git push --force-with-lease\n'
 }
