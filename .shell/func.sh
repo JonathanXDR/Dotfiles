@@ -257,7 +257,7 @@ git:history() {
   local tmpfile
   tmpfile=$(mktemp -t git-history-XXXXXX)
 
-  git log --reverse --pretty=format:'commit %H%nAuthor: %an <%ae>%nDate:   %ad%nDateRaw: %cd%n%n    %B' >"$tmpfile"
+  git log --reverse --pretty=medium >"$tmpfile"
 
   if ! command -v "$editor" >/dev/null 2>&1; then
     echo "Error: Editor '$editor' not found." >&2
@@ -288,56 +288,62 @@ git:history() {
     return 1
   fi
 
-  declare -a commits authors emails dates dates_raw messages
+  declare -a commits authors emails dates messages
 
   local commit_hash=""
   local author=""
   local email=""
   local date=""
-  local date_raw=""
   local message=""
   local in_message=0
+  local first_message_line=1
 
   while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ $line == commit\ * ]]; then
-
       if [[ -n $commit_hash ]]; then
         commits+=("$commit_hash")
         authors+=("$author")
         emails+=("$email")
         dates+=("$date")
-        dates_raw+=("$date_raw")
-
-        message="${message%$'\n'}"
         messages+=("$message")
       fi
-
       commit_hash="${line#commit }"
       author=""
       email=""
       date=""
-      date_raw=""
       message=""
       in_message=0
+      first_message_line=1
+
+    elif [[ $line == Merge:\ * ]]; then
+      continue
+
     elif [[ $line == Author:\ * ]]; then
       author_line="${line#Author: }"
       author="${author_line%% <*}"
       email="${author_line#*<}"
       email="${email%>}"
+
     elif [[ $line == Date:\ * ]]; then
-      date="${line#Date:   }"
-    elif [[ $line == DateRaw:\ * ]]; then
-      date_raw="${line#DateRaw: }"
+      date="${line#Date:}"
+      date="${date## }"
+
     elif [[ -z $line ]]; then
       if [[ $in_message -eq 1 ]]; then
         message+=$'\n'
+      else
+        in_message=1
+        first_message_line=1
       fi
     else
-      if [[ $in_message -eq 0 ]]; then
-        message+="    ${line#    }"
-        in_message=1
-      else
-        message+=$'\n'"    ${line#    }"
+      if [[ $in_message -eq 1 ]]; then
+        line="${line#    }"
+        if [[ $first_message_line -eq 1 ]]; then
+          message+="$line"
+          first_message_line=0
+        else
+          message+=$'\n'"$line"
+        fi
       fi
     fi
   done <"$tmpfile"
@@ -347,77 +353,53 @@ git:history() {
     authors+=("$author")
     emails+=("$email")
     dates+=("$date")
-    dates_raw+=("$date_raw")
-
-    message="${message%$'\n'}"
     messages+=("$message")
   fi
 
-  local env_filter_script
-  local msg_filter_script
-  local msg_dir
-  env_filter_script=$(mktemp -t git-env-filter-XXXXXX.sh)
-  msg_filter_script=$(mktemp -t git-msg-filter-XXXXXX.sh)
-  msg_dir=$(mktemp -d -t git-messages-XXXXXX)
+  rm -f "$tmpfile"
 
-  {
-    echo '#!/bin/sh'
-    echo 'case "$GIT_COMMIT" in'
-    for ((idx = 0; idx < ${#commits[@]}; idx++)); do
-      hash="${commits[$idx]}"
-      author="${authors[$idx]}"
-      email="${emails[$idx]}"
-      date_raw="${dates_raw[$idx]}"
+  local arrays_file
+  arrays_file=$(mktemp /tmp/git_rewrite_arrays.XXXXXX)
+  declare -p commits authors emails dates messages >"$arrays_file"
 
-      if [[ -z "$hash" ]]; then
-        continue
+  local env_cmd
+  env_cmd="bash -c '
+    source \"${arrays_file}\"
+    for ((idx=0; idx<\${#commits[@]}; idx++)); do
+      if [[ \"\$GIT_COMMIT\" == \"\${commits[\$idx]}\" ]]; then
+        export GIT_AUTHOR_NAME=\"\${authors[\$idx]} \"
+        export GIT_AUTHOR_EMAIL=\"\${emails[\$idx]}\"
+        export GIT_AUTHOR_DATE=\"\${dates[\$idx]}\"
+        export GIT_COMMITTER_NAME=\"\${authors[\$idx]} \"
+        export GIT_COMMITTER_EMAIL=\"\${emails[\$idx]}\"
+        export GIT_COMMITTER_DATE=\"\${dates[\$idx]}\"
+        break
       fi
-
-      echo "$hash)"
-      printf '    export GIT_AUTHOR_NAME=%q\n' "$author"
-      printf '    export GIT_AUTHOR_EMAIL=%q\n' "$email"
-      printf '    export GIT_AUTHOR_DATE=%q\n' "$date_raw"
-      printf '    export GIT_COMMITTER_NAME=%q\n' "$author"
-      printf '    export GIT_COMMITTER_EMAIL=%q\n' "$email"
-      printf '    export GIT_COMMITTER_DATE=%q\n' "$date_raw"
-      echo "    ;;"
     done
-    echo '*) ;;'
-    echo 'esac'
-  } >"$env_filter_script"
-  chmod +x "$env_filter_script"
+  '"
 
-  for ((idx = 0; idx < ${#commits[@]}; idx++)); do
-    hash="${commits[$idx]}"
-    msg="${messages[$idx]}"
-
-    if [[ -n "$hash" ]]; then
-      echo -n "$msg" >"$msg_dir/$hash"
-    fi
-  done
-
-  {
-    echo '#!/bin/sh'
-    echo "MSG_DIR='$msg_dir'"
-    echo 'if [ -f "$MSG_DIR/$GIT_COMMIT" ]; then'
-    echo '    cat "$MSG_DIR/$GIT_COMMIT"'
-    echo 'else'
-    echo '    cat'
-    echo 'fi'
-  } >"$msg_filter_script"
-  chmod +x "$msg_filter_script"
+  local msg_cmd
+  msg_cmd="bash -c '
+    source \"${arrays_file}\"
+    for ((idx=0; idx<\${#commits[@]}; idx++)); do
+      if [[ \"\${commits[\$idx]}\" == \"\$GIT_COMMIT\" ]]; then
+        echo \"\${messages[\$idx]}\"
+        exit
+      fi
+    done
+    cat
+  '"
 
   FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
-    --env-filter "source $env_filter_script" \
-    --msg-filter "source $msg_filter_script" \
+    --env-filter "$env_cmd" \
+    --msg-filter "$msg_cmd" \
     -- --all || {
     echo "Error: Failed to rewrite Git history." >&2
-
-    rm -rf "$tmpfile" "$env_filter_script" "$msg_filter_script" "$msg_dir"
+    rm -f "$arrays_file"
     return 1
   }
 
-  rm -rf "$tmpfile" "$env_filter_script" "$msg_filter_script" "$msg_dir"
+  rm -f "$arrays_file"
 
   echo "Git history has been rewritten successfully."
   echo "Note: If you've already pushed this branch, you'll need to force push with:"
