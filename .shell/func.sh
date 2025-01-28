@@ -198,7 +198,7 @@ ncu:update() {
   # npm i -g @antfu/ni
   ncu -u
   rm -rf node_modules
-  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lockb
+  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
   ni
 }
 
