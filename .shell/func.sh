@@ -142,6 +142,13 @@ dock:reset() {
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
     nvm use node
+
+    if [ -f "${HOME}/.npm.globals" ]; then
+      grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
+    else
+      echo ".npm.globals file not found."
+    fi
+    echo "New node version installed."
   fi
 }
 
