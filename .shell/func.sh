@@ -142,6 +142,13 @@ dock:reset() {
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
     nvm use node
+
+    if [ -f "${HOME}/.npm.globals" ]; then
+      grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
+    else
+      echo ".npm.globals file not found."
+    fi
+    echo "New node version installed."
   fi
 }
 
@@ -198,7 +205,7 @@ ncu:update() {
   # npm i -g @antfu/ni
   ncu -u
   rm -rf node_modules
-  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lockb
+  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
   ni
 }
 
@@ -254,7 +261,7 @@ git:history() {
   fi
 
   tmpfile=$(mktemp -t git-history-XXXXXX)
-  git log --reverse --pretty=medium >"$tmpfile"
+  git log --pretty=medium >"$tmpfile"
 
   if ! command -v "$editor" >/dev/null 2>&1; then
     printf 'Error: Editor "%s" not found.\n' "$editor" >&2
@@ -295,12 +302,10 @@ git:history() {
     ;;
   esac
 
-  commits_env=""
-  authors_env=""
-  emails_env=""
-  dates_env=""
-  messages_env=""
+  # Create a temporary mapping directory.
+  mapping_dir=$(mktemp -d -t git-history-map-XXXXXX)
 
+  # Process the git log output to build mapping files.
   commit_hash=""
   author=""
   email=""
@@ -313,16 +318,14 @@ git:history() {
     case "$line" in
     commit\ *)
       if [ -n "$commit_hash" ]; then
-        commits_env="${commits_env}${commits_env:+
-}$commit_hash"
-        authors_env="${authors_env}${authors_env:+
-}$author"
-        emails_env="${emails_env}${emails_env:+
-}$email"
-        dates_env="${dates_env}${dates_env:+
-}$date"
-        messages_env="${messages_env}${messages_env:+
-}$message"
+        # Write out the mapping for the previous commit.
+        {
+          printf "%s\n" "$author"
+          printf "%s\n" "$email"
+          printf "%s\n" "$date"
+          printf "\n"
+          printf "%s\n" "$message"
+        } >"$mapping_dir/$commit_hash"
       fi
       commit_hash=$(printf '%s' "$line" | sed 's/^commit //')
       author=""
@@ -332,7 +335,9 @@ git:history() {
       in_message=0
       first_message_line=1
       ;;
-    Merge:\ *) ;;
+    Merge:\ *)
+      # Ignore merge header lines.
+      ;;
     Author:\ *)
       author_line=$(printf '%s' "$line" | sed 's/^Author: //')
       author=$(printf '%s' "$author_line" | sed 's/ <.*//')
@@ -365,61 +370,60 @@ $trimmed"
     esac
   done <"$tmpfile"
 
+  # Write mapping for the last commit (if any).
   if [ -n "$commit_hash" ]; then
-    commits_env="${commits_env}${commits_env:+
-}$commit_hash"
-    authors_env="${authors_env}${authors_env:+
-}$author"
-    emails_env="${emails_env}${emails_env:+
-}$email"
-    dates_env="${dates_env}${dates_env:+
-}$date"
-    messages_env="${messages_env}${messages_env:+
-}$message"
+    {
+      printf "%s\n" "$author"
+      printf "%s\n" "$email"
+      printf "%s\n" "$date"
+      printf "\n"
+      printf "%s\n" "$message"
+    } >"$mapping_dir/$commit_hash"
   fi
 
   rm -f "$tmpfile"
-  export commits_env authors_env emails_env dates_env messages_env
+  export MAPPING_DIR="$mapping_dir"
 
+  # Rewrite history using filter-branch, looking up metadata by commit hash.
   FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
     --env-filter '
-    idx=$(printf "%s\n" "$commits_env" | awk -v c="$GIT_COMMIT" "BEGIN{i=0}{if(\$0==c){print i;exit}i++}")
-    if [ -n "$idx" ]; then
-      line_number=$(expr "$idx" + 1)
-      a=$(printf "%s\n" "$authors_env" | sed -n "${line_number}p")
-      e=$(printf "%s\n" "$emails_env" | sed -n "${line_number}p")
-      d=$(printf "%s\n" "$dates_env"  | sed -n "${line_number}p")
-
-      if [ -n "$a" ]; then
-        GIT_AUTHOR_NAME="$a"
-        GIT_AUTHOR_EMAIL="$e"
-        GIT_AUTHOR_DATE="$d"
-        GIT_COMMITTER_NAME="$a"
-        GIT_COMMITTER_EMAIL="$e"
-        GIT_COMMITTER_DATE="$d"
-        export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE
-        export GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+      if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
+        a=$(sed -n "1p" "$MAPPING_DIR/$GIT_COMMIT")
+        e=$(sed -n "2p" "$MAPPING_DIR/$GIT_COMMIT")
+        d=$(sed -n "3p" "$MAPPING_DIR/$GIT_COMMIT")
+        if [ -n "$a" ]; then
+          GIT_AUTHOR_NAME="$a"
+          GIT_AUTHOR_EMAIL="$e"
+          GIT_AUTHOR_DATE="$d"
+          GIT_COMMITTER_NAME="$a"
+          GIT_COMMITTER_EMAIL="$e"
+          GIT_COMMITTER_DATE="$d"
+          export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE
+          export GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+        fi
       fi
-    fi
-  ' \
+    ' \
     --msg-filter '
-  idx=$(printf "%s\n" "$commits_env" | awk -v c="$GIT_COMMIT" "BEGIN{i=0}{if(\$0==c){print i;exit}i++}")
-  if [ -n "$idx" ]; then
-    line_number=$(expr "$idx" + 1)
-    m=$(printf "%s\n" "$messages_env" | sed -n "${line_number}p")
-    if [ -n "$m" ]; then
-      printf "%s\n" "$m"
-    else
-      cat
-    fi
-  else
-    cat
-  fi
-  ' \
+      if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
+        # Delete the first 4 lines (author, email, date, blank) and output the remainder as the commit message.
+        m=$(sed "1,4d" "$MAPPING_DIR/$GIT_COMMIT")
+        if [ -n "$m" ]; then
+          printf "%s\n" "$m"
+        else
+          cat
+        fi
+      else
+        cat
+      fi
+    ' \
     -- --all || {
     printf 'Error: Failed to rewrite Git history.\n' >&2
+    rm -rf "$MAPPING_DIR"
     return 1
   }
+
+  # Clean up the mapping directory.
+  rm -rf "$MAPPING_DIR"
 
   printf 'Git history has been rewritten successfully.\n'
   printf 'Note: If you have already pushed this branch, you will need to force push:\n'
