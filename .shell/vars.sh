@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
 if [ -f "${HOME}/.env" ]; then
-  set -o allexport
-  source "${HOME}/.env"
-  set +o allexport
+  CURRENT_DIR=$(pwd)
+  cd "$HOME" || exit
+
+  npx npmrc-replace-env -w
+  cd "$CURRENT_DIR" || exit
 else
   echo ".env file not found."
 fi
