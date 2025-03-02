@@ -1,0 +1,9 @@
+# NPM
+npm-check-updates
+npmrc-replace-env
+@antfu/ni
+
+# CLI
+@angular/cli
+@nestjs/cli
+@nuxt/cli
