@@ -142,12 +142,7 @@ dock:reset() {
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
     nvm use node
-
-    if [ -f "${HOME}/.npm.globals" ]; then
-      grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
-    else
-      echo ".npm.globals file not found."
-    fi
+    globals:install
     echo "New node version installed."
   fi
 }
@@ -207,6 +202,26 @@ ncu:update() {
   rm -rf node_modules
   rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
   ni
+}
+
+globals:install() {
+  if [ -f "${HOME}/.npm.globals" ]; then
+    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
+  else
+    echo ".npm.globals file not found."
+  fi
+}
+
+env:replace() {
+  if [ -f "${HOME}/.env" ]; then
+    CURRENT_DIR=$(pwd)
+    cd "$HOME" || exit
+
+    npx npmrc-replace-env -w
+    cd "$CURRENT_DIR" || exit
+  else
+    echo ".env file not found."
+  fi
 }
 
 git:diff() {
