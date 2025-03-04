@@ -17,5 +17,5 @@ export RESOLF='/etc/resolv.conf'
 export PATH="${BUN_INSTALL}/bin:${PATH}"
 export PATH="${PATH}:${HOME}/.rvm/bin"
 export PATH="${HOME}/.console-ninja/.bin:${PATH}"
-export PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:${PATH}"
+export PATH="/Library/Frameworks/Python.framework/Versions/Current/bin:$PATH"
 export PATH="${PATH}:/Users/$USER/Library/Application Support/JetBrains/Toolbox/scripts"
