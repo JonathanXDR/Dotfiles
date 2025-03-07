@@ -186,18 +186,17 @@ dotfiles:link() {
 
     local target="$target_dir/$filename"
 
-    if [[ -e "$target" ]]; then
-      echo "File or directory $target already exists, skipping..."
-    else
-      ln -s "$file" "$target"
-      echo "Created symlink for $filename"
+    if [[ -e "$target" || -L "$target" ]]; then
+      echo "Removing existing $target"
+      rm -f "$target"
     fi
+
+    ln -s "$file" "$target"
+    echo "Created symlink for $filename"
   done
 }
 
 ncu:update() {
-  # npm i -g npm-check-updates
-  # npm i -g @antfu/ni
   ncu -u
   rm -rf node_modules
   rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
