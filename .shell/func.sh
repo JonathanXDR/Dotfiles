@@ -142,6 +142,20 @@ dock:reset() {
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
     nvm use node
+    node:verify
+  fi
+}
+
+node:verify() {
+  # Check if node command works after switching to newest version
+  if ! node --version >/dev/null 2>&1; then
+    echo "Warning: node command failed with newest version, reverting to LTS..."
+    # Install LTS version if it doesn't exist
+    nvm install --lts
+    # nvm use --lts
+    globals:install
+    echo "Reverted to LTS node version."
+  else
     globals:install
     echo "New node version installed."
   fi
