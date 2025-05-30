@@ -185,11 +185,15 @@ node:verify() {
     # Install LTS version if it doesn't exist
     nvm install --lts
     # nvm use --lts
-    globals:install
     echo "Reverted to LTS node version."
-  else
+  fi
+
+  local node_version
+  node_version=$(node --version)
+  local installed_globals_file="${HOME}/.npm.globals.${node_version}.lock"
+
+  if [ ! -f "${installed_globals_file}" ] || [ -f "${HOME}/.npm.globals" ] && [ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]; then
     globals:install
-    echo "New node version installed."
   fi
 }
 
@@ -251,7 +255,14 @@ ncu:update() {
 
 globals:install() {
   if [ -f "${HOME}/.npm.globals" ]; then
-    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
+    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g --force
+
+    local node_version
+    node_version=$(node --version)
+    local lock_file="${HOME}/.npm.globals.${node_version}.lock"
+    grep -vE '^#|^$' "${HOME}/.npm.globals" >"${lock_file}"
+
+    echo "Global packages installed."
   else
     echo ".npm.globals file not found."
   fi
