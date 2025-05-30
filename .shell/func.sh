@@ -156,7 +156,7 @@ dock:reset() {
   killall Dock
   sleep 5
 
-  local apps=("Arc" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
+  local apps=("Zen" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
 
   for app in "${apps[@]}"; do
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
