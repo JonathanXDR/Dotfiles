@@ -100,6 +100,38 @@ ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
+sudo:touch-id() {
+  FILE='/etc/pam.d/sudo'
+  BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
+
+  cleanup() {
+    rm -f "$BACKUP"
+  }
+  trap cleanup EXIT
+
+  trap 'echo "Error detected – restoring original file" >&2; sudo cp "$BACKUP" "$FILE"; exit 1' ERR
+
+  echo "Backing up $FILE to $BACKUP…"
+  sudo cp "$FILE" "$BACKUP"
+
+  if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
+    echo "Required marker comment not found in $FILE" >&2
+    exit 1
+  fi
+
+  if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
+    echo "Inserting pam_tid line…"
+    sudo sed -i '' '/^# sudo: auth account password session/a\
+auth       sufficient     pam_tid.so
+' "$FILE"
+  else
+    echo "pam_tid line already present, skipping insertion."
+  fi
+
+  trap - ERR
+  echo "Done. $FILE has been updated successfully."
+}
+
 cluster:change() {
   local cluster_name="${1:-${AWS_CLUSTER_NAME}}"
   export AWS_CLUSTER_NAME="${cluster_name}"
@@ -124,7 +156,7 @@ dock:reset() {
   killall Dock
   sleep 5
 
-  local apps=("Arc" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
+  local apps=("Zen" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
 
   for app in "${apps[@]}"; do
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
