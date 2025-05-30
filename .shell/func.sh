@@ -100,6 +100,38 @@ ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
+sudo:touch-id() {
+  FILE='/etc/pam.d/sudo'
+  BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
+
+  cleanup() {
+    rm -f "$BACKUP"
+  }
+  trap cleanup EXIT
+
+  trap 'echo "Error detected – restoring original file" >&2; sudo cp "$BACKUP" "$FILE"; exit 1' ERR
+
+  echo "Backing up $FILE to $BACKUP…"
+  sudo cp "$FILE" "$BACKUP"
+
+  if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
+    echo "Required marker comment not found in $FILE" >&2
+    exit 1
+  fi
+
+  if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
+    echo "Inserting pam_tid line…"
+    sudo sed -i '' '/^# sudo: auth account password session/a\
+auth       sufficient     pam_tid.so
+' "$FILE"
+  else
+    echo "pam_tid line already present, skipping insertion."
+  fi
+
+  trap - ERR
+  echo "Done. $FILE has been updated successfully."
+}
+
 cluster:change() {
   local cluster_name="${1:-${AWS_CLUSTER_NAME}}"
   export AWS_CLUSTER_NAME="${cluster_name}"
@@ -124,7 +156,7 @@ dock:reset() {
   killall Dock
   sleep 5
 
-  local apps=("Arc" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
+  local apps=("Zen" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
 
   for app in "${apps[@]}"; do
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
@@ -153,11 +185,15 @@ node:verify() {
     # Install LTS version if it doesn't exist
     nvm install --lts
     # nvm use --lts
-    globals:install
     echo "Reverted to LTS node version."
-  else
+  fi
+
+  local node_version
+  node_version=$(node --version)
+  local installed_globals_file="${HOME}/.npm.globals.${node_version}.lock"
+
+  if [ ! -f "${installed_globals_file}" ] || [ -f "${HOME}/.npm.globals" ] && [ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]; then
     globals:install
-    echo "New node version installed."
   fi
 }
 
@@ -219,7 +255,14 @@ ncu:update() {
 
 globals:install() {
   if [ -f "${HOME}/.npm.globals" ]; then
-    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g
+    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g --force
+
+    local node_version
+    node_version=$(node --version)
+    local lock_file="${HOME}/.npm.globals.${node_version}.lock"
+    grep -vE '^#|^$' "${HOME}/.npm.globals" >"${lock_file}"
+
+    echo "Global packages installed."
   else
     echo ".npm.globals file not found."
   fi
