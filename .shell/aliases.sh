@@ -22,6 +22,9 @@ alias dirs="dirs -v"
 alias ssh='ssh -o AddKeysToAgent=yes'
 alias bash="PERMIT_BASH=true bash"
 
+alias gatekeeper:disable="sudo spctl --master-disable"
+alias gatekeeper:enable="sudo spctl --master-enable"
+
 alias ez="\${EDITOR} \${HOME}/.zshrc"
 alias eb="\${EDITOR} \${HOME}/.bashrc"
 alias ef="\${EDITOR} \${HOME}/.shell/func.sh"
