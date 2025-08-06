@@ -7,3 +7,8 @@ npmrc-replace-env
 @angular/cli
 @nestjs/cli
 @nuxt/cli
+
+# AI Stuff
+@openai/codex
+@anthropic-ai/claude-code
+@google/gemini-cli
