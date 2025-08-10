@@ -2,6 +2,7 @@ tap "buo/cask-upgrade"
 tap "coursier/formulas"
 tap "domt4/autoupdate"
 tap "elastic/tap"
+tap "go-task/tap"
 tap "hashicorp/tap"
 tap "homebrew/autoupdate"
 tap "homebrew/bundle"
@@ -17,6 +18,8 @@ brew "openssl@3"
 brew "automake"
 brew "bash"
 brew "bash-completion@2"
+brew "p7zip"
+brew "binwalk"
 brew "icu4c@77"
 brew "node"
 brew "bower"
@@ -40,9 +43,9 @@ brew "dockutil"
 brew "dos2unix"
 brew "emacs"
 brew "eslint"
-brew "python@3.12"
 brew "ffmpeg"
 brew "firebase-cli"
+brew "freeimage"
 brew "gh"
 brew "git"
 brew "git-lfs"
@@ -62,6 +65,7 @@ brew "helm"
 brew "ice"
 brew "ifstat"
 brew "iftop"
+brew "imagemagick"
 brew "ipfs"
 brew "jq"
 brew "k9s"
@@ -85,16 +89,17 @@ brew "nvm"
 brew "ollama"
 brew "opa"
 brew "openjdk@11"
-brew "p7zip"
 brew "pandoc"
 brew "pillow"
 brew "pinentry-mac"
 brew "pkgconf"
+brew "pnpm"
 brew "poetry"
 brew "postgresql@14"
 brew "prettier"
 brew "putty"
 brew "pyenv"
+brew "python@3.12"
 brew "qemu"
 brew "rbenv"
 brew "react-native-cli"
@@ -126,6 +131,7 @@ brew "zlib"
 brew "zsh"
 brew "coursier/formulas/coursier"
 brew "elastic/tap/elasticsearch-full"
+brew "go-task/tap/go-task"
 brew "mongodb/brew/mongodb-community"
 brew "samuong/alpaca/alpaca"
 cask "alcove"
@@ -141,12 +147,14 @@ cask "bettertouchtool"
 cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
 cask "chatgpt"
+cask "citra"
 cask "citrix-workspace", args: { appdir: "/Applications" }
+cask "claude"
 cask "curseforge"
 cask "cursor"
 cask "desmume", args: { appdir: "/Applications" }
 cask "discord", args: { appdir: "/Applications" }
-cask "docker", args: { appdir: "/Applications" }
+cask "docker-desktop", args: { appdir: "/Applications" }
 cask "dolphin"
 cask "dotnet-sdk"
 cask "figma", args: { appdir: "/Applications" }
@@ -158,14 +166,16 @@ cask "github", args: { appdir: "/Applications" }
 cask "gitkraken", args: { appdir: "/Applications" }
 cask "google-chrome", args: { appdir: "/Applications" }
 cask "hashicorp-vagrant"
-cask "httpie", args: { appdir: "/Applications" }
+cask "httpie-desktop", args: { appdir: "/Applications" }
 cask "inkscape"
 cask "insomnia"
 cask "intellij-idea", args: { appdir: "/Applications" }
 cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
-cask "jetbrains-toolbox", args: { appdir: "/Applications" }
+cask "jetbrains-toolbox"
+cask "karabiner-elements"
 cask "logi-options+"
+cask "melonds"
 cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
 cask "minecraft", args: { appdir: "/Applications" }
@@ -179,7 +189,6 @@ cask "postman", args: { appdir: "/Applications" }
 cask "proxyman"
 cask "raycast", args: { appdir: "/Applications" }
 cask "sf-symbols", args: { appdir: "/Applications" }
-cask "soapui"
 cask "soundsource", args: { appdir: "/Applications" }
 cask "steam", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
@@ -190,10 +199,11 @@ cask "unity-hub", args: { appdir: "/Applications" }
 cask "vagrant"
 cask "vagrant-vmware-utility"
 cask "visual-studio-code", args: { appdir: "/Applications" }
-cask "vivid", args: { appdir: "/Applications" }
+cask "vivid-app", args: { appdir: "/Applications" }
 cask "vmware-fusion"
 cask "wakatime"
 cask "warp"
+cask "zen"
 cask "zulu"
 mas "AdBlock Pro", id: 1018301773
 mas "Affinity Designer 2", id: 1616831348
@@ -218,7 +228,6 @@ mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "JapaneseLife", id: 1634749545
 mas "Keynote", id: 409183694
-mas "LensOCR", id: 1549961729
 mas "Logic Pro", id: 634148309
 mas "MainStage", id: 634159523
 mas "Microsoft Excel", id: 462058435
@@ -238,15 +247,18 @@ mas "PreviewCode", id: 1571797683
 mas "PreviewJson", id: 6443584377
 mas "PreviewMarkdown", id: 1492280469
 mas "PreviewYaml", id: 1564574724
+mas "QuickFTP", id: 1451646819
 mas "Reeder", id: 1529448980
 mas "Slack", id: 803453959
 mas "Swift Playground", id: 1496833156
+mas "Teleparty For Safari", id: 6471985961
 mas "TestFlight", id: 899247664
 mas "The Lost City", id: 1538650027
 mas "The Unarchiver", id: 425424353
 mas "UTM", id: 1538878817
 mas "Wayback Machine", id: 1472432422
 mas "WhatsApp", id: 310633997
+vscode "1yib.svelte-bundle"
 vscode "aaron-bond.better-comments"
 vscode "akamud.vscode-theme-onedark"
 vscode "alefragnani.bookmarks"
@@ -258,6 +270,8 @@ vscode "amazonwebservices.aws-toolkit-vscode"
 vscode "amazonwebservices.codewhisperer-for-command-line-companion"
 vscode "angular.ng-template"
 vscode "antfu.iconify"
+vscode "anthropic.claude-code"
+vscode "ardenivanov.svelte-intellisense"
 vscode "austenc.tailwind-docs"
 vscode "axmmisaka.felonious-cpp-formatter"
 vscode "aykutsarac.jsoncrack-vscode"
@@ -275,6 +289,7 @@ vscode "bmewburn.vscode-intelephense-client"
 vscode "bourhaouta.tailwindshades"
 vscode "bradlc.vscode-tailwindcss"
 vscode "brandonkirbyson.vscode-animations"
+vscode "builder.builder"
 vscode "capaj.vscode-standardjs-snippets"
 vscode "castwide.solargraph"
 vscode "chakrounanas.turbo-console-log"
@@ -306,6 +321,7 @@ vscode "editorconfig.editorconfig"
 vscode "esbenp.prettier-vscode"
 vscode "fatih.baba-flow"
 vscode "figma.figma-vscode-extension"
+vscode "fivethree.vscode-svelte-snippets"
 vscode "formulahendry.auto-close-tag"
 vscode "formulahendry.auto-rename-tag"
 vscode "foxundermoon.shell-format"
@@ -313,7 +329,6 @@ vscode "fwcd.kotlin"
 vscode "github.codespaces"
 vscode "github.copilot"
 vscode "github.copilot-chat"
-vscode "github.copilot-workspace"
 vscode "github.github-vscode-theme"
 vscode "github.remotehub"
 vscode "github.vscode-github-actions"
@@ -363,6 +378,7 @@ vscode "mindaro-dev.file-downloader"
 vscode "misterj.vue-volar-extention-pack"
 vscode "mjpvs.latex-previewer"
 vscode "mongodb.mongodb-vscode"
+vscode "ms-azuretools.vscode-containers"
 vscode "ms-azuretools.vscode-docker"
 vscode "ms-ceintl.vscode-language-pack-de"
 vscode "ms-dotnettools.csdevkit"
@@ -380,6 +396,7 @@ vscode "ms-python.debugpy"
 vscode "ms-python.isort"
 vscode "ms-python.python"
 vscode "ms-python.vscode-pylance"
+vscode "ms-python.vscode-python-envs"
 vscode "ms-toolsai.jupyter"
 vscode "ms-toolsai.jupyter-keymap"
 vscode "ms-toolsai.jupyter-renderers"
