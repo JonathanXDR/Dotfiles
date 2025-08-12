@@ -11,8 +11,13 @@ export NTLM_CREDENTIALS=${NTLM_CREDENTIALS}
 
 export BUN_INSTALL="${HOME}/.bun"
 export NVM_DIR="${HOME}/.nvm"
-export EDITOR="nano"
 export RESOLF='/etc/resolv.conf'
+
+export EDITOR="nano"
+export KUBE_EDITOR="nano"
+
+export FORGEOPS_PATH=$HOME/Developer/Git/Swisscom/forgeops
+export KUBECONFIG_PATH=$HOME/.kube
 
 export PATH="${BUN_INSTALL}/bin:${PATH}"
 export PATH="${PATH}:${HOME}/.rvm/bin"
