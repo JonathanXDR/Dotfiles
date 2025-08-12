@@ -13,10 +13,12 @@ autoload -U add-zsh-hook
 [ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
 
 # Load custom files
+# TODO: load files directly from repo if the users hasn't linked the dotfiles yet
 for file in vars func aliases; do
   [[ ! -f "${HOME}/.shell/${file}.sh" ]] || source "${HOME}/.shell/${file}.sh"
 done
 
+# TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
 # proxy:probe
 add-zsh-hook chpwd nvmrc:load
