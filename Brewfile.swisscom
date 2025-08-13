@@ -24,6 +24,9 @@ brew "bower"
 brew "brew-gem"
 brew "ghc"
 brew "cabal-install"
+brew "coreutils"
+brew "emacs"
+brew "cask"
 brew "ccache"
 brew "certifi"
 brew "cf"
@@ -35,11 +38,9 @@ brew "curl"
 brew "libtool"
 brew "php"
 brew "composer"
-brew "coreutils"
 brew "displayplacer"
 brew "dockutil"
 brew "dos2unix"
-brew "emacs"
 brew "eslint"
 brew "ffmpeg"
 brew "firebase-cli"
@@ -149,7 +150,7 @@ cask "firefox@developer-edition"
 cask "flutter"
 cask "focusrite-control-2", args: { appdir: "/Applications" }
 cask "framer"
-cask "gitkraken", args: { appdir: "/Applications" }
+cask "gitkraken"
 cask "google-chrome", args: { appdir: "/Applications" }
 cask "hashicorp-vagrant"
 cask "httpie-desktop", args: { appdir: "/Applications" }
@@ -159,7 +160,9 @@ cask "intellij-idea", args: { appdir: "/Applications" }
 cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox"
+cask "jordanbaird-ice"
 cask "logi-options+"
+cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
 cask "mongodb-compass", args: { appdir: "/Applications" }
 cask "ngrok"
@@ -171,7 +174,7 @@ cask "sf-symbols", args: { appdir: "/Applications" }
 cask "soundsource", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
 cask "temurin"
-cask "tg-pro", args: { appdir: "/Applications" }
+cask "tg-pro"
 cask "vagrant"
 cask "vagrant-vmware-utility"
 cask "visual-studio-code", args: { appdir: "/Applications" }
@@ -226,6 +229,7 @@ vscode "alexcvzz.vscode-sqlite"
 vscode "aliariff.vscode-erb-beautify"
 vscode "amazonwebservices.amazon-q-vscode"
 vscode "amazonwebservices.aws-toolkit-vscode"
+vscode "amazonwebservices.codewhisperer-for-command-line-companion"
 vscode "angular.ng-template"
 vscode "antfu.iconify"
 vscode "anthropic.claude-code"

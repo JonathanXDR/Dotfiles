@@ -22,6 +22,7 @@ done
 env:replace
 # proxy:probe
 add-zsh-hook chpwd nvmrc:load
+# TODO: Don't call services if they are not accessible in corpnet
 bun:update
 nvm:update
 nvmrc:load
@@ -34,6 +35,10 @@ source <(ng completion script)
 [[ "${ALWAYS_PROXY_PROBE}" == "true" ]]
 
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.zsh" ]] && builtin source "$HOME/.fig/export/dotfiles/dotfile.zsh"
+
+# THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+if [[ $(arch) == "i386" ]]; then eval "$(/usr/local/bin/brew shellenv)"; fi
 
 # Amazon Q post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
