@@ -22,6 +22,7 @@ done
 env:replace
 # proxy:probe
 add-zsh-hook chpwd nvmrc:load
+# TODO: Don't call services if they are not accessible in corpnet
 bun:update
 nvm:update
 nvmrc:load
