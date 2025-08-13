@@ -18,6 +18,7 @@ export KUBE_EDITOR="nano"
 
 export FORGEOPS_PATH=$HOME/Developer/Git/Swisscom/forgeops
 export KUBECONFIG_PATH=$HOME/.kube
+export SDKMAN_DIR="$HOME/.sdkman"
 
 export PATH="${BUN_INSTALL}/bin:${PATH}"
 export PATH="${PATH}:${HOME}/.rvm/bin"
