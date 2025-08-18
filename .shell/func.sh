@@ -221,28 +221,47 @@ nvmrc:load() {
 }
 
 dotfiles:link() {
-  local source_dir="$HOME/Developer/Git/GitHub/Dotfiles/"
   local target_dir="$HOME"
   local -a skip_files=(".DS_Store" ".git" ".gitignore" "LICENSE" "README.md")
+  local -a default_sources=(
+    "$HOME/Developer/Git/GitHub/Dotfiles"
+    "$HOME/Documents/General/Developer/configs/dotfiles"
+  )
+  local -a source_dirs=()
 
-  for file in "$source_dir".*; do
-    local filename
-    filename=$(basename "$file")
+  if (( $# > 0 )); then
+    source_dirs=("$@")
+  else
+    source_dirs=("${default_sources[@]}")
+  fi
 
-    [[ " ${skip_files[*]} " =~ ${filename} ]] && {
-      echo "Skipping $filename"
+  for source_dir in "${source_dirs[@]}"; do
+    if [[ ! -d "$source_dir" ]]; then
+      echo "Source dir not found: $source_dir (skipping)" >&2
       continue
-    }
-
-    local target="$target_dir/$filename"
-
-    if [[ -e "$target" || -L "$target" ]]; then
-      echo "Removing existing $target"
-      rm -f "$target"
     fi
 
-    ln -s "$file" "$target"
-    echo "Created symlink for $filename"
+    for file in "$source_dir"/.*; do
+      local filename
+      filename=$(basename "$file")
+
+      [[ "$filename" == "." || "$filename" == ".." ]] && continue
+
+      if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
+        echo "Skipping $filename"
+        continue
+      fi
+
+      local target="$target_dir/$filename"
+
+      if [[ -e "$target" || -L "$target" ]]; then
+        echo "Removing existing $target"
+        rm -f "$target"
+      fi
+
+      ln -s "$file" "$target"
+      echo "Created symlink for $filename (from $source_dir)"
+    done
   done
 }
 
