@@ -265,6 +265,17 @@ dotfiles:link() {
   done
 }
 
+network:check() {
+  local cmd="$1" url="$2"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
+      "$cmd"
+    else
+      print "Skipping $cmd (network unavailable or blocked)"
+    fi
+  fi
+}
+
 ncu:update() {
   ncu -u
   rm -rf node_modules
