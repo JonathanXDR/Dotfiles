@@ -17,9 +17,11 @@
 #   4. Store new defaults in file: `defaults read > after`
 #   5. Diff the files: `diff before after`
 #
-# @see: http://secrets.blacktree.com/?showapp=com.apple.finder
-# @see: https://github.com/herrbischoff/awesome-macos-command-line
-#
+# @see: https://git.herrbischoff.com/awesome-macos-command-line/about/
+# @see: https://macos-defaults.com/
+# @see: https://github.com/mathiasbynens/dotfiles/blob/main/.macos
+# @see: https://www.defaults-write.com/
+# @see: https://ss64.com/mac/syntax-defaults.html
 # @author Jeff Geerling
 
 # Warn that some commands will not be run if the script is not run as root.
@@ -298,7 +300,7 @@ defaults write com.apple.finder FXPreferredViewStyle -string "clmv"
 chflags nohidden ~/Library
 
 # Show the $HOME/Library folder
-chflags nohidden $HOME/Library
+chflags nohidden "$HOME"/Library
 
 # Show path bar
 defaults write com.apple.finder ShowPathbar -bool true
