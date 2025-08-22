@@ -14,11 +14,43 @@ autoload -U add-zsh-hook
 [ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
 
 # Load custom files
-for file in vars func aliases; do
-    [[ ! -f "${HOME}/.shell/${file}.sh" ]] || source "${HOME}/.shell/${file}.sh"
+DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
+
+files=(vars func aliases)
+primary_dir="${HOME}/.shell"
+backup_dir="${DOTFILES_REPO_PATH}/.shell"
+
+used_backup=0
+
+for f in "${files[@]}"; do
+  sourced=0
+  for dir in "$primary_dir" "$backup_dir"; do
+    candidate="${dir}/${f}.sh"
+    if [[ -r "$candidate" ]]; then
+      if [[ "$dir" == "$backup_dir" ]]; then
+        used_backup=1
+        print "Root shell file missing for '${f}', sourcing backup: $candidate"
+      fi
+      source "$candidate"
+      sourced=1
+      break
+    fi
+  done
+  if (( ! sourced )); then
+    print "Warning: could not find '${f}.sh' in either ${primary_dir} or ${backup_dir}"
+  fi
 done
 
-proxy:probe
+# If any backup was used, try to run the link step once.
+if (( used_backup )); then
+  if command -v dotfiles:link >/dev/null 2>&1; then
+    source "${DOTFILES_REPO_PATH}/.zshenv"
+    dotfiles:link
+  fi
+fi
+
+# TODO: add auto detection for setup (if certain files are not present try linking them)
+env:replace
 add-zsh-hook chpwd nvmrc:load
 
 # Only run update commands if network endpoints are reachable
@@ -26,13 +58,18 @@ network:check bun:update https://registry.npmjs.org
 network:check nvm:update https://raw.githubusercontent.com
 
 nvmrc:load
-node:verify
 
 # Load Angular CLI autocompletion.
 source <(ng completion script)
 
 # Set up proxy if in VPN or not
-[[ "${ALWAYS_PROXY_PROBE}" == "true" ]]
+[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
+
+# Start sshAgent automatically
+[[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
+
+# Setup system specific PATHs
+[[ -n "${PATH_ADD}" ]] && export PATH="${PATH}:${PATH_ADD}"
 
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.bash" ]] && source "$HOME/.fig/export/dotfiles/dotfile.bash"
 
