@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
+export ALWAYS_PROXY_PROBE=${ALWAYS_PROXY_PROBE:-false}
 export PROXY_PROTOCOL=${PROXY_PROTOCOL:-http}
 export PROXY_HOST=${PROXY_HOST:-localhost}
 export PROXY_PORT=${PROXY_PORT:-8080}
 export NOPROXY=${NOPROXY:-localhost,127.0.0.1}
-export AWS_CLUSTER_NAME=${AWS_CLUSTER_NAME:-default-cluster}
-export AWS_REGION=${AWS_REGION:-us-west-2}
 
 export NTLM_CREDENTIALS=${NTLM_CREDENTIALS}
 
-export FORGEOPS_PATH="$HOME/Developer/Git/Swisscom/forgeops"
+export BROWSER=""
+export DEFAULT_USER="$(whoami)"
+
+# Add more things to PATH only specific to this specific system
+PATH_ADD=""
+AUTOSTART_SSH_AGENT="true"
