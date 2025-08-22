@@ -132,12 +132,6 @@ auth       sufficient     pam_tid.so
   echo "Done. $FILE has been updated successfully."
 }
 
-cluster:change() {
-  local cluster_name="${1:-${AWS_CLUSTER_NAME}}"
-  export AWS_CLUSTER_NAME="${cluster_name}"
-  aws eks update-kubeconfig --name "${AWS_CLUSTER_NAME}" --region "${AWS_REGION}"
-}
-
 docker:cleanup() {
   if [[ $# -eq 0 ]]; then
     docker stop "$(docker ps -aq)" 2>/dev/null || true
