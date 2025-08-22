@@ -182,9 +182,9 @@ node:verify() {
   # Check if node command works after switching to newest version
   if ! node --version >/dev/null 2>&1; then
     echo "Warning: node command failed with newest version, reverting to LTS..."
-    # Install LTS version if it doesn't exist
-    nvm install --lts
-    # nvm use --lts
+    # Fallback to the LTS version
+    nvm alias default 'lts/*'
+    nvm use --lts
     echo "Reverted to LTS node version."
   fi
 
