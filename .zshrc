@@ -54,20 +54,8 @@ env:replace
 add-zsh-hook chpwd nvmrc:load
 
 # Only run update commands if network endpoints are reachable
-if command -v bun:update >/dev/null 2>&1; then
-  if command -v curl >/dev/null 2>&1 && curl -m3 -sSf https://registry.npmjs.org >/dev/null 2>&1; then
-    bun:update
-  else
-    print "Skipping bun:update (network unavailable or blocked)"
-  fi
-fi
-if command -v nvm:update >/dev/null 2>&1; then
-  if command -v curl >/dev/null 2>&1 && curl -m3 -sSf https://raw.githubusercontent.com >/dev/null 2>&1; then
-    nvm:update
-  else
-    print "Skipping nvm:update (network unavailable or blocked)"
-  fi
-fi
+network:check bun:update https://registry.npmjs.org
+network:check nvm:update https://raw.githubusercontent.com
 
 nvmrc:load
 
