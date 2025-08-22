@@ -63,23 +63,11 @@ proxy:probe() {
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
     echo "Detected VPN, turning on proxy."
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
-    [[ "${with_dns}" == "dns" ]] && wsl_change_dns "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
+    [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
   else
     # echo "Detected normal network, turning off proxy."
     proxy:unset
-    [[ "${with_dns}" == "dns" ]] && wsl_change_dns "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
-  fi
-}
-
-proxy:aws() {
-  local proxy_args=("${AWS_PROXY_PROTOCOL:-http}" "${AWS_PROXY_HOST:-localhost}" "${AWS_PROXY_PORT:-8080}")
-  local proxy_addr
-  proxy_addr="$(proxy:compose-addr "${proxy_args[@]}")"
-
-  if [[ "${http_proxy:-}" != "${proxy_addr}" ]]; then
-    proxy:set "${proxy_args[@]}"
-  else
-    proxy:unset
+    [[ "${with_dns}" == "dns" ]] && dns:change "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
   fi
 }
 
