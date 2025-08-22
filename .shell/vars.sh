@@ -13,4 +13,6 @@ export DEFAULT_USER="$(whoami)"
 
 # Add more things to PATH only specific to this specific system
 PATH_ADD=""
-AUTOSTART_SSH_AGENT="true"
+
+# This seems to cause some error with the zsh syntax highlighting
+# AUTOSTART_SSH_AGENT="true"
