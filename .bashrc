@@ -20,8 +20,11 @@ done
 
 proxy:probe
 add-zsh-hook chpwd nvmrc:load
-bun:update
-nvm:update
+
+# Only run update commands if network endpoints are reachable
+network:check bun:update https://registry.npmjs.org
+network:check nvm:update https://raw.githubusercontent.com
+
 nvmrc:load
 node:verify
 
