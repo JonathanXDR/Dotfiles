@@ -9,19 +9,4 @@ export AWS_REGION=${AWS_REGION:-us-west-2}
 
 export NTLM_CREDENTIALS=${NTLM_CREDENTIALS}
 
-export BUN_INSTALL="${HOME}/.bun"
-export NVM_DIR="${HOME}/.nvm"
-export RESOLF='/etc/resolv.conf'
-
-export EDITOR="nano"
-export KUBE_EDITOR="nano"
-
-export FORGEOPS_PATH=$HOME/Developer/Git/Swisscom/forgeops
-export KUBECONFIG_PATH=$HOME/.kube
-export SDKMAN_DIR="$HOME/.sdkman"
-
-export PATH="${BUN_INSTALL}/bin:${PATH}"
-export PATH="${PATH}:${HOME}/.rvm/bin"
-export PATH="${HOME}/.console-ninja/.bin:${PATH}"
-export PATH="/Library/Frameworks/Python.framework/Versions/Current/bin:$PATH"
-export PATH="${PATH}:/Users/$USER/Library/Application Support/JetBrains/Toolbox/scripts"
+export FORGEOPS_PATH="$HOME/Developer/Git/Swisscom/forgeops"
