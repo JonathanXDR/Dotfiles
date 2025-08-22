@@ -13,20 +13,63 @@ autoload -U add-zsh-hook
 [ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
 
 # Load custom files
-# TODO: load files directly from repo if the users hasn't linked the dotfiles yet
-for file in vars func aliases; do
-  [[ ! -f "${HOME}/.shell/${file}.sh" ]] || source "${HOME}/.shell/${file}.sh"
+DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
+
+files=(vars func aliases)
+primary_dir="${HOME}/.shell"
+backup_dir="${DOTFILES_REPO_PATH}/.shell"
+
+used_backup=0
+
+for f in "${files[@]}"; do
+  sourced=0
+  for dir in "$primary_dir" "$backup_dir"; do
+    candidate="${dir}/${f}.sh"
+    if [[ -r "$candidate" ]]; then
+      if [[ "$dir" == "$backup_dir" ]]; then
+        used_backup=1
+        print "Root shell file missing for '${f}', sourcing backup: $candidate"
+      fi
+      source "$candidate"
+      sourced=1
+      break
+    fi
+  done
+  if (( ! sourced )); then
+    print "Warning: could not find '${f}.sh' in either ${primary_dir} or ${backup_dir}"
+  fi
 done
+
+# If any backup was used, try to run the link step once.
+if (( used_backup )); then
+  if command -v dotfiles:link >/dev/null 2>&1; then
+    source "${DOTFILES_REPO_PATH}/.zshenv"
+    dotfiles:link
+  fi
+fi
 
 # TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
 # proxy:probe
 add-zsh-hook chpwd nvmrc:load
-# TODO: Don't call services if they are not accessible in corpnet
-bun:update
-nvm:update
+
+# Only run update commands if network endpoints are reachable
+if command -v bun:update >/dev/null 2>&1; then
+  if command -v curl >/dev/null 2>&1 && curl -m3 -sSf https://registry.npmjs.org >/dev/null 2>&1; then
+    bun:update
+  else
+    print "Skipping bun:update (network unavailable or blocked)"
+  fi
+fi
+if command -v nvm:update >/dev/null 2>&1; then
+  if command -v curl >/dev/null 2>&1 && curl -m3 -sSf https://raw.githubusercontent.com >/dev/null 2>&1; then
+    nvm:update
+  else
+    print "Skipping nvm:update (network unavailable or blocked)"
+  fi
+fi
+
 nvmrc:load
-node:verify
 
 # Load Angular CLI autocompletion.
 source <(ng completion script)
