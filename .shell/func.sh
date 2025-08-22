@@ -182,9 +182,9 @@ node:verify() {
   # Check if node command works after switching to newest version
   if ! node --version >/dev/null 2>&1; then
     echo "Warning: node command failed with newest version, reverting to LTS..."
-    # Install LTS version if it doesn't exist
-    nvm install --lts
-    # nvm use --lts
+    # Fallback to the LTS version
+    nvm alias default 'lts/*'
+    nvm use --lts
     echo "Reverted to LTS node version."
   fi
 
@@ -224,8 +224,8 @@ dotfiles:link() {
   local target_dir="$HOME"
   local -a skip_files=(".DS_Store" ".git" ".gitignore" "LICENSE" "README.md")
   local -a default_sources=(
-    "$HOME/Developer/Git/GitHub/Dotfiles"
-    "$HOME/Documents/General/Developer/configs/dotfiles"
+    "${DOTFILES_REPO_PATH}"
+    "${DOTFILES_CONFIG_PATH}"
   )
   local -a source_dirs=()
 
@@ -273,13 +273,13 @@ ncu:update() {
 }
 
 globals:install() {
-  if [ -f "${HOME}/.npm.globals" ]; then
-    grep -vE '^#|^$' "${HOME}/.npm.globals" | xargs npm install -g --force
+  if [ -f "$NPM_GLOBALS" ]; then
+    grep -vE '^#|^$' "$NPM_GLOBALS" | xargs npm install -g --force
 
     local node_version
     node_version=$(node --version)
-    local lock_file="${HOME}/.npm.globals.${node_version}.lock"
-    grep -vE '^#|^$' "${HOME}/.npm.globals" >"${lock_file}"
+    local lock_file="$NPM_GLOBALS.${node_version}.lock"
+    grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
 
     echo "Global packages installed."
   else
