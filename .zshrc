@@ -50,7 +50,6 @@ fi
 
 # TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
-# proxy:probe
 add-zsh-hook chpwd nvmrc:load
 
 # Only run update commands if network endpoints are reachable
@@ -63,7 +62,13 @@ nvmrc:load
 source <(ng completion script)
 
 # Set up proxy if in VPN or not
-[[ "${ALWAYS_PROXY_PROBE}" == "true" ]]
+[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
+
+# Start sshAgent automatically
+[[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
+
+# Setup system specific PATHs
+[[ -n "${PATH_ADD}" ]] && export PATH="${PATH}:${PATH_ADD}"
 
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.zsh" ]] && builtin source "$HOME/.fig/export/dotfiles/dotfile.zsh"
 
