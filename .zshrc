@@ -44,7 +44,6 @@ autoload -U add-zsh-hook
 # bun completions
 [ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
 
-# TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
 add-zsh-hook chpwd nvmrc:load
 
