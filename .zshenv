@@ -14,6 +14,7 @@ export KUBECONFIG_PATH="$HOME/.kube"
 
 export RESOLV='/etc/resolv.conf'
 export NPM_GLOBALS="$HOME/.npm.globals"
+export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
 
 # Dotfiles metadata
 export DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
