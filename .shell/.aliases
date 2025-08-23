@@ -243,10 +243,12 @@ grb() {
 
 # ------------------------------- Suffix alias ------------------------------- #
 
-alias -s go='$EDITOR'
-alias -s md='$EDITOR'
-alias -s yaml='$EDITOR'
-alias -s yml='$EDITOR'
-alias -s js='$EDITOR'
-alias -s ts='$EDITOR'
-alias -s json='$EDITOR'
+if [ -n "$ZSH_VERSION" ]; then
+  alias -s go='$EDITOR'
+  alias -s md='$EDITOR'
+  alias -s yaml='$EDITOR'
+  alias -s yml='$EDITOR'
+  alias -s js='$EDITOR'
+  alias -s ts='$EDITOR'
+  alias -s json='$EDITOR'
+fi
