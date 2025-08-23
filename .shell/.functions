@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# ---------------------------------- Utils ----------------------------------- #
+# ---------------------------- Shell & PATH Utils ---------------------------- #
 
 cmd:exists() {
   [[ $# -eq 1 ]] || {
@@ -36,6 +36,8 @@ mkd() {
 cdf() { # short for `cdfinder`
 	cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || exit;
 }
+
+# ----------------------------- Files & Archives ----------------------------- #
 
 # Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
 targz() {
@@ -85,14 +87,6 @@ fs() {
   fi;
 }
 
-# Use Git’s colored diff when available
-hash git &>/dev/null;
-if [ $? -eq 0 ]; then
-	diff() {
-		git diff --no-index --color-words "$@";
-	}
-fi;
-
 # Create a data URL from a file
 dataurl() {
 	# shellcheck disable=SC2155
@@ -123,6 +117,39 @@ gz() {
 	printf "orig: %d bytes\n" "$origsize";
 	printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$ratio";
 }
+
+# `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
+# the `.git` directory, listing directories first. The output gets piped into
+# `less` with options to preserve color and line numbers, unless the output is
+# small enough for one screen.
+tre() {
+	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
+}
+
+# ------------------------------ Open & Launch ------------------------------- #
+
+# Normalize `open` across Linux, macOS, and Windows.
+# This is needed to make the `o` function (see below) cross-platform.
+if [ "$(uname -s)" != 'Darwin' ]; then
+  if grep -q Microsoft /proc/version; then
+    # Ubuntu on Windows using the Linux subsystem
+    alias open='explorer.exe';
+  else
+    alias open='xdg-open';
+  fi
+fi
+
+# `o` with no arguments opens the current directory, otherwise opens the given
+# location
+o() {
+	if [ $# -eq 0 ]; then
+		open .;
+	else
+		open "$@";
+	fi;
+}
+
+# -------------------------- Networking, TLS & DNS --------------------------- #
 
 # Run `dig` and display the most useful info
 digga() {
@@ -164,37 +191,6 @@ getcertnames() {
 		return 1;
 	fi;
 }
-
-# Normalize `open` across Linux, macOS, and Windows.
-# This is needed to make the `o` function (see below) cross-platform.
-if [ "$(uname -s)" != 'Darwin' ]; then
-  if grep -q Microsoft /proc/version; then
-    # Ubuntu on Windows using the Linux subsystem
-    alias open='explorer.exe';
-  else
-    alias open='xdg-open';
-  fi
-fi
-
-# `o` with no arguments opens the current directory, otherwise opens the given
-# location
-o() {
-	if [ $# -eq 0 ]; then
-		open .;
-	else
-		open "$@";
-	fi;
-}
-
-# `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
-# the `.git` directory, listing directories first. The output gets piped into
-# `less` with options to preserve color and line numbers, unless the output is
-# small enough for one screen.
-tre() {
-	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
-}
-
-# --------------------------- Networking & Proxy ----------------------------- #
 
 dns:change() {
   if (($# < 2)); then
@@ -270,7 +266,7 @@ network:check() {
   fi
 }
 
-# ------------------------------ SSH Utilities ------------------------------- #
+# ------------------------------------ SSH ----------------------------------- #
 
 ssh:reagent() {
   for agent in /tmp/ssh-*/agent.*; do
@@ -343,7 +339,7 @@ dock:reset() {
   killall Dock
 }
 
-# ----------------------------- Docker Utilities ----------------------------- #
+# ---------------------------------- Docker ---------------------------------- #
 
 docker:cleanup() {
   if [[ $# -eq 0 ]]; then
@@ -358,7 +354,7 @@ docker:cleanup() {
   fi
 }
 
-# ------------------------- Node/Bun/NVM Tooling ----------------------------- #
+# ------------------------------- JS Ecosystem ------------------------------- #
 
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
@@ -531,7 +527,15 @@ dotfiles:cleanup() {
   rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
 }
 
-# ------------------------------ Git Utilities ------------------------------- #
+# ------------------------------------ Git ----------------------------------- #
+
+# Use Git’s colored diff when available
+hash git &>/dev/null;
+if [ $? -eq 0 ]; then
+	diff() {
+		git diff --no-index --color-words "$@";
+	}
+fi;
 
 git:diff() {
   local source_branch="$1"
