@@ -8,6 +8,25 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
+# PATH utility function (build once, mind order)
+# Safely adds a directory to PATH only if it exists and isn't already there
+path:add() { 
+  [[ -d "$1" ]] && case ":$PATH:" in 
+    *":$1:"*) ;; 
+    *) export PATH="$1:$PATH" ;; 
+  esac 
+}
+
+# PATH utility function for appending (less common, but useful)
+path:append() { 
+  [[ -d "$1" ]] && case ":$PATH:" in 
+    *":$1:"*) ;; 
+    *) export PATH="$PATH:$1" ;; 
+  esac 
+}
+
+# --------------------------- Networking & Proxy ----------------------------- #
+
 dns:change() {
   if (($# < 2)); then
     echo "Usage: dns:change <network service name> <DNS IPs separated by commas>" >&2
