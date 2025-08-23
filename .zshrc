@@ -1,21 +1,11 @@
 # Amazon Q pre block. Keep at the top of this file.
 [[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 
-# Setting PATH for Python
-# The original version is saved in .zprofile.pysave
-
-eval "$(pyenv init --path)"
-autoload -U add-zsh-hook
-
-# bun completions
-[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
-
-# Load custom files
+# Load custom files (order matters: vars → func → paths → aliases)
 DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
 
-files=(vars func aliases)
+# Define the files here manually because we want to control the load order
+files=(vars func paths aliases)
 primary_dir="${HOME}/.shell"
 backup_dir="${DOTFILES_REPO_PATH}/.shell"
 
@@ -48,6 +38,13 @@ if (( used_backup )); then
   fi
 fi
 
+# Setting PATH for Python
+# The original version is saved in .zprofile.pysave
+autoload -U add-zsh-hook
+
+# bun completions
+[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
+
 # TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
 add-zsh-hook chpwd nvmrc:load
@@ -67,14 +64,10 @@ source <(ng completion script)
 # Start sshAgent automatically
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
-# Setup system specific PATHs
-[[ -n "${PATH_ADD}" ]] && export PATH="${PATH}:${PATH_ADD}"
-
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.zsh" ]] && builtin source "$HOME/.fig/export/dotfiles/dotfile.zsh"
 
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-if [[ $(arch) == "i386" ]]; then eval "$(/usr/local/bin/brew shellenv)"; fi
 
 # Amazon Q post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"

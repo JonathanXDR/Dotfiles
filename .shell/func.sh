@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# ---------------------------------- Utils ----------------------------------- #
+
 cmd:exists() {
   [[ $# -eq 1 ]] || {
     echo "Usage: cmd:exists <command>" >&2
@@ -7,6 +9,25 @@ cmd:exists() {
   }
   command -v "$1" &>/dev/null
 }
+
+# PATH utility function (build once, mind order)
+# Safely adds a directory to PATH only if it exists and isn't already there
+path:add() { 
+  [[ -d "$1" ]] && case ":$PATH:" in 
+    *":$1:"*) ;; 
+    *) export PATH="$1:$PATH" ;; 
+  esac 
+}
+
+# PATH utility function for appending (less common, but useful)
+path:append() { 
+  [[ -d "$1" ]] && case ":$PATH:" in 
+    *":$1:"*) ;; 
+    *) export PATH="$PATH:$1" ;; 
+  esac 
+}
+
+# --------------------------- Networking & Proxy ----------------------------- #
 
 dns:change() {
   if (($# < 2)); then
@@ -71,6 +92,19 @@ proxy:probe() {
   fi
 }
 
+network:check() {
+  local cmd="$1" url="$2"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
+      "$cmd"
+    else
+      print "Skipping $cmd (network unavailable or blocked)"
+    fi
+  fi
+}
+
+# ------------------------------ SSH Utilities ------------------------------- #
+
 ssh:reagent() {
   for agent in /tmp/ssh-*/agent.*; do
     export SSH_AUTH_SOCK="${agent}"
@@ -87,6 +121,8 @@ ssh:reagent() {
 ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
+
+# ---------------------------- macOS System Tweaks --------------------------- #
 
 sudo:touch-id() {
   FILE='/etc/pam.d/sudo'
@@ -120,19 +156,6 @@ auth       sufficient     pam_tid.so
   echo "Done. $FILE has been updated successfully."
 }
 
-docker:cleanup() {
-  if [[ $# -eq 0 ]]; then
-    docker stop "$(docker ps -aq)" 2>/dev/null || true
-    docker rm "$(docker ps -aq)" 2>/dev/null || true
-    docker rmi "$(docker images -q)" 2>/dev/null || true
-  else
-    local keywords="$*"
-    docker stop "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rm "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rmi "$(docker images --format '{{.ID}} {{.Repository}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-  fi
-}
-
 dock:reset() {
   defaults delete com.apple.dock
   killall Dock
@@ -152,6 +175,23 @@ dock:reset() {
 
   killall Dock
 }
+
+# ----------------------------- Docker Utilities ----------------------------- #
+
+docker:cleanup() {
+  if [[ $# -eq 0 ]]; then
+    docker stop "$(docker ps -aq)" 2>/dev/null || true
+    docker rm "$(docker ps -aq)" 2>/dev/null || true
+    docker rmi "$(docker images -q)" 2>/dev/null || true
+  else
+    local keywords="$*"
+    docker stop "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
+    docker rm "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
+    docker rmi "$(docker images --format '{{.ID}} {{.Repository}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
+  fi
+}
+
+# ------------------------- Node/Bun/NVM Tooling ----------------------------- #
 
 nvm:update() {
   if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
@@ -202,6 +242,42 @@ nvmrc:load() {
   fi
 }
 
+globals:install() {
+  if [ -f "$NPM_GLOBALS" ]; then
+    grep -vE '^#|^$' "$NPM_GLOBALS" | xargs npm install -g --force
+
+    local node_version
+    node_version=$(node --version)
+    local lock_file="$NPM_GLOBALS.${node_version}.lock"
+    grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
+
+    echo "Global packages installed."
+  else
+    echo ".npm.globals file not found."
+  fi
+}
+
+ncu:update() {
+  ncu -u
+  rm -rf node_modules
+  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
+  ni
+}
+
+env:replace() {
+  if [ -f "${HOME}/.env" ]; then
+    CURRENT_DIR=$(pwd)
+    cd "$HOME" || exit
+
+    npx npmrc-replace-env -w
+    cd "$CURRENT_DIR" || exit
+  else
+    echo ".env file not found."
+  fi
+}
+
+# --------------------------- Dotfiles Management ---------------------------- #
+
 dotfiles:link() {
   local target_dir="$HOME"
   local -a skip_files=(".DS_Store" ".git" ".gitignore" "LICENSE" "README.md")
@@ -245,52 +321,16 @@ dotfiles:link() {
       echo "Created symlink for $filename (from $source_dir)"
     done
   done
+
+  dotfiles:cleanup
 }
 
-network:check() {
-  local cmd="$1" url="$2"
-  if command -v "$cmd" >/dev/null 2>&1; then
-    if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
-      "$cmd"
-    else
-      print "Skipping $cmd (network unavailable or blocked)"
-    fi
-  fi
+dotfiles:cleanup() {
+  # Remove stale lock files
+  rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
 }
 
-ncu:update() {
-  ncu -u
-  rm -rf node_modules
-  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
-  ni
-}
-
-globals:install() {
-  if [ -f "$NPM_GLOBALS" ]; then
-    grep -vE '^#|^$' "$NPM_GLOBALS" | xargs npm install -g --force
-
-    local node_version
-    node_version=$(node --version)
-    local lock_file="$NPM_GLOBALS.${node_version}.lock"
-    grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
-
-    echo "Global packages installed."
-  else
-    echo ".npm.globals file not found."
-  fi
-}
-
-env:replace() {
-  if [ -f "${HOME}/.env" ]; then
-    CURRENT_DIR=$(pwd)
-    cd "$HOME" || exit
-
-    npx npmrc-replace-env -w
-    cd "$CURRENT_DIR" || exit
-  else
-    echo ".env file not found."
-  fi
-}
+# ------------------------------ Git Utilities ------------------------------- #
 
 git:diff() {
   local source_branch="$1"
