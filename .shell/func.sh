@@ -212,7 +212,9 @@ node:verify() {
 
   local node_version
   node_version=$(node --version)
-  local installed_globals_file="${HOME}/.npm.globals.${node_version}.lock"
+
+  mkdir -p "${NPM_GLOBALS_LOCK_DIR}"
+  local installed_globals_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
 
   if [ ! -f "${installed_globals_file}" ] || [ -f "${HOME}/.npm.globals" ] && [ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]; then
     globals:install
@@ -248,7 +250,9 @@ globals:install() {
 
     local node_version
     node_version=$(node --version)
-    local lock_file="$NPM_GLOBALS.${node_version}.lock"
+
+    mkdir -p "${NPM_GLOBALS_LOCK_DIR}"
+    local lock_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
     grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
 
     echo "Global packages installed."
