@@ -1,22 +1,12 @@
 #!/usr/bin/env bash
 # Amazon Q pre block. Keep at the top of this file.
 [[ -f "${HOME}/Library/Application Support/amazon-q/shell/bashrc.pre.bash" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/bashrc.pre.bash"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"                                       # This loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
 
-# Setting PATH for Python
-# The original version is saved in .zprofile.pysave
-
-eval "$(pyenv init --path)"
-autoload -U add-zsh-hook
-
-# bun completions
-[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
-
-# Load custom files
+# Load custom files (order matters: vars → func → paths → aliases)
 DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
 
-files=(vars func aliases)
+# Define the files here manually because we want to control the load order
+files=(vars func paths aliases)
 primary_dir="${HOME}/.shell"
 backup_dir="${DOTFILES_REPO_PATH}/.shell"
 
@@ -31,6 +21,7 @@ for f in "${files[@]}"; do
         used_backup=1
         print "Root shell file missing for '${f}', sourcing backup: $candidate"
       fi
+      # shellcheck disable=SC1090
       source "$candidate"
       sourced=1
       break
@@ -49,9 +40,15 @@ if (( used_backup )); then
   fi
 fi
 
+# Setting PATH for Python
+# The original version is saved in .zprofile.pysave
+
+# bun completions
+# shellcheck disable=SC1090
+[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
+
 # TODO: add auto detection for setup (if certain files are not present try linking them)
 env:replace
-add-zsh-hook chpwd nvmrc:load
 
 # Only run update commands if network endpoints are reachable
 network:check bun:update https://registry.npmjs.org
@@ -60,6 +57,7 @@ network:check nvm:update https://raw.githubusercontent.com
 nvmrc:load
 
 # Load Angular CLI autocompletion.
+# shellcheck disable=SC1090
 source <(ng completion script)
 
 # Set up proxy if in VPN or not
@@ -67,9 +65,6 @@ source <(ng completion script)
 
 # Start sshAgent automatically
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
-
-# Setup system specific PATHs
-[[ -n "${PATH_ADD}" ]] && export PATH="${PATH}:${PATH_ADD}"
 
 [[ -f "$HOME/.fig/export/dotfiles/dotfile.bash" ]] && source "$HOME/.fig/export/dotfiles/dotfile.bash"
 
