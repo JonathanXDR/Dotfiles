@@ -4,7 +4,7 @@
 DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
 
 # Define the files here manually because we want to control the load order
-files=(vars func paths aliases)
+files=(.exports .functions .paths .aliases)
 primary_dir="${HOME}/.shell"
 backup_dir="${DOTFILES_REPO_PATH}/.shell"
 
@@ -13,7 +13,7 @@ used_backup=0
 for f in "${files[@]}"; do
   sourced=0
   for dir in "$primary_dir" "$backup_dir"; do
-    candidate="${dir}/${f}.sh"
+    candidate="${dir}/${f}"
     if [[ -r "$candidate" ]]; then
       if [[ "$dir" == "$backup_dir" ]]; then
         used_backup=1
@@ -25,7 +25,7 @@ for f in "${files[@]}"; do
     fi
   done
   if (( ! sourced )); then
-    print "Warning: could not find '${f}.sh' in either ${primary_dir} or ${backup_dir}"
+    print "Warning: could not find '${f}' in either ${primary_dir} or ${backup_dir}"
   fi
 done
 
