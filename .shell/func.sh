@@ -264,8 +264,38 @@ ncu:update() {
   ni
 }
 
+# --------------------- Environment Management Functions --------------------- #
+
+# Load .env file into shell environment
+env:load() {
+  local env_file="${1:-$HOME/.env}"
+  if [[ -f "$env_file" ]]; then
+    local loaded_count=0
+    
+    # Process each line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      # Skip comments and empty lines
+      [[ "$line" =~ ^[[:space:]]*# ]] && continue
+      [[ -z "${line// }" ]] && continue
+      
+      # Validate format (KEY=VALUE) and export
+      if [[ "$line" =~ ^[a-zA-Z_][a-zA-Z0-9_]*= ]]; then
+        local key="${line%%=*}"
+        local value="${line#*=}"
+        export "${key}=${value}"
+        ((loaded_count++))
+      fi
+    done < "$env_file"
+  fi
+}
+
+# Replace environment variables in npmrc and load .env
 env:replace() {
-  if [ -f "${HOME}/.env" ]; then
+  # First load the .env file into the shell environment
+  env:load "$HOME/.env"
+  
+  # Then run the npmrc replacement
+  if [[ -f "${HOME}/.env" ]]; then
     CURRENT_DIR=$(pwd)
     cd "$HOME" || exit
 
