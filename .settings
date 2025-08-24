@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+
+# ---------------------------------------------------------------------------- #
+#                                    General                                   #
+# ---------------------------------------------------------------------------- #
+
+# ------------------------------ Software Update ----------------------------- #
+
+# Download new updates when available → on
+
+# Install macOS updates → on
+
+# Install application updates from the App Store → on
+
+# Install Security Responses and system files → on
+
+# ---------------------------------- Storage --------------------------------- #
+
+# Recommendations:
+# Store in iCloud → on
+# Optimize Storage → off
+# Empty Trash automatically → on
+
+# ----------------------------- AirDrop & Handoff ---------------------------- #
+
+# Allow Handoff between this Mac and your iCloud devices → on
+
+# AirDrop → Everyone
+
+# AirPlay Receiver → on
+
+# Allow AirPlay for → Current User
+
+# Require password → off
+
+# --------------------------- AutoFill & Passwords --------------------------- #
+
+# AutoFill Passwords and Passkeys → on
+
+# AutoFill from:
+# Passwords → on
+
+# Verification Codes:
+# Delete After Use → on
+# Set Up Codes In → Passwords
+
+# -------------------------------- Date & Time ------------------------------- #
+
+# Set time and date automatically → on
+
+# Source → Apple (time.apple.com.)
+
+# 24-hour time → on
+
+# Show 24-hour time on Lock Screen → on
+
+# Set time zone automatically using your current location → on
+
+# ----------------------------- Language & Region ---------------------------- #
+
+# Preferred Languages:
+# Deutsch: German (Switzerland) - Primary
+# English: English
+
+# Region → Switzerland
+
+# Calendar → Gregorian
+
+# Temperature → Celsius (°C)
+
+# Measurement system → Metric
+
+# First day of week → Monday
+
+# Date format → 19.08.2025
+
+# Number format → 1'234'567.89
+
+# List sort order → Universal
+
+# Live Text → on
+
+# ---------------------------------- Sharing --------------------------------- #
+
+# File Sharing → off
+
+# Media Sharing → on
+# Home Sharing → on
+# Devices update play counts → on
+# Share photos with Apple TV → on
+
+# Screen Sharing → on
+# Anyone may request permission to control screen → on
+# VNC viewers may control screen with password → on
+# Password: {InsertPasswordHere}
+
+# Content Caching → on
+# Share: Internet Connection → on
+
+# Bluetooth Sharing → off
+
+# Printer Sharing → off
+
+# Internet Sharing → off
+
+# Remote Management → on
+# Always show Remote Management status in menu bar → off
+# Anyone may request permission to control screen → on
+# VNC viewers may control screen with password → on
+# Password: {InsertPasswordHere}
+
+# Remote Application Scripting → off
+
+# Local hostname → MacBook-Pro.local
+
+# ---------------------------------------------------------------------------- #
+#                                 Accessibility                                #
+# ---------------------------------------------------------------------------- #
+
+# ----------------------------------- Zoom ----------------------------------- #
+
+# Use keyboard shortcuts to zoom → off
+
+# Use trackpad gesture to zoom → off
+
+# Use scroll gesture with modifier keys to zoom → on
+
+# Modifier key for scroll gesture → Control
+
+# Zoom style → Display
+
+# ---------------------------------------------------------------------------- #
+#                                  Appearance                                  #
+# ---------------------------------------------------------------------------- #
+
+# Appearance → Dark
+
+# Accent colour → Multicolour
+
+# Highlight colour → Accent Colour
+
+# Sidebar icon size → Medium
+
+# Allow wallpaper tinting in windows → on
+
+# Show scroll bars → Automatically based on mouse or trackpad
+
+# Click in the scroll bar to → Jump to the next page
+
+# ---------------------------------------------------------------------------- #
+#                                Control Centre                                #
+# ---------------------------------------------------------------------------- #
+
+# Control Centre Modules:
+# Wi-Fi → Show in Menu Bar
+# Bluetooth → Don't Show in Menu Bar
+# AirDrop → Don't Show in Menu Bar
+# Focus → Show When Active
+# Stage Manager → Don't Show in Menu Bar
+# Screen Mirroring → Show When Active
+# Display → Show When Active
+# Sound → Don't Show in Menu Bar
+# Now Playing → Show When Active
+
+# Other Modules:
+
+# Accessibility Shortcuts:
+# Show in Menu Bar → off
+# Show in Control Centre → on
+
+# Battery:
+# Show in Menu Bar → off
+# Show in Control Centre → on
+# Show Percentage → on
+# Show Energy Mode → When Active
+
+# Music Recognition:
+# Show in Menu Bar → off
+# Show in Control Centre → on
+
+# Hearing:
+# Show in Menu Bar → off
+# Show in Control Centre → on
+
+# Fast User Switching:
+# Show in Menu Bar → Don't Show
+# Show in Control Centre → on
+
+# Keyboard Brightness:
+# Show in Menu Bar → off
+# Show in Control Centre → on
+
+# Menu Bar Only:
+
+# Clock:
+# Date:
+# Show date → Always
+# Show the day of the week → on
+
+# Time:
+# Style: Digital
+# Flash the time separators → off
+# Display the time with seconds → on
+# Announce the time → off
+
+# ---------------------------------------------------------------------------- #
+#                                Desktop & Dock                                #
+# ---------------------------------------------------------------------------- #
+
