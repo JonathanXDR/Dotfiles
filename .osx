@@ -100,9 +100,6 @@ defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 # Automatically restart if system freezes
 systemsetup -setrestartfreeze on
 
-# Disable software updates
-# sudo softwareupdate --schedule off
-
 # Expand save panel by default
 defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
 
@@ -369,15 +366,6 @@ defaults write com.apple.dock wvous-bl-modifier -int 0
 # Top left screen corner → no-op
 defaults write com.apple.dock wvous-tl-corner -int 0
 defaults write com.apple.dock wvous-tl-modifier -int 0
-
-# Remove all default app icons
-# defaults write com.apple.dock persistent-apps -array
-
-# Automatically hide and show
-# defaults write com.apple.dock autohide -bool true
-
-# Remove the auto-hiding delay
-# defaults write com.apple.Dock autohide-delay -float 0
 
 # Don't show Dashboard as a Space
 defaults write com.apple.dock "dashboard-in-overlay" -bool true
