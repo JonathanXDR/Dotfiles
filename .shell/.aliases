@@ -42,6 +42,8 @@ alias path='echo -e ${PATH//:/\\n}'
 
 # ------------------------------- System Tools ------------------------------- #
 
+cmd:exists python3 && alias python=python3
+
 # Don't see any reason why we should not use a better top utility if it exists
 cmd:exists btop && alias top='btop'
 
