@@ -65,7 +65,7 @@ source <(ng completion script)
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
-if type brew &>/dev/null; then
+if cmd:exists brew; then
   FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
 
   autoload -Uz compinit
