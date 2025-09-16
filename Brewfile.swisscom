@@ -163,7 +163,6 @@ cask "framer"
 cask "gitkraken"
 cask "google-chrome", args: { appdir: "/Applications" }
 cask "hashicorp-vagrant"
-cask "hazeover"
 cask "httpie-desktop", args: { appdir: "/Applications" }
 cask "inkscape"
 cask "insomnia"
@@ -197,9 +196,6 @@ cask "zed"
 cask "zen"
 cask "zulu"
 mas "AdBlock Pro", id: 1018301773
-mas "Affinity Designer 2", id: 1616831348
-mas "Affinity Photo 2", id: 1616822987
-mas "Affinity Publisher 2", id: 1606941598
 mas "DaisyDisk", id: 411643860
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
@@ -217,7 +213,8 @@ mas "Microsoft To Do", id: 1274495053
 mas "Microsoft Word", id: 462054704
 mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
-mas "PastePal", id: 1503446680
+mas "Paste", id: 967805235
+mas "Photomator", id: 1444636541
 mas "PreviewCode", id: 1571797683
 mas "PreviewJson", id: 6443584377
 mas "PreviewMarkdown", id: 1492280469
@@ -251,7 +248,6 @@ vscode "axmmisaka.felonious-cpp-formatter"
 vscode "aykutsarac.jsoncrack-vscode"
 vscode "bbenoist.vagrant"
 vscode "be5invis.vscode-custom-css"
-vscode "benjaminbenais.copilot-theme"
 vscode "better-ts-errors.better-ts-errors"
 vscode "bierner.comment-tagged-templates"
 vscode "bierner.emojisense"
@@ -402,9 +398,11 @@ vscode "ms-vsliveshare.vsliveshare"
 vscode "mtxr.sqltools"
 vscode "mycelo.oracle-plsql"
 vscode "mylesmurphy.prettify-ts"
+vscode "nicolasvuillamy.vscode-groovy-lint"
 vscode "njpwerner.autodocstring"
 vscode "nuxtr.nuxtr-vscode"
 vscode "oderwat.indent-rainbow"
+vscode "openai.chatgpt"
 vscode "oracle.oracle-java"
 vscode "oracle.sql-developer"
 vscode "oven.bun-vscode"
