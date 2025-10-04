@@ -12,3 +12,4 @@ npmrc-replace-env
 @openai/codex
 @anthropic-ai/claude-code
 @google/gemini-cli
+@github/copilot
