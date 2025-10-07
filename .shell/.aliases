@@ -108,6 +108,12 @@ alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'
 # Airport CLI alias
 alias airport='/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
+# ------------------------------- Kubernetes --------------------------------- #
+
+alias k='kubectl'
+cmd:exists kubens && alias kn='kubens'
+cmd:exists kubectx && alias kx='kubectx'
+
 # --------------------------------- Utilities -------------------------------- #
 
 # Always enable colored `grep` output
