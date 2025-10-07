@@ -72,6 +72,7 @@ brew "jq"
 brew "k9s"
 brew "kompose"
 brew "kubernetes-cli"
+brew "kubectx"
 brew "libffi"
 brew "libiconv"
 brew "libyaml"
@@ -148,6 +149,8 @@ cask "android-platform-tools"
 cask "android-studio", args: { appdir: "/Applications" }
 cask "apache-directory-studio"
 cask "basictex"
+cask "betterdisplay"
+cask "bruno"
 cask "burp-suite"
 cask "chatgpt"
 cask "citrix-workspace", args: { appdir: "/Applications" }
@@ -171,11 +174,11 @@ cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox"
 cask "jordanbaird-ice"
+cask "latest"
 cask "logi-options+"
 cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
 cask "mongodb-compass", args: { appdir: "/Applications" }
-cask "ngrok"
 cask "notion", args: { appdir: "/Applications" }
 cask "philips-hue-sync"
 cask "postman", args: { appdir: "/Applications" }
@@ -205,6 +208,7 @@ mas "Grammarly for Safari", id: 1462114288
 mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "Keynote", id: 409183694
+mas "LensOCR", id: 1549961729
 mas "Microsoft Excel", id: 462058435
 mas "Microsoft OneNote", id: 784801555
 mas "Microsoft Outlook", id: 985367838
@@ -215,6 +219,7 @@ mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 mas "Paste", id: 967805235
 mas "Photomator", id: 1444636541
+mas "Pixelmator Pro", id: 1289583905
 mas "PreviewCode", id: 1571797683
 mas "PreviewJson", id: 6443584377
 mas "PreviewMarkdown", id: 1492280469
@@ -239,6 +244,7 @@ vscode "aliariff.vscode-erb-beautify"
 vscode "amazonwebservices.amazon-q-vscode"
 vscode "amazonwebservices.aws-toolkit-vscode"
 vscode "amazonwebservices.codewhisperer-for-command-line-companion"
+vscode "anbuselvanrocky.bootstrap5-vscode"
 vscode "angular.ng-template"
 vscode "antfu.iconify"
 vscode "anthropic.claude-code"
@@ -276,6 +282,7 @@ vscode "cweijan.dbclient-jdbc"
 vscode "cweijan.vscode-redis-client"
 vscode "cyrilletuzi.angular-schematics"
 vscode "dalirnet.mongod-config"
+vscode "darian-benam.vscode-robots-dot-txt-support"
 vscode "dariofuzinato.vue-peek"
 vscode "davidanson.vscode-markdownlint"
 vscode "dbaeumer.vscode-eslint"
@@ -407,6 +414,7 @@ vscode "oracle.oracle-java"
 vscode "oracle.sql-developer"
 vscode "oven.bun-vscode"
 vscode "pkief.material-icon-theme"
+vscode "pleiades.java-extension-pack-jdk"
 vscode "plex.vscode-regolint"
 vscode "pmneo.tsimporter"
 vscode "pranaygp.vscode-css-peek"
@@ -425,6 +433,7 @@ vscode "redhat.vscode-redhat-account"
 vscode "redhat.vscode-xml"
 vscode "redhat.vscode-yaml"
 vscode "remisa.shellman"
+vscode "richardwillis.vscode-spotless-gradle"
 vscode "rifi2k.format-html-in-php"
 vscode "ritwickdey.liveserver"
 vscode "roerohan.mongo-snippets-for-node-js"
@@ -438,12 +447,14 @@ vscode "scalameta.metals"
 vscode "sdras.vue-vscode-snippets"
 vscode "sgryjp.vscode-stable-sort"
 vscode "shakram02.bash-beautify"
+vscode "shardulm94.trailing-spaces"
 vscode "shd101wyy.markdown-preview-enhanced"
 vscode "shinotatwu-ds.file-tree-generator"
 vscode "shopify.ruby-lsp"
 vscode "sibiraj-s.vscode-scss-formatter"
 vscode "sketchbuch.vsc-quokka-statusbar"
 vscode "snyk-security.snyk-vulnerability-scanner"
+vscode "sonarsource.sonarlint-vscode"
 vscode "stackbreak.comment-divider"
 vscode "steoates.autoimport"
 vscode "streetsidesoftware.code-spell-checker"
@@ -472,13 +483,17 @@ vscode "virejdasani.incredibly-in-your-face"
 vscode "visualstudioexptteam.intellicode-api-usage-examples"
 vscode "visualstudioexptteam.vscodeintellicode"
 vscode "visualstudiotoolsforunity.vstuc"
+vscode "vmware.vscode-boot-dev-pack"
 vscode "vmware.vscode-spring-boot"
 vscode "vscjava.vscode-gradle"
 vscode "vscjava.vscode-java-debug"
 vscode "vscjava.vscode-java-dependency"
 vscode "vscjava.vscode-java-pack"
 vscode "vscjava.vscode-java-test"
+vscode "vscjava.vscode-java-upgrade"
+vscode "vscjava.vscode-lombok"
 vscode "vscjava.vscode-maven"
+vscode "vscjava.vscode-spring-boot-dashboard"
 vscode "vscjava.vscode-spring-initializr"
 vscode "vscode-icons-team.vscode-icons"
 vscode "vsls-contrib.codetour"
