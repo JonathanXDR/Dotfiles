@@ -21,7 +21,6 @@ brew "bash-completion@2"
 brew "bat"
 brew "p7zip"
 brew "binwalk"
-brew "icu4c@77"
 brew "node"
 brew "bower"
 brew "brew-gem"
@@ -43,6 +42,7 @@ brew "coreutils"
 brew "displayplacer"
 brew "dockutil"
 brew "dos2unix"
+brew "icu4c@77"
 brew "emacs"
 brew "eslint"
 brew "ffmpeg"
@@ -121,6 +121,7 @@ brew "tcpflow"
 brew "tectonic"
 brew "telnet"
 brew "tor"
+brew "tree"
 brew "upx"
 brew "vercel-cli"
 brew "vite"
@@ -143,11 +144,12 @@ brew "elastic/tap/elasticsearch-full"
 brew "go-task/tap/go-task"
 brew "mongodb/brew/mongodb-community"
 brew "samuong/alpaca/alpaca"
+cask "affinity"
 cask "alcove"
 cask "aldente", args: { appdir: "/Applications" }
-cask "amazon-q"
 cask "android-platform-tools"
 cask "android-studio", args: { appdir: "/Applications" }
+cask "arc"
 cask "asset-catalog-tinkerer"
 cask "bartender"
 cask "basictex"
@@ -182,6 +184,8 @@ cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox"
 cask "jordanbaird-ice"
+cask "kiro-cli"
+cask "latest"
 cask "logi-options+"
 cask "melonds"
 cask "microsoft-auto-update"
@@ -197,7 +201,7 @@ cask "philips-hue-sync"
 cask "postman", args: { appdir: "/Applications" }
 cask "proxyman"
 cask "raycast", args: { appdir: "/Applications" }
-cask "sf-symbols", args: { appdir: "/Applications" }
+cask "sf-symbols"
 cask "soundsource", args: { appdir: "/Applications" }
 cask "steam", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
@@ -217,12 +221,12 @@ mas "Alto's Adventure The Spirit of the Mountain", id: 1576663233
 mas "AngryBirdsReloaded", id: 1539172625
 mas "Apple Configurator", id: 1037126344
 mas "Asphalt9", id: 1491129197
-mas "Boom", id: 6479589428
 mas "Compressor", id: 424390742
 mas "DaisyDisk", id: 411643860
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
 mas "Final Cut Pro", id: 424389933
+mas "Flighty", id: 1358823008
 mas "Folder Preview", id: 6698876601
 mas "FreeScaler", id: 6443796196
 mas "GarageBand", id: 682658836
@@ -232,8 +236,10 @@ mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "JapaneseLife", id: 1634749545
 mas "Keynote", id: 409183694
+mas "LaunchMe - App Launcher", id: 0
 mas "LensOCR", id: 1549961729
 mas "Logic Pro", id: 634148309
+mas "Mactracker", id: 430255202
 mas "MainStage", id: 634159523
 mas "Microsoft Excel", id: 462058435
 mas "Microsoft OneNote", id: 784801555
@@ -248,6 +254,7 @@ mas "OneDrive", id: 823766827
 mas "Pages", id: 409201541
 mas "Paste", id: 967805235
 mas "Photomator", id: 1444636541
+mas "Pixelmator Pro", id: 1289583905
 mas "PreviewCode", id: 1571797683
 mas "PreviewJson", id: 6443584377
 mas "PreviewMarkdown", id: 1492280469
@@ -275,6 +282,7 @@ vscode "aliariff.vscode-erb-beautify"
 vscode "amazonwebservices.amazon-q-vscode"
 vscode "amazonwebservices.aws-toolkit-vscode"
 vscode "amazonwebservices.codewhisperer-for-command-line-companion"
+vscode "anbuselvanrocky.bootstrap5-vscode"
 vscode "angular.ng-template"
 vscode "antfu.iconify"
 vscode "anthropic.claude-code"
@@ -312,6 +320,7 @@ vscode "cweijan.dbclient-jdbc"
 vscode "cweijan.vscode-redis-client"
 vscode "cyrilletuzi.angular-schematics"
 vscode "dalirnet.mongod-config"
+vscode "darian-benam.vscode-robots-dot-txt-support"
 vscode "dariofuzinato.vue-peek"
 vscode "davidanson.vscode-markdownlint"
 vscode "dbaeumer.vscode-eslint"
@@ -445,6 +454,7 @@ vscode "oracle.oracle-java"
 vscode "oracle.sql-developer"
 vscode "oven.bun-vscode"
 vscode "pkief.material-icon-theme"
+vscode "pleiades.java-extension-pack-jdk"
 vscode "plex.vscode-regolint"
 vscode "pmneo.tsimporter"
 vscode "pranaygp.vscode-css-peek"
@@ -463,6 +473,7 @@ vscode "redhat.vscode-redhat-account"
 vscode "redhat.vscode-xml"
 vscode "redhat.vscode-yaml"
 vscode "remisa.shellman"
+vscode "richardwillis.vscode-spotless-gradle"
 vscode "rifi2k.format-html-in-php"
 vscode "ritwickdey.liveserver"
 vscode "roerohan.mongo-snippets-for-node-js"
@@ -476,12 +487,14 @@ vscode "scalameta.metals"
 vscode "sdras.vue-vscode-snippets"
 vscode "sgryjp.vscode-stable-sort"
 vscode "shakram02.bash-beautify"
+vscode "shardulm94.trailing-spaces"
 vscode "shd101wyy.markdown-preview-enhanced"
 vscode "shinotatwu-ds.file-tree-generator"
 vscode "shopify.ruby-lsp"
 vscode "sibiraj-s.vscode-scss-formatter"
 vscode "sketchbuch.vsc-quokka-statusbar"
 vscode "snyk-security.snyk-vulnerability-scanner"
+vscode "sonarsource.sonarlint-vscode"
 vscode "stackbreak.comment-divider"
 vscode "steoates.autoimport"
 vscode "streetsidesoftware.code-spell-checker"
@@ -508,16 +521,18 @@ vscode "unifiedjs.vscode-remark"
 vscode "usernamehw.errorlens"
 vscode "vadimcn.vscode-lldb"
 vscode "virejdasani.incredibly-in-your-face"
-vscode "visualstudioexptteam.intellicode-api-usage-examples"
-vscode "visualstudioexptteam.vscodeintellicode"
 vscode "visualstudiotoolsforunity.vstuc"
+vscode "vmware.vscode-boot-dev-pack"
 vscode "vmware.vscode-spring-boot"
 vscode "vscjava.vscode-gradle"
 vscode "vscjava.vscode-java-debug"
 vscode "vscjava.vscode-java-dependency"
 vscode "vscjava.vscode-java-pack"
 vscode "vscjava.vscode-java-test"
+vscode "vscjava.vscode-java-upgrade"
+vscode "vscjava.vscode-lombok"
 vscode "vscjava.vscode-maven"
+vscode "vscjava.vscode-spring-boot-dashboard"
 vscode "vscjava.vscode-spring-initializr"
 vscode "vscode-icons-team.vscode-icons"
 vscode "vsls-contrib.codetour"
