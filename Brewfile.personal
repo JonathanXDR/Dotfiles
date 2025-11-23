@@ -8,6 +8,7 @@ tap "homebrew/autoupdate"
 tap "homebrew/bundle"
 tap "homebrew/services"
 tap "hpedrorodrigues/tools"
+tap "loickal/newsletter-cli"
 tap "majd/repo"
 tap "minio/stable"
 tap "mongodb/brew"
@@ -116,6 +117,7 @@ brew "snyk-cli"
 brew "speedtest-cli"
 brew "stow"
 brew "swagger-codegen"
+brew "swiftly"
 brew "tailscale"
 brew "tcpflow"
 brew "tectonic"
@@ -174,6 +176,7 @@ cask "focusrite-control-2", args: { appdir: "/Applications" }
 cask "framer"
 cask "gitkraken", args: { appdir: "/Applications" }
 cask "google-chrome", args: { appdir: "/Applications" }
+cask "google-drive"
 cask "hashicorp-vagrant"
 cask "hazeover"
 cask "httpie-desktop", args: { appdir: "/Applications" }
@@ -183,7 +186,7 @@ cask "intellij-idea", args: { appdir: "/Applications" }
 cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox"
-cask "jordanbaird-ice"
+cask "karabiner-elements"
 cask "kiro-cli"
 cask "latest"
 cask "logi-options+"
@@ -192,6 +195,7 @@ cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
 cask "minecraft", args: { appdir: "/Applications" }
 cask "mongodb-compass", args: { appdir: "/Applications" }
+cask "newsletter-cli"
 cask "ngrok"
 cask "nordvpn", args: { appdir: "/Applications" }
 cask "notion", args: { appdir: "/Applications" }
@@ -204,6 +208,7 @@ cask "raycast", args: { appdir: "/Applications" }
 cask "sf-symbols"
 cask "soundsource", args: { appdir: "/Applications" }
 cask "steam", args: { appdir: "/Applications" }
+cask "surfshark"
 cask "tableplus", args: { appdir: "/Applications" }
 cask "temurin"
 cask "tg-pro", args: { appdir: "/Applications" }
