@@ -12,19 +12,19 @@ cmd:exists() {
 
 # PATH utility function (build once, mind order)
 # Safely adds a directory to PATH only if it exists and isn't already there
-path:add() { 
-  [[ -d "$1" ]] && case ":$PATH:" in 
-    *":$1:"*) ;; 
-    *) export PATH="$1:$PATH" ;; 
-  esac 
+path:add() {
+  [[ -d "$1" ]] && case ":$PATH:" in
+    *":$1:"*) ;;
+    *) export PATH="$1:$PATH" ;;
+  esac
 }
 
 # PATH utility function for appending (less common, but useful)
-path:append() { 
-  [[ -d "$1" ]] && case ":$PATH:" in 
-    *":$1:"*) ;; 
-    *) export PATH="$PATH:$1" ;; 
-  esac 
+path:append() {
+  [[ -d "$1" ]] && case ":$PATH:" in
+    *":$1:"*) ;;
+    *) export PATH="$PATH:$1" ;;
+  esac
 }
 
 # Create a new directory and enter it
