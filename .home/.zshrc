@@ -12,12 +12,14 @@ used_backup=0
 
 for f in "${files[@]}"; do
   sourced=0
+  
+  source "${DOTFILES_REPO_PATH}/.home/.zshenv"
   for dir in "$primary_dir" "$backup_dir"; do
     candidate="${dir}/${f}"
     if [[ -r "$candidate" ]]; then
       if [[ "$dir" == "$backup_dir" ]]; then
         used_backup=1
-        print "Root shell file missing for '${f}', sourcing backup: $candidate"
+        printf "\033[0;33m[WARNING]\033[0m Root shell file missing for '%s'.\n          Sourcing backup: %s\n" "${f}" "$candidate"
       fi
       source "$candidate"
       sourced=1
@@ -25,14 +27,14 @@ for f in "${files[@]}"; do
     fi
   done
   if (( ! sourced )); then
-    print "Warning: could not find '${f}' in either ${primary_dir} or ${backup_dir}"
+    printf "\033[0;31m[ERROR]\033[0m Could not find '%s' in either:\n        - %s\n        - %s\n" "${f}" "${primary_dir}" "${backup_dir}"
   fi
 done
 
 # If any backup was used, try to run the link step once.
 if (( used_backup )); then
   if command -v dotfiles:link >/dev/null 2>&1; then
-    source "${DOTFILES_REPO_PATH}/.zshenv"
+    source "${DOTFILES_REPO_PATH}/.home/.zshenv"
     dotfiles:link
   fi
 fi
