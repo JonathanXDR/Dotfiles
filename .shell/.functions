@@ -12,19 +12,19 @@ cmd:exists() {
 
 # PATH utility function (build once, mind order)
 # Safely adds a directory to PATH only if it exists and isn't already there
-path:add() { 
-  [[ -d "$1" ]] && case ":$PATH:" in 
-    *":$1:"*) ;; 
-    *) export PATH="$1:$PATH" ;; 
-  esac 
+path:add() {
+  [[ -d "$1" ]] && case ":$PATH:" in
+    *":$1:"*) ;;
+    *) export PATH="$1:$PATH" ;;
+  esac
 }
 
 # PATH utility function for appending (less common, but useful)
-path:append() { 
-  [[ -d "$1" ]] && case ":$PATH:" in 
-    *":$1:"*) ;; 
-    *) export PATH="$PATH:$1" ;; 
-  esac 
+path:append() {
+  [[ -d "$1" ]] && case ":$PATH:" in
+    *":$1:"*) ;;
+    *) export PATH="$PATH:$1" ;;
+  esac
 }
 
 # Create a new directory and enter it
@@ -479,9 +479,68 @@ env:replace() {
 
 # --------------------------- Dotfiles Management ---------------------------- #
 
+# Create a symbolic link from source to target, removing existing target if necessary
+dotfiles:symlink() {
+  local source_file="$1"
+  local target_file="$2"
+
+  if [[ ! -e "$source_file" ]]; then
+    echo "Source file not found: $source_file (skipping)" >&2
+    return 1
+  fi
+
+  if [[ -e "$target_file" || -L "$target_file" ]]; then
+    echo "Removing existing $target_file"
+    rm -f "$target_file"
+  fi
+
+  ln -s "$source_file" "$target_file"
+  echo "Created symlink for $(basename "$source_file") at $target_file"
+}
+
+# Batch create symlinks for files in a directory, optionally filtering by a list of files
+dotfiles:batch-link() {
+  local source_dir="$1"
+  local target_dir="$2"
+  local skip_list="${3:-.DS_Store .git .gitignore LICENSE README.md}"
+  shift 3
+  local files=("$@")
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "Source dir not found: $source_dir (skipping)" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$target_dir" ]]; then
+    echo "Target dir not found: $target_dir (skipping)" >&2
+    return 1
+  fi
+
+  if (( ${#files[@]} > 0 )); then
+    for filename in "${files[@]}"; do
+      dotfiles:symlink "$source_dir/$filename" "$target_dir/$filename"
+    done
+  else
+    # shellcheck disable=SC2206
+    local -a skip_files=($skip_list)
+    for file in "$source_dir"/.*; do
+      # shellcheck disable=SC2155
+      local filename=$(basename "$file")
+
+      [[ "$filename" == "." || "$filename" == ".." ]] && continue
+
+      if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
+        echo "Skipping $filename"
+        continue
+      fi
+
+      dotfiles:symlink "$file" "$target_dir/$filename"
+    done
+  fi
+}
+
+# Main entry point to link dotfiles from repo/config paths to $HOME
 dotfiles:link() {
-  local target_dir="$HOME"
-  local -a skip_files=(".DS_Store" ".git" ".gitignore" "LICENSE" "README.md")
   local -a default_sources=(
     "${DOTFILES_REPO_PATH}"
     "${DOTFILES_CONFIG_PATH}"
@@ -495,39 +554,23 @@ dotfiles:link() {
   fi
 
   for source_dir in "${source_dirs[@]}"; do
-    if [[ ! -d "$source_dir" ]]; then
-      echo "Source dir not found: $source_dir (skipping)" >&2
-      continue
-    fi
-
-    for file in "$source_dir"/.*; do
-      # shellcheck disable=SC2155
-      local filename=$(basename "$file")
-
-      [[ "$filename" == "." || "$filename" == ".." ]] && continue
-
-      if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
-        echo "Skipping $filename"
-        continue
-      fi
-
-      local target="$target_dir/$filename"
-
-      if [[ -e "$target" || -L "$target" ]]; then
-        echo "Removing existing $target"
-        rm -f "$target"
-      fi
-
-      ln -s "$file" "$target"
-      echo "Created symlink for $filename (from $source_dir)"
-    done
+    dotfiles:batch-link "$source_dir" "$HOME" ""
   done
+
+  # Link VSCode settings files
+  if [[ -d "$VSCODE_CONFIG_PATH" ]]; then
+    dotfiles:batch-link "$DOTFILES_CONFIG_PATH" "$VSCODE_CONFIG_PATH" "" "settings.json" "keybindings.json"
+  else
+    echo "VSCode User directory not found: $VSCODE_CONFIG_PATH (skipping VSCode settings)" >&2
+  fi
 
   dotfiles:cleanup
 }
 
+# Cleanup stale lock files or temporary files related to dotfiles
 dotfiles:cleanup() {
   # Remove stale lock files
+  # cSpell:disable-next-line
   rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
 }
 

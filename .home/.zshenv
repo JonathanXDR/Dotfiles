@@ -16,9 +16,12 @@ export RESOLV='/etc/resolv.conf'
 export NPM_GLOBALS="$HOME/.npm.globals"
 export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
 
+# Applications
+export VSCODE_CONFIG_PATH="$HOME/Library/Application Support/Code/User"
+
 # Dotfiles metadata
-export DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
-export DOTFILES_CONFIG_PATH="$HOME/Documents/General/Developer/configs/dotfiles"
+export DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"                             # Dotfiles inside this repo
+export DOTFILES_CONFIG_PATH_PROTECTED="$HOME/Documents/General/Developer/configs/dotfiles"  # Dotifles at a protected location outside this repo (e.g. for secrets)
 
 # Docker & Kubernetes configs
 export K3S_KUBECONFIG_MODE="644"
