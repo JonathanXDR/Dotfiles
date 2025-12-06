@@ -2,8 +2,7 @@
 
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
-
-print() {
+log() {
   local level="$1"
   local red='\033[0;31m'
   local green='\033[0;32m'
@@ -12,10 +11,10 @@ print() {
   local reset='\033[0m'
 
   case "$level" in
-    error|red)    shift; printf "${red}[ERROR] %s${reset}\n" "$*";;
-    success|green)  shift; printf "${green}[SUCCESS] %s${reset}\n" "$*";;
-    warning|yellow) shift; printf "${yellow}[WARN] %s${reset}\n" "$*";;
-    info|blue)      shift; printf "${blue}[INFO] %s${reset}\n" "$*";;
+    error|red)     shift; printf "${red}Error:${reset}   %s\n" "$*";;
+    success|green)  shift; printf "${green}Success:${reset} %s\n" "$*";;
+    warning|yellow) shift; printf "${yellow}Warning:${reset} %s\n" "$*";;
+    info|blue)      shift; printf "${blue}Info:${reset}    %s\n" "$*";;
     *)              echo "$@";;
   esac
 }
@@ -28,7 +27,7 @@ cmd:exists() {
   if command -v "$1" &>/dev/null; then
     return 0
   else
-    print error "Command $1 not found" >&2
+    log error "Command \"$1\" not found" >&2
     return 1
   fi
 }
@@ -288,7 +287,7 @@ network:check() {
     if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
       "$cmd"
     else
-      print "Skipping $cmd (network unavailable or blocked)"
+      log "Skipping \"$cmd\" (network unavailable or blocked)"
     fi
   fi
 }
@@ -508,17 +507,17 @@ dotfiles:symlink() {
   local target_file="$2"
 
   if [[ ! -e "$source_file" ]]; then
-    print error "Source file not found: $source_file (skipping)" >&2
+    log warning "Source file \"$source_file\" not found (skipping)" >&2
     return 1
   fi
 
   if [[ -e "$target_file" || -L "$target_file" ]]; then
-    print warning "Removing existing $target_file"
+    log success "Removed symlink for \"$target_file\""
     rm -rf "$target_file"
   fi
 
   ln -s "$source_file" "$target_file"
-  print success "Created symlink for $(basename "$source_file") at $target_file"
+  log success "Created symlink for \"$(basename "$source_file")\" at \"$target_file\""
 }
 
 # Remove a symbolic link or file
@@ -527,7 +526,7 @@ dotfiles:remove() {
 
   if [[ -L "$target_file" || -e "$target_file" ]]; then
     rm -rf "$target_file"
-    print success "Removed $target_file"
+    log success "Removed \"$target_file\""
   fi
 }
 
@@ -541,12 +540,12 @@ dotfiles:iterate() {
   local files=("$@")
 
   if [[ ! -d "$source_dir" ]]; then
-    print error "Source dir not found: $source_dir (skipping)" >&2
+    log error "Source dir \"$source_dir\" not found (skipping)" >&2
     return 1
   fi
 
   if [[ ! -d "$target_dir" ]]; then
-    print error "Target dir not found: $target_dir (skipping)" >&2
+    log error "Target dir \"$target_dir\" not found (skipping)" >&2
     return 1
   fi
 
@@ -565,7 +564,7 @@ dotfiles:iterate() {
 
       if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
         # Only warn on skip if we are linking, to avoid noise when unlinking
-        [[ "$cmd" == "dotfiles:symlink" ]] && print info "Skipping $filename"
+        [[ "$cmd" == "dotfiles:symlink" ]] && log info "Skipping \"$filename\""
         continue
       fi
 
