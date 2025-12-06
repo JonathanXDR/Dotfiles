@@ -1,0 +1,88 @@
+// Geben Sie Ihre Tastenzuordnungen in dieser Datei ein, um die Standardwerte außer Kraft zu setzen.
+[
+  {
+    "command": "-aws.amazonq.inline.invokeChat",
+    "key": "cmd+i",
+    "when": "aws.codewhisperer.connected && editorTextFocus"
+  },
+  {
+    "command": "-workbench.action.chat.stopListeningAndSubmit",
+    "key": "cmd+i",
+    "when": "inChatInput && voiceChatInProgress && scopedVoiceChatInProgress == 'editor' || inChatInput && voiceChatInProgress && scopedVoiceChatInProgress == 'inline' || inChatInput && voiceChatInProgress && scopedVoiceChatInProgress == 'quick' || inChatInput && voiceChatInProgress && scopedVoiceChatInProgress == 'view' || inlineChatFocused && voiceChatInProgress && scopedVoiceChatInProgress == 'editor' || inlineChatFocused && voiceChatInProgress && scopedVoiceChatInProgress == 'inline' || inlineChatFocused && voiceChatInProgress && scopedVoiceChatInProgress == 'quick' || inlineChatFocused && voiceChatInProgress && scopedVoiceChatInProgress == 'view'"
+  },
+  {
+    "command": "-settings.action.toggleAiSearch",
+    "key": "cmd+i",
+    "when": "aiSettingResultsAvailable && inSettingsEditor"
+  },
+  {
+    "command": "workbench.action.chat.startVoiceChat",
+    "key": "cmd+h",
+    "when": "chatIsEnabled && hasSpeechProvider && inChatInput && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress || chatIsEnabled && hasSpeechProvider && inlineChatFocused && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress"
+  },
+  {
+    "command": "-workbench.action.chat.startVoiceChat",
+    "key": "cmd+i",
+    "when": "chatIsEnabled && hasSpeechProvider && inChatInput && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress || chatIsEnabled && hasSpeechProvider && inlineChatFocused && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress"
+  },
+  {
+    "command": "emojisense.quickEmoji",
+    "key": "cmd+e",
+    "when": "editorTextFocus"
+  },
+  {
+    "command": "-emojisense.quickEmoji",
+    "key": "cmd+i",
+    "when": "editorTextFocus"
+  },
+  {
+    "command": "emojisense.quickEmojiTerminal",
+    "key": "cmd+e",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "-emojisense.quickEmojiTerminal",
+    "key": "cmd+i",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "inlineChat.startWithCurrentLine",
+    "key": "cmd+h",
+    "when": "inlineChatHasNotebookInline && inlineChatShowingHint && !editorReadonly && !inlineChatVisible && activeEditor == 'workbench.editor.notebook' || inlineChatHasProvider && inlineChatShowingHint && !editorReadonly && !inlineChatVisible && activeEditor != 'workbench.editor.notebook'"
+  },
+  {
+    "command": "-inlineChat.startWithCurrentLine",
+    "key": "cmd+i",
+    "when": "inlineChatHasNotebookInline && inlineChatShowingHint && !editorReadonly && !inlineChatVisible && activeEditor == 'workbench.editor.notebook' || inlineChatHasProvider && inlineChatShowingHint && !editorReadonly && !inlineChatVisible && activeEditor != 'workbench.editor.notebook'"
+  },
+  {
+    "command": "inlineChat.start",
+    "key": "cmd+h",
+    "when": "editorFocus && inlineChatHasEditsAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor != 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookInline && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasProvider && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor != 'workbench.editor.notebook'"
+  },
+  {
+    "command": "-inlineChat.start",
+    "key": "cmd+i",
+    "when": "editorFocus && inlineChatHasEditsAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor != 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookInline && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasProvider && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor != 'workbench.editor.notebook'"
+  },
+  {
+    "command": "editor.action.deleteLines",
+    "key": "shift+cmd+backspace",
+    "when": "textInputFocus && !editorReadonly"
+  },
+  {
+    "command": "-editor.action.deleteLines",
+    "key": "shift+cmd+d",
+    "when": "textInputFocus && !editorReadonly"
+  },
+  {
+    "command": "editor.action.copyLinesDownAction",
+    "key": "shift+cmd+d",
+    "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+    "command": "-editor.action.copyLinesDownAction",
+    "key": "cmd+d",
+    "when": "editorTextFocus && !editorReadonly"
+  }
+]
