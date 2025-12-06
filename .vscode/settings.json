@@ -89,6 +89,7 @@
   "amazonQ.telemetry": false,
   "application.shellEnvironmentResolutionTimeout": 30,
   "aws.cloudformation.telemetry.enabled": false,
+  "claudeCode.preferredLocation": "panel",
   "console-ninja.featureSet": "Community",
   "cSpell.diagnosticLevel": "Hint",
   "database-client.autoSync": true,
@@ -121,7 +122,7 @@
   "editor.formatOnType": true,
   "editor.guides.indentation": false,
   "editor.linkedEditing": true,
-  "editor.matchBrackets": false,
+  "editor.matchBrackets": "always",
   "editor.minimap.enabled": true,
   "editor.renderWhitespace": "all",
   "editor.showDeprecated": true,
@@ -252,8 +253,8 @@
   "terminal.integrated.enablePersistentSessions": false,
   "terminal.integrated.env.linux": {},
   "terminal.integrated.env.osx": {
-    "Q_NEW_SESSION": "1",
-    "FIG_NEW_SESSION": "1"
+    "FIG_NEW_SESSION": "1",
+    "Q_NEW_SESSION": "1"
   },
   "terminal.integrated.tabs.hideCondition": "never",
   "thunder-client.requestLayout": "Top/Bottom",
