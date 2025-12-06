@@ -223,28 +223,6 @@
   "quarkus.tools.alwaysShowWelcomePage": false,
   "redhat.telemetry.enabled": true,
   "security.workspace.trust.untrustedFiles": "open",
-  "settingsSync.ignoredSettings": [
-    "terminal.integrated.profiles.osx",
-    "snyk.folderConfigs"
-  ],
-  "snyk.advanced.cliPath": "$HOME/Library/Application Support/snyk/vscode-cli/snyk-macos-arm64",
-  "snyk.folderConfigs": [
-    {
-      "baseBranch": "main",
-      "folderPath": "$HOME/Developer/Git/GitHub/Application-Website-Frontend",
-      "localBranches": [
-        "develop",
-        "feature/content",
-        "main"
-      ]
-    }
-  ],
-  "snyk.trustedFolders": [
-    "$HOME/",
-    "/Users/taarujo6/"
-  ],
-  "snyk.yesWelcomeNotification": false,
-  "sonarlint.automaticAnalysis": false,
   "sqldeveloper.sqlHistory.historyLimit": 500,
   "sqldeveloper.telemetry.enabled": false,
   "terminal.integrated.defaultProfile.osx": "zsh",
