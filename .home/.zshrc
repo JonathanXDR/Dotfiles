@@ -1,12 +1,11 @@
 # Kiro CLI pre block. Keep at the top of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
 
-# Load custom files (order matters: vars → func → paths → aliases)
+# Load custom files (order matters: vars → func → paths → aliases → completions)
 DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
 
 # Define the files here manually because we want to control the load order
-files=(.exports .functions .paths .aliases)
-primary_dir="${HOME}/.shell"
+files=(.exports .functions .paths .aliases .completions)
 backup_dir="${DOTFILES_REPO_PATH}/.shell"
 
 used_backup=0
@@ -15,12 +14,12 @@ for f in "${files[@]}"; do
   sourced=0
   
   source "${DOTFILES_REPO_PATH}/.home/.zshenv"
-  for dir in "$primary_dir" "$backup_dir"; do
+  for dir in "$HOME" "$backup_dir"; do
     candidate="${dir}/${f}"
     if [[ -r "$candidate" ]]; then
       if [[ "$dir" == "$backup_dir" ]]; then
         used_backup=1
-        printf "\033[0;33mWarning:\033[0m %s\n" "File \"${f}\" not found in \"${primary_dir}\""
+        printf "\033[0;33mWarning:\033[0m %s\n" "File \"${f}\" not found in \"${HOME}\""
         printf "\033[0;32mSuccess:\033[0m %s\n" "Using backup from \"${candidate}\""
       fi
       source "$candidate"
@@ -29,7 +28,7 @@ for f in "${files[@]}"; do
     fi
   done
   if (( ! sourced )); then
-    printf "\033[0;31mError:\033[0m   %s\n" "Could not find \"${f}\" in either \"${primary_dir}\" or \"${backup_dir}\""
+    printf "\033[0;31mError:\033[0m   %s\n" "Could not find \"${f}\" in either \"${HOME}\" or \"${backup_dir}\""
   fi
 done
 
@@ -45,9 +44,6 @@ fi
 # The original version is saved in .zprofile.pysave
 autoload -U add-zsh-hook
 
-# bun completions
-[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
-
 env:replace
 add-zsh-hook chpwd nvmrc:load
 
@@ -57,9 +53,6 @@ network:check nvm:update https://raw.githubusercontent.com
 
 nvmrc:load
 
-# Load Angular CLI autocompletion.
-source <(ng completion script)
-
 # Set up proxy if in VPN or not
 [[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
 
@@ -68,18 +61,6 @@ source <(ng completion script)
 
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-
-if cmd:exists brew; then
-  FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
-
-  autoload -Uz compinit
-  compinit
-fi
-
-source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /opt/homebrew/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
