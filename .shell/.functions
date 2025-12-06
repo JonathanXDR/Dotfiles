@@ -2,12 +2,35 @@
 
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
+
+print() {
+  local level="$1"
+  local red='\033[0;31m'
+  local green='\033[0;32m'
+  local yellow='\033[0;33m'
+  local blue='\033[0;34m'
+  local reset='\033[0m'
+
+  case "$level" in
+    error|red)    shift; printf "${red}[ERROR] %s${reset}\n" "$*";;
+    success|green)  shift; printf "${green}[SUCCESS] %s${reset}\n" "$*";;
+    warning|yellow) shift; printf "${yellow}[WARN] %s${reset}\n" "$*";;
+    info|blue)      shift; printf "${blue}[INFO] %s${reset}\n" "$*";;
+    *)              echo "$@";;
+  esac
+}
+
 cmd:exists() {
   [[ $# -eq 1 ]] || {
     echo "Usage: cmd:exists <command>" >&2
     return 1
   }
-  command -v "$1" &>/dev/null
+  if command -v "$1" &>/dev/null; then
+    return 0
+  else
+    print error "Command $1 not found" >&2
+    return 1
+  fi
 }
 
 # PATH utility function (build once, mind order)
@@ -485,40 +508,51 @@ dotfiles:symlink() {
   local target_file="$2"
 
   if [[ ! -e "$source_file" ]]; then
-    echo "Source file not found: $source_file (skipping)" >&2
+    print error "Source file not found: $source_file (skipping)" >&2
     return 1
   fi
 
   if [[ -e "$target_file" || -L "$target_file" ]]; then
-    echo "Removing existing $target_file"
-    rm -f "$target_file"
+    print warning "Removing existing $target_file"
+    rm -rf "$target_file"
   fi
 
   ln -s "$source_file" "$target_file"
-  echo "Created symlink for $(basename "$source_file") at $target_file"
+  print success "Created symlink for $(basename "$source_file") at $target_file"
 }
 
-# Batch create symlinks for files in a directory, optionally filtering by a list of files
-dotfiles:batch-link() {
-  local source_dir="$1"
-  local target_dir="$2"
-  local skip_list="${3:-.DS_Store .git .gitignore LICENSE README.md}"
-  shift 3
+# Remove a symbolic link or file
+dotfiles:remove() {
+  local target_file="$2" # Matches signature of dotfiles:symlink (source, target)
+
+  if [[ -L "$target_file" || -e "$target_file" ]]; then
+    rm -rf "$target_file"
+    print success "Removed $target_file"
+  fi
+}
+
+# Generic iterator for dotfiles operations
+dotfiles:iterate() {
+  local cmd="$1"
+  local source_dir="$2"
+  local target_dir="$3"
+  local skip_list="${4:-.DS_Store .git .gitignore LICENSE README.md}"
+  shift 4
   local files=("$@")
 
   if [[ ! -d "$source_dir" ]]; then
-    echo "Source dir not found: $source_dir (skipping)" >&2
+    print error "Source dir not found: $source_dir (skipping)" >&2
     return 1
   fi
 
   if [[ ! -d "$target_dir" ]]; then
-    echo "Target dir not found: $target_dir (skipping)" >&2
+    print error "Target dir not found: $target_dir (skipping)" >&2
     return 1
   fi
 
   if (( ${#files[@]} > 0 )); then
     for filename in "${files[@]}"; do
-      dotfiles:symlink "$source_dir/$filename" "$target_dir/$filename"
+      "$cmd" "$source_dir/$filename" "$target_dir/$filename"
     done
   else
     # shellcheck disable=SC2206
@@ -530,50 +564,45 @@ dotfiles:batch-link() {
       [[ "$filename" == "." || "$filename" == ".." ]] && continue
 
       if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
-        echo "Skipping $filename"
+        # Only warn on skip if we are linking, to avoid noise when unlinking
+        [[ "$cmd" == "dotfiles:symlink" ]] && print info "Skipping $filename"
         continue
       fi
 
-      dotfiles:symlink "$file" "$target_dir/$filename"
+      "$cmd" "$file" "$target_dir/$filename"
     done
+  fi
+}
+
+# Helper to process dotfiles (link or unlink)
+dotfiles:process() {
+  local cmd="$1"
+  shift
+  (( $# == 0 )) && set -- "${DOTFILES_REPO_PATH}/.home" "${DOTFILES_CONFIG_PATH_PROTECTED}"
+  local -a source_dirs=("${@}")
+
+  # Process dotfiles & secrets in home directory
+  for source_dir in "${source_dirs[@]}"; do
+    dotfiles:iterate "$cmd" "$source_dir" "$HOME" ""
+  done
+
+  # Process VSCode settings files
+  if [[ -d "$VSCODE_CONFIG_PATH" ]]; then
+    dotfiles:iterate "$cmd" "${DOTFILES_REPO_PATH}/.vscode" "$VSCODE_CONFIG_PATH" "" "settings.json" "keybindings.json"
+  elif [[ "$cmd" == "dotfiles:symlink" ]]; then
+    echo "Directory not found: $VSCODE_CONFIG_PATH (skipping)" >&2
   fi
 }
 
 # Main entry point to link dotfiles from repo/config paths to $HOME
 dotfiles:link() {
-  local -a default_sources=(
-    "${DOTFILES_REPO_PATH}"
-    "${DOTFILES_CONFIG_PATH}"
-  )
-  local -a source_dirs=()
-
-  if (( $# > 0 )); then
-    source_dirs=("$@")
-  else
-    source_dirs=("${default_sources[@]}")
-  fi
-
-  for source_dir in "${source_dirs[@]}"; do
-    dotfiles:batch-link "$source_dir" "$HOME" ""
-  done
-
-  # Link VSCode settings files
-  if [[ -d "$VSCODE_CONFIG_PATH" ]]; then
-    dotfiles:batch-link "$DOTFILES_CONFIG_PATH" "$VSCODE_CONFIG_PATH" "" "settings.json" "keybindings.json"
-  else
-    echo "VSCode User directory not found: $VSCODE_CONFIG_PATH (skipping VSCode settings)" >&2
-  fi
-
-  dotfiles:cleanup
+  dotfiles:process "dotfiles:symlink" "$@"
 }
 
-# Cleanup stale lock files or temporary files related to dotfiles
-dotfiles:cleanup() {
-  # Remove stale lock files
-  # cSpell:disable-next-line
-  rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
+# Main entry point to unlink dotfiles
+dotfiles:unlink() {
+  dotfiles:process "dotfiles:remove" "$@"
 }
-
 # ------------------------------------ Git ----------------------------------- #
 
 # Use Git’s colored diff when available
