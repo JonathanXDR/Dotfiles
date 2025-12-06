@@ -20,7 +20,8 @@ for f in "${files[@]}"; do
     if [[ -r "$candidate" ]]; then
       if [[ "$dir" == "$backup_dir" ]]; then
         used_backup=1
-        printf "\033[0;33m[WARNING]\033[0m Root shell file missing for '%s'.\n          Sourcing backup: %s\n" "${f}" "$candidate"
+        printf "\033[0;33mWarning:\033[0m %s\n" "File \"${f}\" not found in \"${primary_dir}\""
+        printf "\033[0;32mSuccess:\033[0m %s\n" "Using backup from \"${candidate}\""
       fi
       source "$candidate"
       sourced=1
@@ -28,7 +29,7 @@ for f in "${files[@]}"; do
     fi
   done
   if (( ! sourced )); then
-    printf "\033[0;31m[ERROR]\033[0m Could not find '%s' in either:\n        - %s\n        - %s\n" "${f}" "${primary_dir}" "${backup_dir}"
+    printf "\033[0;31mError:\033[0m   %s\n" "Could not find \"${f}\" in either \"${primary_dir}\" or \"${backup_dir}\""
   fi
 done
 
