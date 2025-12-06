@@ -217,7 +217,7 @@ proxy:set() {
   local proxy_protocol="${1:-${PROXY_PROTOCOL}}"
   local proxy_host="${2:-${PROXY_HOST}}"
   local proxy_port="${3:-${PROXY_PORT}}"
-  local no_proxy="${4:-${NOPROXY}}"
+  local no_proxy="${4:-${NO_PROXY}}"
 
   if [[ -z "${proxy_protocol}" || -z "${proxy_host}" || -z "${proxy_port}" ]]; then
     echo "Usage: proxy:set <protocol> <host> <port> [no_proxy]" >&2
@@ -250,7 +250,7 @@ proxy:probe() {
   local with_dns="${1:-}"
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
     echo "Detected VPN, turning on proxy."
-    proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NOPROXY}"
+    proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
     [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
   else
     # echo "Detected normal network, turning off proxy."
