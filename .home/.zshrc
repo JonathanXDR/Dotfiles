@@ -15,12 +15,12 @@ for f in "${files[@]}"; do
   sourced=0
   
   source "${DOTFILES_REPO_PATH}/.home/.zshenv"
-  for dir in "$primary_dir" "$backup_dir"; do
+  for dir in "$HOME" "$backup_dir"; do
     candidate="${dir}/${f}"
     if [[ -r "$candidate" ]]; then
       if [[ "$dir" == "$backup_dir" ]]; then
         used_backup=1
-        printf "\033[0;33mWarning:\033[0m %s\n" "File \"${f}\" not found in \"${primary_dir}\""
+        printf "\033[0;33mWarning:\033[0m %s\n" "File \"${f}\" not found in \"${HOME}\""
         printf "\033[0;32mSuccess:\033[0m %s\n" "Using backup from \"${candidate}\""
       fi
       source "$candidate"
@@ -29,7 +29,7 @@ for f in "${files[@]}"; do
     fi
   done
   if (( ! sourced )); then
-    printf "\033[0;31mError:\033[0m   %s\n" "Could not find \"${f}\" in either \"${primary_dir}\" or \"${backup_dir}\""
+    printf "\033[0;31mError:\033[0m   %s\n" "Could not find \"${f}\" in either \"${HOME}\" or \"${backup_dir}\""
   fi
 done
 

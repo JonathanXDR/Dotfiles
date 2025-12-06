@@ -577,7 +577,8 @@ dotfiles:iterate() {
 dotfiles:process() {
   local cmd="$1"
   shift
-  (( $# == 0 )) && set -- "${DOTFILES_REPO_PATH}/.home" "${DOTFILES_CONFIG_PATH_PROTECTED}"
+  local -a default_sources=("${DOTFILES_REPO_PATH}/.home" "${DOTFILES_REPO_PATH}/.shell" "${DOTFILES_CONFIG_PATH_PROTECTED}")
+  (( $# == 0 )) && set -- "${default_sources[@]}"
   local -a source_dirs=("${@}")
 
   # Process dotfiles & secrets in home directory
