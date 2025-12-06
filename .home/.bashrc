@@ -1,6 +1,9 @@
-#!/usr/bin/env bash# Load custom files (order matters: vars → func → paths → aliases)
+#!/usr/bin/env bash
+
 # Kiro CLI pre block. Keep at the top of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/bashrc.pre.bash" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/bashrc.pre.bash"
+
+# Load custom files (order matters: vars → func → paths → aliases)
 DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"
 
 # Define the files here manually because we want to control the load order
