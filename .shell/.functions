@@ -2,12 +2,35 @@
 
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
+
+print() {
+  local level="$1"
+  local red='\033[0;31m'
+  local green='\033[0;32m'
+  local yellow='\033[0;33m'
+  local blue='\033[0;34m'
+  local reset='\033[0m'
+
+  case "$level" in
+    error|red)    shift; printf "${red}[ERROR] %s${reset}\n" "$*";;
+    success|green)  shift; printf "${green}[SUCCESS] %s${reset}\n" "$*";;
+    warning|yellow) shift; printf "${yellow}[WARN] %s${reset}\n" "$*";;
+    info|blue)      shift; printf "${blue}[INFO] %s${reset}\n" "$*";;
+    *)              echo "$@";;
+  esac
+}
+
 cmd:exists() {
   [[ $# -eq 1 ]] || {
     echo "Usage: cmd:exists <command>" >&2
     return 1
   }
-  command -v "$1" &>/dev/null
+  if command -v "$1" &>/dev/null; then
+    return 0
+  else
+    print error "Command $1 not found" >&2
+    return 1
+  fi
 }
 
 # PATH utility function (build once, mind order)
