@@ -46,13 +46,6 @@ elif [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
   source "/opt/homebrew/opt/nvm/nvm.sh"
 fi
 
-# NVM bash completion
-if [[ -s "$NVM_DIR/bash_completion" ]]; then
-  source "$NVM_DIR/bash_completion"
-elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
-  source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
-fi
-
 # Ruby Version Manager (load as function)
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
