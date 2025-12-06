@@ -1,12 +1,6 @@
 #!/usr/bin/env zsh
 # Shell completions and autocompletion setup
 
-# bun completions
-[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
-
-# Angular CLI autocompletion
-source <(ng completion script)
-
 # Homebrew zsh-completions
 if cmd:exists brew; then
   FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
@@ -14,6 +8,19 @@ if cmd:exists brew; then
   autoload -Uz compinit
   compinit
 fi
+
+# bun completions
+[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
+
+# NVM bash completion
+if [[ -s "$NVM_DIR/bash_completion" ]]; then
+  source "$NVM_DIR/bash_completion"
+elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
+  source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+fi
+
+# Angular CLI autocompletion
+source <(ng completion script)
 
 # zsh plugins
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh

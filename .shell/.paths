@@ -25,6 +25,9 @@ path:add "/Users/$USER/Library/Application Support/JetBrains/Toolbox/scripts"
 # Coursier (Scala package manager)
 path:append "/Users/$USER/Library/Application Support/Coursier/bin"
 
+# Trash CLI (macOS)
+path:add "/opt/homebrew/opt/trash-cli/bin"
+
 # ----------------- Package Manager & Runtime Initializations ---------------- #
 
 # Homebrew initialization (macOS)
@@ -44,13 +47,6 @@ if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   source "$NVM_DIR/nvm.sh"
 elif [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
   source "/opt/homebrew/opt/nvm/nvm.sh"
-fi
-
-# NVM bash completion
-if [[ -s "$NVM_DIR/bash_completion" ]]; then
-  source "$NVM_DIR/bash_completion"
-elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
-  source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 fi
 
 # Ruby Version Manager (load as function)
