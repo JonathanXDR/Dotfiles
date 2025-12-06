@@ -25,6 +25,9 @@ path:add "/Users/$USER/Library/Application Support/JetBrains/Toolbox/scripts"
 # Coursier (Scala package manager)
 path:append "/Users/$USER/Library/Application Support/Coursier/bin"
 
+# Trash CLI (macOS)
+path:add "/opt/homebrew/opt/trash-cli/bin"
+
 # ----------------- Package Manager & Runtime Initializations ---------------- #
 
 # Homebrew initialization (macOS)
