@@ -76,11 +76,13 @@ brew "jq"
 brew "k9s"
 brew "kompose"
 brew "kubernetes-cli"
+brew "kubectx"
 brew "libffi"
 brew "libiconv"
 brew "libyaml"
 brew "llvm@19"
 brew "lolcat"
+brew "lsd"
 brew "mackup"
 brew "mariadb"
 brew "mas"
@@ -123,6 +125,7 @@ brew "tcpflow"
 brew "tectonic"
 brew "telnet"
 brew "tor"
+brew "trash-cli"
 brew "tree"
 brew "upx"
 brew "vercel-cli"
@@ -176,7 +179,6 @@ cask "focusrite-control-2", args: { appdir: "/Applications" }
 cask "framer"
 cask "gitkraken", args: { appdir: "/Applications" }
 cask "google-chrome", args: { appdir: "/Applications" }
-cask "google-drive"
 cask "hashicorp-vagrant"
 cask "hazeover"
 cask "httpie-desktop", args: { appdir: "/Applications" }
@@ -235,7 +237,6 @@ mas "Flighty", id: 1358823008
 mas "Folder Preview", id: 6698876601
 mas "FreeScaler", id: 6443796196
 mas "GarageBand", id: 682658836
-mas "Goodnotes", id: 1444383602
 mas "Grammarly for Safari", id: 1462114288
 mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
@@ -307,7 +308,6 @@ vscode "bierner.markdown-preview-github-styles"
 vscode "bmewburn.vscode-intelephense-client"
 vscode "bourhaouta.tailwindshades"
 vscode "bradlc.vscode-tailwindcss"
-vscode "brandonkirbyson.vscode-animations"
 vscode "builder.builder"
 vscode "caolin.java-run"
 vscode "capaj.vscode-standardjs-snippets"
@@ -380,7 +380,6 @@ vscode "jianbingfang.dupchecker"
 vscode "jnbt.vscode-rufo"
 vscode "jock.svg"
 vscode "johnpapa.angular-essentials"
-vscode "johnpapa.angular2"
 vscode "johnpapa.vscode-peacock"
 vscode "johnpapa.winteriscoming"
 vscode "kamikillerto.vscode-colorize"
@@ -409,7 +408,6 @@ vscode "ms-ceintl.vscode-language-pack-de"
 vscode "ms-dotnettools.csdevkit"
 vscode "ms-dotnettools.csharp"
 vscode "ms-dotnettools.vscode-dotnet-runtime"
-vscode "ms-dotnettools.vscodeintellicode-csharp"
 vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
 vscode "ms-mssql.data-workspace-vscode"
 vscode "ms-mssql.mssql"
