@@ -16,6 +16,8 @@ export NTLM_CREDENTIALS="${NTLM_CREDENTIALS:-}"
 
 # ----------------------------------- Node ----------------------------------- #
 
+# Reject unauthorized TLS/SSL certificates by default.
+export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 # Enable persistent REPL history for `node`.
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
 # Allow 32³ entries; the default is 1000.
