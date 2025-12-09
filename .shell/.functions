@@ -592,6 +592,15 @@ dotfiles:process() {
   elif [[ "$cmd" == "dotfiles:symlink" ]]; then
     echo "Directory not found: $VSCODE_CONFIG_PATH (skipping)" >&2
   fi
+
+  dotfiles:cleanup
+}
+
+# Cleanup stale lock files or temporary files related to dotfiles
+dotfiles:cleanup() {
+  # Remove stale lock files
+  # cSpell:disable-next-line
+  rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
 }
 
 # Main entry point to link dotfiles from repo/config paths to $HOME
@@ -603,6 +612,7 @@ dotfiles:link() {
 dotfiles:unlink() {
   dotfiles:process "dotfiles:remove" "$@"
 }
+
 # ------------------------------------ Git ----------------------------------- #
 
 # Use Git’s colored diff when available
