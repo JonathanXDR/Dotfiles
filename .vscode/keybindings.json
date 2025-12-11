@@ -84,5 +84,13 @@
     "command": "-editor.action.copyLinesDownAction",
     "key": "cmd+d",
     "when": "editorTextFocus && !editorReadonly"
-  }
+},
+{
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": {
+        "text": "\u001b\r"
+    },
+    "when": "terminalFocus"
+}
 ]
