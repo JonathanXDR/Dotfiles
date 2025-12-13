@@ -48,6 +48,7 @@ brew "ffmpeg"
 brew "firebase-cli"
 brew "freeimage"
 brew "gh"
+brew "libiconv"
 brew "git"
 brew "git-lfs"
 brew "github-keygen"
@@ -71,25 +72,23 @@ brew "ipfs"
 brew "jq"
 brew "k9s"
 brew "kompose"
+brew "kubeconform"
 brew "kubernetes-cli"
 brew "kubectx"
 brew "libffi"
-brew "libiconv"
 brew "libyaml"
-brew "llvm@19"
-brew "python@3.13"
 brew "llvm"
+brew "llvm@19"
 brew "lolcat"
+brew "lsd"
 brew "mackup"
 brew "mariadb"
 brew "mas"
 brew "maven"
-brew "minikube"
 brew "minio"
 brew "mtr"
 brew "ninja"
 brew "nvm"
-brew "ollama"
 brew "opa"
 brew "openjdk@11"
 brew "pandoc"
@@ -102,8 +101,10 @@ brew "poetry"
 brew "postgresql@14"
 brew "prettier"
 brew "putty"
+brew "pwgen"
 brew "pyenv"
 brew "python@3.12"
+brew "python@3.13"
 brew "qemu"
 brew "rbenv"
 brew "react-native-cli"
@@ -121,15 +122,18 @@ brew "tcpflow"
 brew "tectonic"
 brew "telnet"
 brew "tor"
+brew "trash-cli"
 brew "tree"
 brew "upx"
 brew "vercel-cli"
 brew "vite"
+brew "watch"
 brew "watchman"
 brew "wget"
 brew "wireguard-go"
 brew "wireguard-tools"
 brew "xdelta"
+brew "yq"
 brew "yt-dlp"
 brew "zig"
 brew "zlib"
@@ -143,8 +147,6 @@ brew "elastic/tap/elasticsearch-full"
 brew "go-task/tap/go-task"
 brew "mongodb/brew/mongodb-community"
 brew "samuong/alpaca/alpaca"
-cask "aldente", args: { appdir: "/Applications" }
-cask "amazon-q"
 cask "android-platform-tools"
 cask "android-studio", args: { appdir: "/Applications" }
 cask "apache-directory-studio"
@@ -154,7 +156,6 @@ cask "bruno"
 cask "burp-suite"
 cask "chatgpt"
 cask "citrix-workspace", args: { appdir: "/Applications" }
-cask "claude"
 cask "discord", args: { appdir: "/Applications" }
 cask "docker-desktop", args: { appdir: "/Applications" }
 cask "dotnet-sdk"
@@ -174,6 +175,7 @@ cask "intune-company-portal", args: { appdir: "/Applications" }
 cask "ipatool"
 cask "jetbrains-toolbox"
 cask "jordanbaird-ice"
+cask "kiro-cli"
 cask "latest"
 cask "logi-options+"
 cask "microsoft-auto-update"
@@ -189,12 +191,9 @@ cask "soundsource", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
 cask "temurin"
 cask "tg-pro"
-cask "vagrant"
-cask "vagrant-vmware-utility"
 cask "visual-studio-code", args: { appdir: "/Applications" }
 cask "vivid-app", args: { appdir: "/Applications" }
 cask "wakatime"
-cask "warp"
 cask "zed"
 cask "zen"
 cask "zulu"
@@ -202,13 +201,16 @@ mas "AdBlock Pro", id: 1018301773
 mas "DaisyDisk", id: 411643860
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
+mas "Folder Preview", id: 6698876601
 mas "FreeScaler", id: 6443796196
 mas "GarageBand", id: 682658836
 mas "Grammarly for Safari", id: 1462114288
 mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
+mas "iPreview", id: 1519213509
 mas "Keynote", id: 409183694
 mas "LensOCR", id: 1549961729
+mas "Markdown Preview", id: 6739955340
 mas "Microsoft Excel", id: 462058435
 mas "Microsoft OneNote", id: 784801555
 mas "Microsoft Outlook", id: 985367838
@@ -220,13 +222,7 @@ mas "Pages", id: 409201541
 mas "Paste", id: 967805235
 mas "Photomator", id: 1444636541
 mas "Pixelmator Pro", id: 1289583905
-mas "PreviewCode", id: 1571797683
-mas "PreviewJson", id: 6443584377
-mas "PreviewMarkdown", id: 1492280469
-mas "PreviewYaml", id: 1564574724
-mas "QuickFTP", id: 1451646819
-mas "Reeder", id: 1529448980
-mas "Slack", id: 803453959
+mas "ReadKit", id: 1615798039
 mas "Swift Playground", id: 1496833156
 mas "Teleparty For Safari", id: 6471985961
 mas "TestFlight", id: 899247664
@@ -264,9 +260,7 @@ vscode "bierner.markdown-preview-github-styles"
 vscode "bmewburn.vscode-intelephense-client"
 vscode "bourhaouta.tailwindshades"
 vscode "bradlc.vscode-tailwindcss"
-vscode "brandonkirbyson.vscode-animations"
 vscode "builder.builder"
-vscode "caolin.java-run"
 vscode "capaj.vscode-standardjs-snippets"
 vscode "castwide.solargraph"
 vscode "chakrounanas.turbo-console-log"
@@ -337,7 +331,6 @@ vscode "jianbingfang.dupchecker"
 vscode "jnbt.vscode-rufo"
 vscode "jock.svg"
 vscode "johnpapa.angular-essentials"
-vscode "johnpapa.angular2"
 vscode "johnpapa.vscode-peacock"
 vscode "johnpapa.winteriscoming"
 vscode "kamikillerto.vscode-colorize"
@@ -365,7 +358,6 @@ vscode "ms-ceintl.vscode-language-pack-de"
 vscode "ms-dotnettools.csdevkit"
 vscode "ms-dotnettools.csharp"
 vscode "ms-dotnettools.vscode-dotnet-runtime"
-vscode "ms-dotnettools.vscodeintellicode-csharp"
 vscode "ms-kubernetes-tools.vscode-kubernetes-tools"
 vscode "ms-mssql.data-workspace-vscode"
 vscode "ms-mssql.mssql"
@@ -480,8 +472,6 @@ vscode "unifiedjs.vscode-remark"
 vscode "usernamehw.errorlens"
 vscode "vadimcn.vscode-lldb"
 vscode "virejdasani.incredibly-in-your-face"
-vscode "visualstudioexptteam.intellicode-api-usage-examples"
-vscode "visualstudioexptteam.vscodeintellicode"
 vscode "visualstudiotoolsforunity.vstuc"
 vscode "vmware.vscode-boot-dev-pack"
 vscode "vmware.vscode-spring-boot"
