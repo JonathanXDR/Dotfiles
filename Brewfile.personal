@@ -87,12 +87,10 @@ brew "mackup"
 brew "mariadb"
 brew "mas"
 brew "maven"
-brew "minikube"
 brew "minio"
 brew "mtr"
 brew "ninja"
 brew "nvm"
-brew "ollama"
 brew "opa"
 brew "openjdk@11"
 brew "pandoc"
@@ -151,12 +149,10 @@ brew "mongodb/brew/mongodb-community"
 brew "samuong/alpaca/alpaca"
 cask "affinity"
 cask "alcove"
-cask "aldente", args: { appdir: "/Applications" }
 cask "android-platform-tools"
 cask "android-studio", args: { appdir: "/Applications" }
 cask "arc"
 cask "asset-catalog-tinkerer"
-cask "bartender"
 cask "basictex"
 cask "betterdisplay"
 cask "blender", args: { appdir: "/Applications" }
@@ -173,14 +169,12 @@ cask "dolphin"
 cask "dotnet-sdk"
 cask "elgato-capture-device-utility"
 cask "figma", args: { appdir: "/Applications" }
-cask "firefox@developer-edition"
 cask "flutter"
 cask "focusrite-control-2", args: { appdir: "/Applications" }
 cask "framer"
 cask "gitkraken", args: { appdir: "/Applications" }
 cask "google-chrome", args: { appdir: "/Applications" }
 cask "hashicorp-vagrant"
-cask "hazeover"
 cask "httpie-desktop", args: { appdir: "/Applications" }
 cask "inkscape"
 cask "insomnia"
@@ -219,7 +213,6 @@ cask "unity-hub", args: { appdir: "/Applications" }
 cask "visual-studio-code", args: { appdir: "/Applications" }
 cask "vivid-app", args: { appdir: "/Applications" }
 cask "wakatime"
-cask "warp"
 cask "zed"
 cask "zen"
 cask "zulu"
@@ -240,13 +233,15 @@ mas "GarageBand", id: 682658836
 mas "Grammarly for Safari", id: 1462114288
 mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
+mas "iPreview", id: 1519213509
 mas "JapaneseLife", id: 1634749545
 mas "Keynote", id: 409183694
-mas "LaunchMe - App Launcher", id: 0
+mas "LaunchMe", id: 6751939046
 mas "LensOCR", id: 1549961729
 mas "Logic Pro", id: 634148309
 mas "Mactracker", id: 430255202
 mas "MainStage", id: 634159523
+mas "Markdown Preview", id: 6739955340
 mas "Microsoft Excel", id: 462058435
 mas "Microsoft OneNote", id: 784801555
 mas "Microsoft Outlook", id: 985367838
@@ -261,13 +256,7 @@ mas "Pages", id: 409201541
 mas "Paste", id: 967805235
 mas "Photomator", id: 1444636541
 mas "Pixelmator Pro", id: 1289583905
-mas "PreviewCode", id: 1571797683
-mas "PreviewJson", id: 6443584377
-mas "PreviewMarkdown", id: 1492280469
-mas "PreviewYaml", id: 1564574724
-mas "QuickFTP", id: 1451646819
-mas "Reeder", id: 1529448980
-mas "Slack", id: 803453959
+mas "ReadKit", id: 1615798039
 mas "Swift Playground", id: 1496833156
 mas "Teleparty For Safari", id: 6471985961
 mas "TestFlight", id: 899247664
@@ -309,7 +298,6 @@ vscode "bmewburn.vscode-intelephense-client"
 vscode "bourhaouta.tailwindshades"
 vscode "bradlc.vscode-tailwindcss"
 vscode "builder.builder"
-vscode "caolin.java-run"
 vscode "capaj.vscode-standardjs-snippets"
 vscode "castwide.solargraph"
 vscode "chakrounanas.turbo-console-log"
