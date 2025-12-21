@@ -11,6 +11,7 @@ tap "minio/stable"
 tap "mongodb/brew"
 tap "samuong/alpaca"
 tap "ubuntu/microk8s"
+tap "updatest/tap", "https://github.com/updatest/tap.git"
 brew "act"
 brew "openssl@3"
 brew "automake"
@@ -176,7 +177,6 @@ cask "ipatool"
 cask "jetbrains-toolbox"
 cask "jordanbaird-ice"
 cask "kiro-cli"
-cask "latest"
 cask "logi-options+"
 cask "microsoft-auto-update"
 cask "microsoft-teams", args: { appdir: "/Applications" }
@@ -191,6 +191,7 @@ cask "soundsource", args: { appdir: "/Applications" }
 cask "tableplus", args: { appdir: "/Applications" }
 cask "temurin"
 cask "tg-pro"
+cask "updatest@beta"
 cask "visual-studio-code", args: { appdir: "/Applications" }
 cask "vivid-app", args: { appdir: "/Applications" }
 cask "wakatime"
