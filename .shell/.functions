@@ -311,7 +311,24 @@ ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
-# ---------------------------- macOS System Tweaks --------------------------- #
+# ---------------------------- macOS System Tweaks & Utilities --------------------------- #
+
+system:setup() {
+  hostname:reset
+  sudo:touch-id
+}
+
+system:shutdown() {
+  sudo shutdown -h now
+}
+
+system:restart() {
+  sudo shutdown -r now
+}
+
+system:sleep() {
+  sudo shutdown -s now
+}
 
 sudo:touch-id() {
   FILE='/etc/pam.d/sudo'
@@ -343,6 +360,30 @@ auth       sufficient     pam_tid.so
 
   trap - ERR
   echo "Done. $FILE has been updated successfully."
+}
+
+hostname:get() {
+  scutil --get ComputerName
+}
+
+hostname:set() {
+  if [[ $# -ne 1 ]]; then
+    echo "Usage: hostname:set <new-hostname>" >&2
+    return 1
+  fi
+
+  local new_hostname="$1"
+
+  sudo scutil --set ComputerName "$new_hostname"
+  sudo scutil --set HostName "$new_hostname"
+  sudo scutil --set LocalHostName "$new_hostname"
+
+  echo "Hostname set to \"$new_hostname\". A restart may be required for all changes to take effect."
+}
+
+hostname:reset() {
+  local default_hostname="void(0)"
+  hostname:set "$default_hostname"
 }
 
 dock:reset() {
