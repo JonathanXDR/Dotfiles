@@ -596,10 +596,12 @@ dotfiles:process() {
   dotfiles:cleanup
 }
 
-# Cleanup stale lock files or temporary files related to dotfiles
+# Cleanup stale lock files and fix permissions
 dotfiles:cleanup() {
+  # Fix warnings from zsh completions about insecure directories, this will remove group-write permissions
+  compaudit | xargs chmod g-w
+
   # Remove stale lock files
-  # cSpell:disable-next-line
   rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
 }
 
