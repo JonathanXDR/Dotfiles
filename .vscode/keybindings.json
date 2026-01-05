@@ -92,5 +92,33 @@
         "text": "\u001b\r"
     },
     "when": "terminalFocus"
+},
+{
+  "key": "ctrl+cmd+s",
+  "command": "workbench.action.files.saveWithoutFormatting"
+},
+{
+  "key": "cmd+k s",
+  "command": "-workbench.action.files.saveWithoutFormatting"
+},
+{
+  "key": "cmd+h",
+  "command": "workbench.action.chat.startVoiceChat",
+  "when": "chatIsEnabled && hasSpeechProvider && inChatInput && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress || chatIsEnabled && hasSpeechProvider && inlineChatFocused && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress"
+},
+{
+  "key": "cmd+i",
+  "command": "-workbench.action.chat.startVoiceChat",
+  "when": "chatIsEnabled && hasSpeechProvider && inChatInput && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress || chatIsEnabled && hasSpeechProvider && inlineChatFocused && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress"
+},
+{
+  "key": "cmd+h",
+  "command": "inlineChat.start",
+  "when": "editorFocus && inlineChatHasEditsAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput || editorFocus && inlineChatHasNotebookAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookInline && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook'"
+},
+{
+  "key": "cmd+i",
+  "command": "-inlineChat.start",
+  "when": "editorFocus && inlineChatHasEditsAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput || editorFocus && inlineChatHasNotebookAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookInline && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook'"
 }
 ]
