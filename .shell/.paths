@@ -7,6 +7,9 @@ path:add "$HOME/.local/bin"
 
 # -------------------------- Development Tool Paths -------------------------- #
 
+# Rancher Desktop
+path:add "$HOME/.rd/bin"
+
 # Bun JavaScript runtime
 path:add "$BUN_INSTALL/bin"
 
@@ -20,10 +23,10 @@ path:add "$HOME/.console-ninja/.bin"
 path:add "/Library/Frameworks/Python.framework/Versions/Current/bin"
 
 # JetBrains Toolbox scripts
-path:add "/Users/$USER/Library/Application Support/JetBrains/Toolbox/scripts"
+path:add "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # Coursier (Scala package manager)
-path:append "/Users/$USER/Library/Application Support/Coursier/bin"
+path:append "$HOME/Library/Application Support/Coursier/bin"
 
 # Trash CLI (macOS)
 path:add "/opt/homebrew/opt/trash-cli/bin"
