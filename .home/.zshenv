@@ -11,6 +11,7 @@ export BUN_INSTALL="$HOME/.bun"
 export NVM_DIR="$HOME/.nvm"
 export SDKMAN_DIR="$HOME/.sdkman"
 export KUBECONFIG_PATH="$HOME/.kube"
+export FORGEOPS_PATH="$HOME/Developer/Git/Swisscom/wfidb"
 
 export RESOLV='/etc/resolv.conf'
 export NPM_GLOBALS="$HOME/.npm.globals"
