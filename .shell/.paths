@@ -7,6 +7,9 @@ path:add "$HOME/.local/bin"
 
 # -------------------------- Development Tool Paths -------------------------- #
 
+# Rancher Desktop
+path:add "$HOME/.rd/bin"
+
 # Bun JavaScript runtime
 path:add "$BUN_INSTALL/bin"
 
