@@ -52,7 +52,7 @@ cmd:exists bat && alias cat='bat --paging=never'
 
 # Safer rm (prefer trash-put if installed)
 if cmd:exists trash-put; then
-  alias rm='echo "Please use trash-put"'
+  alias rm="trash-put"
 fi
 
 # For enabling lazy loading of ssh keys
