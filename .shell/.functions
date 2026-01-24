@@ -643,7 +643,7 @@ dotfiles:cleanup() {
   compaudit | xargs chmod g-w
 
   # Remove stale lock files
-  rm -f "$DOTFILES_CONFIG_PATH/.gnupg/public-keys.d/pubring.db.lock"
+  rm -f "$DOTFILES_CONFIG_PATH_PROTECTED/.gnupg/public-keys.d/pubring.db"*.lock
 }
 
 # Main entry point to link dotfiles from repo/config paths to $HOME
