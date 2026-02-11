@@ -26,19 +26,9 @@
     "when": "chatIsEnabled && hasSpeechProvider && inChatInput && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress || chatIsEnabled && hasSpeechProvider && inlineChatFocused && !chatSessionRequestInProgress && !editorFocus && !notebookEditorFocused && !scopedVoiceChatGettingReady && !speechToTextInProgress"
   },
   {
-    "command": "emojisense.quickEmoji",
-    "key": "cmd+e",
-    "when": "editorTextFocus"
-  },
-  {
     "command": "-emojisense.quickEmoji",
     "key": "cmd+i",
     "when": "editorTextFocus"
-  },
-  {
-    "command": "emojisense.quickEmojiTerminal",
-    "key": "cmd+e",
-    "when": "terminalFocus"
   },
   {
     "command": "-emojisense.quickEmojiTerminal",
@@ -120,5 +110,15 @@
   "key": "cmd+i",
   "command": "-inlineChat.start",
   "when": "editorFocus && inlineChatHasEditsAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput || editorFocus && inlineChatHasNotebookAgent && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook' || editorFocus && inlineChatHasNotebookInline && inlineChatPossible && !editorReadonly && !editorSimpleInput && activeEditor == 'workbench.editor.notebook'"
+},
+{
+  "key": "cmd+e cmd+e",
+  "command": "-sqltools.executeQuery",
+  "when": "editorHasSelection && editorTextFocus && !config.sqltools.disableChordKeybindings"
+},
+{
+  "key": "cmd+e cmd+d",
+  "command": "-sqltools.describeTable",
+  "when": "!config.sqltools.disableChordKeybindings"
 }
 ]
