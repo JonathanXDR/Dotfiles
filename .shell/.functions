@@ -423,21 +423,14 @@ docker:cleanup() {
 
 # ------------------------------- JS Ecosystem ------------------------------- #
 
-nvm:update() {
-  if ! nvm install node --latest-npm 2>&1 | tee /dev/null | grep -q "already installed"; then
-    nvm use node
-    node:verify
-  fi
-}
-
 node:verify() {
-  # Check if node command works after switching to newest version
+  # Check if node command works after switching to LTS version
   if ! node --version >/dev/null 2>&1; then
-    echo "Warning: node command failed with newest version, reverting to LTS..."
-    # Fallback to the LTS version
+    echo "Warning: node command failed, reinstalling LTS..."
+    nvm install --lts --latest-npm
     nvm alias default 'lts/*'
     nvm use --lts
-    echo "Reverted to LTS node version."
+    echo "Reinstalled LTS node version."
   fi
 
   # shellcheck disable=SC2155
@@ -449,10 +442,6 @@ node:verify() {
   if [ ! -f "${installed_globals_file}" ] || [ -f "${HOME}/.npm.globals" ] && [ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]; then
     globals:install
   fi
-}
-
-bun:update() {
-  bun upgrade &>/dev/null
 }
 
 nvmrc:load() {
@@ -472,6 +461,17 @@ nvmrc:load() {
     echo "Reverting to nvm default version"
     nvm use default
   fi
+}
+
+nvm:update() {
+  nvm install --lts --latest-npm
+  nvm alias default 'lts/*'
+  nvm use --lts
+  node:verify
+}
+
+bun:update() {
+  bun upgrade &>/dev/null
 }
 
 globals:install() {
