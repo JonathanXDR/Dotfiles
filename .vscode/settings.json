@@ -161,11 +161,14 @@
     "*.mdx": "markdown"
   },
   "files.exclude": {
+    "**/.claude/": true,
     "**/.trunk/*actions/": true,
     "**/.trunk/*logs/": true,
     "**/.trunk/*notifications/": true,
     "**/.trunk/*out/": true,
-    "**/.trunk/*plugins/": true
+    "**/.trunk/*plugins/": true,
+    "AGENTS.md": true,
+    "CLAUDE.md": true
   },
   "files.watcherExclude": {
     "**/.ammonite": true,
