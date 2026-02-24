@@ -423,14 +423,40 @@ docker:cleanup() {
 
 # ------------------------------- JS Ecosystem ------------------------------- #
 
+node:works() {
+  # Run node in a subshell to suppress zsh's "killed" signal messages
+  (node --version >/dev/null 2>&1) 2>/dev/null
+}
+
 node:verify() {
   # Check if node command works after switching to LTS version
-  if ! node --version >/dev/null 2>&1; then
-    echo "Warning: node command failed, reinstalling LTS..."
+  if ! node:works; then
+    log warning "node command failed, reinstalling LTS..."
     nvm install --lts --latest-npm
     nvm alias default 'lts/*'
     nvm use --lts
-    echo "Reinstalled LTS node version."
+  fi
+
+  # If LTS is still broken, try other installed versions as fallback
+  if ! node:works; then
+    log warning "LTS node still broken, trying other installed versions..."
+    local broken_version
+    broken_version=$(nvm current 2>/dev/null)
+    local version
+    for version in $(nvm ls --no-colors 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -t. -k1,1rn -k2,2rn -k3,3rn); do
+      [[ "$version" == "$broken_version" ]] && continue
+      nvm use "$version" 2>/dev/null
+      if node:works; then
+        log success "Fell back to working version: $version"
+        nvm alias default "$version"
+        break
+      fi
+    done
+  fi
+
+  if ! node:works; then
+    log error "No working node version found"
+    return 1
   fi
 
   # shellcheck disable=SC2155
@@ -464,9 +490,23 @@ nvmrc:load() {
 }
 
 nvm:update() {
+  local previous_version
+  previous_version=$(nvm current 2>/dev/null)
+
   nvm install --lts --latest-npm
   nvm alias default 'lts/*'
   nvm use --lts
+
+  # If the newly installed LTS is broken, fall back to previous version
+  if ! node:works; then
+    log warning "Newly installed LTS node is broken (binary killed or crashed)"
+    if [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
+      log info "Falling back to previous version: $previous_version"
+      nvm use "$previous_version"
+      nvm alias default "$previous_version"
+    fi
+  fi
+
   node:verify
 }
 
