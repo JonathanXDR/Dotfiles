@@ -313,23 +313,6 @@ ssh:agent() {
 
 # ---------------------------- macOS System Tweaks & Utilities --------------------------- #
 
-system:setup() {
-  hostname:reset
-  sudo:touch-id
-}
-
-system:shutdown() {
-  sudo shutdown -h now
-}
-
-system:restart() {
-  sudo shutdown -r now
-}
-
-system:sleep() {
-  sudo shutdown -s now
-}
-
 sudo:touch-id() {
   FILE='/etc/pam.d/sudo'
   BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
@@ -360,6 +343,14 @@ auth       sufficient     pam_tid.so
 
   trap - ERR
   echo "Done. $FILE has been updated successfully."
+}
+
+gatekeeper:disable() {
+  sudo spctl --master-disable
+}
+
+gatekeeper:enable() {
+  sudo spctl --master-enable
 }
 
 hostname:get() {
@@ -404,6 +395,24 @@ dock:reset() {
   defaults write com.apple.dock expose-group-apps -bool true
 
   killall Dock
+}
+
+system:setup() {
+  gatekeeper:disable
+  hostname:reset
+  sudo:touch-id
+}
+
+system:shutdown() {
+  sudo shutdown -h now
+}
+
+system:restart() {
+  sudo shutdown -r now
+}
+
+system:sleep() {
+  sudo shutdown -s now
 }
 
 # ---------------------------------- Docker ---------------------------------- #
