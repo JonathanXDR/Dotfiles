@@ -86,6 +86,11 @@
   "amazonQ.importRecommendationForInlineCodeSuggestions": false,
   "amazonQ.shareContentWithAWS": false,
   "amazonQ.showCodeWithReferences": false,
+  "amazonQ.suppressPrompts": {
+    "amazonQChatDisclaimer": true,
+    "amazonQChatPairProgramming": true,
+    "amazonQSessionConfigurationMessage": true
+  },
   "amazonQ.telemetry": false,
   "application.shellEnvironmentResolutionTimeout": 30,
   "aws.cloudformation.telemetry.enabled": false,
@@ -122,7 +127,7 @@
   "editor.formatOnType": true,
   "editor.guides.indentation": false,
   "editor.linkedEditing": true,
-  "editor.matchBrackets": "always",
+  "editor.matchBrackets": "never",
   "editor.minimap.enabled": true,
   "editor.renderWhitespace": "all",
   "editor.showDeprecated": true,
@@ -226,6 +231,7 @@
   "quarkus.tools.alwaysShowWelcomePage": false,
   "redhat.telemetry.enabled": true,
   "security.workspace.trust.untrustedFiles": "open",
+  "sqldeveloper.datagrid.fontFamily": "Menlo, Monaco, 'Courier New', monospace",
   "sqldeveloper.sqlHistory.historyLimit": 500,
   "sqldeveloper.telemetry.enabled": false,
   "terminal.integrated.defaultProfile.osx": "zsh",
@@ -236,6 +242,11 @@
   "terminal.integrated.env.osx": {
     "FIG_NEW_SESSION": "1",
     "Q_NEW_SESSION": "1"
+  },
+  "terminal.integrated.profiles.osx": {
+    "zsh": {
+      "path": "zsh"
+    }
   },
   "terminal.integrated.tabs.hideCondition": "never",
   "thunder-client.requestLayout": "Top/Bottom",
