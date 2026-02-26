@@ -18,10 +18,19 @@ export NTLM_CREDENTIALS="${NTLM_CREDENTIALS:-}"
 
 # Reject unauthorized TLS/SSL certificates by default.
 export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
+
+# Let Node.js use HTTP(S)_PROXY env vars for fetch().
+export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-0}"
+
+# Extra CA certificates for corporate proxy
+export NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-}"
+
 # Enable persistent REPL history for `node`.
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
+
 # Allow 32³ entries; the default is 1000.
 export NODE_REPL_HISTORY_SIZE="${NODE_REPL_HISTORY_SIZE:-32768}"
+
 # Use sloppy mode by default, matching web browsers.
 export NODE_REPL_MODE="${NODE_REPL_MODE:-sloppy}"
 
