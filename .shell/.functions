@@ -218,6 +218,56 @@ getcertnames() {
 	fi;
 }
 
+# Bundle corporate CA certificates into a single PEM file for NODE_EXTRA_CA_CERTS.
+# Node.js uses OpenSSL which cannot resolve certificate chains through the macOS
+# SecureTransport trust store, so corporate CAs must be provided explicitly.
+ssl:bundle() {
+  local output="${1:-$HOME/.ssl/ca-bundle.pem}"
+  mkdir -p "$(dirname "$output")"
+
+  local tmp
+  tmp="$(mktemp)"
+  local cert_count=0
+
+  IFS=',' read -ra keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
+  for cn in "${keychain_certs[@]}"; do
+    cn="$(echo "$cn" | xargs)" # trim whitespace
+    [[ -z "$cn" ]] && continue
+    if security find-certificate -c "$cn" -p /Library/Keychains/System.keychain >> "$tmp" 2>/dev/null; then
+      ((cert_count++))
+    else
+      log warning "$cn not found in system keychain"
+    fi
+  done
+
+  IFS=',' read -ra remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
+  for url in "${remote_certs[@]}"; do
+    url="$(echo "$url" | xargs)" # trim whitespace
+    [[ -z "$url" ]] && continue
+    local remote_tmp
+    remote_tmp="$(mktemp)"
+    if curl -sf ${http_proxy:+--proxy "$http_proxy"} "$url" -o "$remote_tmp" 2>/dev/null; then
+      if openssl x509 -inform DER -in "$remote_tmp" -outform PEM >> "$tmp" 2>/dev/null; then
+        ((cert_count++))
+      else
+        log warning "Failed to convert $(basename "$url") from DER to PEM"
+      fi
+    else
+      log warning "Failed to download $(basename "$url") from $url"
+    fi
+    rm -f "$remote_tmp"
+  done
+
+  if ((cert_count == 0)); then
+    log error "No certificates were bundled"
+    rm -f "$tmp"
+    return 1
+  fi
+
+  mv "$tmp" "$output"
+  log success "Bundled $cert_count certificates into $output"
+}
+
 dns:change() {
   if (($# < 2)); then
     echo "Usage: dns:change <network service name> <DNS IPs separated by commas>" >&2
