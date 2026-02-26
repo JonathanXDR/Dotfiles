@@ -312,10 +312,22 @@ proxy:set() {
   export no_proxy="${no_proxy}"
   export NO_PROXY="${no_proxy}"
   export MAVEN_OPTS="-Dhttp.proxyHost=${proxy_host} -Dhttp.proxyPort=${proxy_port} -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port}"
+
+  # Set proxy for GUI apps
+  launchctl setenv HTTP_PROXY "${proxy_addr}" 2>/dev/null
+  launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
+  launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
+  launchctl setenv NO_PROXY "${no_proxy}" 2>/dev/null
 }
 
 proxy:unset() {
   unset http_proxy https_proxy ftp_proxy all_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS
+
+  # Unset proxy for GUI apps
+  launchctl unsetenv HTTP_PROXY 2>/dev/null
+  launchctl unsetenv HTTPS_PROXY 2>/dev/null
+  launchctl unsetenv ALL_PROXY 2>/dev/null
+  launchctl unsetenv NO_PROXY 2>/dev/null
 }
 
 proxy:probe() {
@@ -615,6 +627,8 @@ env:load() {
       if [[ "$line" =~ ^[a-zA-Z_][a-zA-Z0-9_]*= ]]; then
         local key="${line%%=*}"
         local value="${line#*=}"
+        # Expand shell variables ($HOME, $USER, ${VAR}, ~) in values
+        eval value="\"${value}\""
         export "${key}=${value}"
         ((loaded_count++))
       fi
