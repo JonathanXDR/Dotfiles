@@ -24,16 +24,10 @@ cmd:exists() {
     echo "Usage: cmd:exists <command>" >&2
     return 1
   }
-  if command -v "$1" &>/dev/null; then
-    return 0
-  else
-    log error "Command \"$1\" not found" >&2
-    return 1
-  fi
+  command -v "$1" &>/dev/null
 }
 
-# PATH utility function (build once, mind order)
-# Safely adds a directory to PATH only if it exists and isn't already there
+# Safely prepend a directory to PATH if it exists and isn't already there
 path:add() {
   [[ -d "$1" ]] && case ":$PATH:" in
     *":$1:"*) ;;
