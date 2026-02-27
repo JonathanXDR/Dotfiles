@@ -2,17 +2,31 @@
 
 # ---------------------------- Proxy configuration --------------------------- #
 
-export ALWAYS_PROXY_PROBE="${ALWAYS_PROXY_PROBE:-false}"
-export PROXY_PROTOCOL="${PROXY_PROTOCOL:-http}"
-export PROXY_HOST="${PROXY_HOST:-localhost}"
-export PROXY_PORT="${PROXY_PORT:-8080}"
-export PROXY_DNS="${PROXY_DNS:-}"
-export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1}"
-export NO_PROXY_DNS="${NO_PROXY_DNS:-}"
+{{ if eq .machine_type "work" -}}
+export ALWAYS_PROXY_PROBE="true"
+export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
+export PROXY_HOST={{ .proxy_host | quote }}
+export PROXY_PORT={{ .proxy_port | quote }}
+export PROXY_DNS={{ .proxy_dns | quote }}
+export NO_PROXY={{ .no_proxy | quote }}
+export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
+{{ else -}}
+export ALWAYS_PROXY_PROBE="false"
+export PROXY_PROTOCOL="http"
+export PROXY_HOST="localhost"
+export PROXY_PORT="8080"
+export PROXY_DNS=""
+export NO_PROXY="localhost,127.0.0.1"
+export NO_PROXY_DNS=""
+{{ end -}}
 
 # ----------------------------------- Auth ----------------------------------- #
 
-export NTLM_CREDENTIALS="${NTLM_CREDENTIALS:-}"
+{{ if eq .machine_type "work" -}}
+export NTLM_CREDENTIALS={{ template "apw" list "ntlm" "credentials" | quote }}
+{{ else -}}
+export NTLM_CREDENTIALS=""
+{{ end -}}
 
 # ----------------------------------- Node ----------------------------------- #
 
@@ -23,11 +37,15 @@ export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-0}"
 
 # Extra CA certificates for corporate proxy
-export NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-}"
+{{ if and (eq .machine_type "work") (ne .ssl_bundle_keychain_certs "") -}}
+export NODE_EXTRA_CA_CERTS="${HOME}/.ssl/ca-bundle.pem"
+{{ else -}}
+export NODE_EXTRA_CA_CERTS=""
+{{ end -}}
 
 # Certificate CNs and URLs for bundling SSL certificates
-export SSL_BUNDLE_KEYCHAIN_CERTS="${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
-export SSL_BUNDLE_REMOTE_CERTS="${SSL_BUNDLE_REMOTE_CERTS:-}"
+export SSL_BUNDLE_KEYCHAIN_CERTS={{ .ssl_bundle_keychain_certs | quote }}
+export SSL_BUNDLE_REMOTE_CERTS={{ .ssl_bundle_remote_certs | quote }}
 
 # Enable persistent REPL history for `node`.
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
