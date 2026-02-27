@@ -10,32 +10,25 @@ alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
 alias .....="cd ../../../.."
-alias ~="cd ~" # `cd` is probably faster to type though
+alias ~="cd ~"
 alias -- -="cd -"
 
-# Detect which `ls` flavor is in use
-if ls --color > /dev/null 2>&1; then # GNU `ls`
-  colorflag="--color"
-  export LS_COLORS='no=00:fi=00:di=01;31:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:'
-else # macOS `ls`
-  colorflag="-G"
+# Prefer lsd if available, otherwise colorize ls
+if cmd:exists lsd; then
+  alias ls='lsd'
+else
+  alias ls='command ls -G'
   export LSCOLORS='BxBxhxDxfxhxhxhxhxcxcx'
 fi
 
-# Color ls
-cmd:exists lsd && alias ls='lsd'
-
-# Always use color output for `ls`
-alias ls="command ls \${colorflag}"
-
 # List all files colorized in long format
-alias l="ls -lF \${colorflag}"
+alias l="ls -lF"
 
 # List all files colorized in long format, excluding . and ..
-alias la="ls -lAF \${colorflag}"
+alias la="ls -lAF"
 
 # List only directories
-alias lsd="ls -lF \${colorflag} | grep --color=never '^d'"
+alias lsd="ls -lF | grep --color=never '^d'"
 
 # Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
@@ -51,15 +44,10 @@ cmd:exists btop && alias top='btop'
 cmd:exists bat && alias cat='bat --paging=never'
 
 # Safer rm (prefer trash-put if installed)
-if cmd:exists trash-put; then
-  alias rm="trash-put"
-fi
+cmd:exists trash-put && alias rm="trash-put"
 
 # For enabling lazy loading of ssh keys
 alias ssh='ssh -o AddKeysToAgent=yes'
-
-# Use Mosh instead of SSH
-# cmd:exists mosh && alias ssh='mosh'
 
 # Make using bash interactively possible
 alias bash='PERMIT_BASH=true bash'
@@ -107,10 +95,7 @@ alias localip="ipconfig getifaddr en0"
 alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
 
 # Show active network interfaces
-alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'"
-
-# Airport CLI alias
-alias airport='/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+alias ifactive="ifconfig | awk '/^[^ ]/{iface=\$1} /status: active/{print iface}'"
 
 # ------------------------------- Kubernetes --------------------------------- #
 
@@ -121,10 +106,7 @@ cmd:exists kubectx && alias kx='kubectx'
 # --------------------------------- Utilities -------------------------------- #
 
 # Always enable colored `grep` output
-# Note: `GREP_OPTIONS="--color=auto"` is deprecated, hence the alias usage.
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
 
 # Enable aliases to be sudo'ed
 alias sudo='sudo '
@@ -132,22 +114,21 @@ alias sudo='sudo '
 # Get week number
 alias week='date +%V'
 
-# Get macOS Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
-alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+# Update macOS, Homebrew, npm globals, and Ruby gems (guards each tool)
+alias update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; command -v npm >/dev/null && npm update -g; command -v gem >/dev/null && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
 # Canonical hex dump
-command -v hd > /dev/null || alias hd="hexdump -C"
+command -v hd >/dev/null || alias hd="hexdump -C"
 
 # macOS has no `md5sum`, so use `md5` as a fallback
-command -v md5sum > /dev/null || alias md5sum="md5"
+command -v md5sum >/dev/null || alias md5sum="md5"
 
 # macOS has no `sha1sum`, so use `shasum` as a fallback
-command -v sha1sum > /dev/null || alias sha1sum="shasum"
+command -v sha1sum >/dev/null || alias sha1sum="shasum"
 
 # JavaScriptCore REPL
-jscbin="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc";
-if [ -e "${jscbin}" ]; then
-  alias jsc="\${jscbin}"
+if [[ -e "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc" ]]; then
+  alias jsc="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc"
 fi
 
 # Trim new lines and copy to clipboard
@@ -157,7 +138,7 @@ alias c="tr -d '\n' | pbcopy"
 alias cleanup="find . -type f -name '*.DS_Store' -ls -delete"
 
 # URL-encode strings
-alias urlencode='python -c "import sys, urllib as ul; print ul.quote_plus(sys.argv[1]);"'
+alias urlencode='python3 -c "import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))"'
 
 # PlistBuddy alias
 alias plistbuddy="/usr/libexec/PlistBuddy"
@@ -166,12 +147,6 @@ alias plistbuddy="/usr/libexec/PlistBuddy"
 # For example, to list all directories that contain a certain file:
 # find . -name .gitattributes | map dirname
 alias map="xargs -n1"
-
-# Quick HTTP request aliases
-for method in GET HEAD POST PUT DELETE TRACE OPTIONS; do
-  # shellcheck disable=SC2139
-  alias "${method}"="lwp-request -m '${method}'"
-done
 
 # Volume controls
 alias stfu="osascript -e 'set volume output muted true'"
