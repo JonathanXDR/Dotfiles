@@ -1,0 +1,28 @@
+# Kiro CLI pre block. Keep at the top of this file.
+[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
+
+# Load shell configuration (order matters: vars → func → paths → aliases → completions)
+for f in .exports .functions .paths .aliases .completions; do
+  [[ -r "${HOME}/${f}" ]] && source "${HOME}/${f}" || printf '\033[0;31mError:\033[0m %s\n' "Missing ${f}. Run: chezmoi apply"
+done
+
+autoload -U add-zsh-hook
+add-zsh-hook chpwd nvmrc:load
+
+# Only run update commands if network endpoints are reachable
+network:check bun:update https://registry.npmjs.org
+network:check nvm:update https://raw.githubusercontent.com
+
+nvmrc:load
+
+# Set up proxy if in VPN or not
+[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
+
+# Start sshAgent automatically
+[[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
+
+# THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# Kiro CLI post block. Keep at the bottom of this file.
+[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"

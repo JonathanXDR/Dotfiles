@@ -207,9 +207,36 @@
   "indentRainbow.lightIndicatorStyleLineWidth": 1,
   "java.compile.nullAnalysis.mode": "automatic",
   "java.configuration.detectJdksAtStart": false,
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-11",
+      "path": "/opt/homebrew/Cellar/openjdk@11/11.0.29/libexec/openjdk.jdk/Contents/Home"
+    },
+    {
+      "name": "JavaSE-16",
+      "path": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/azul-16.0.2/Contents/Home"
+    },
+    {
+      "name": "JavaSE-17",
+      "path": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17"
+    },
+    {
+      "name": "JavaSE-21",
+      "path": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home"
+    },
+    {
+      "name": "JavaSE-22",
+      "path": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/openjdk-22.0.1/Contents/Home"
+    },
+    {
+      "default": true,
+      "name": "JavaSE-25",
+      "path": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home"
+    }
+  ],
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.debug.settings.hotCodeReplace": "auto",
-  "java.import.gradle.home": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest",
+  "java.import.gradle.home": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest",
   "java.import.gradle.java.home": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
   "java.maxConcurrentBuilds": 14,
   "java.sources.organizeImports.staticStarThreshold": 1,
@@ -217,7 +244,7 @@
   "jdk.telemetry.enabled": false,
   "makefile.configureOnOpen": true,
   "mdb.mcp.server": "prompt",
-  "metals.javaHome": "/Users/jonathan/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home",
+  "metals.javaHome": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home",
   "mssql.connectionGroups": [
     {
       "id": "DB9327F4-F67B-40AB-9520-3597E129937D",
@@ -243,6 +270,59 @@
     "FIG_NEW_SESSION": "1",
     "Q_NEW_SESSION": "1"
   },
+  "terminal.integrated.profiles.osx": {
+    "JavaSE-11 LTS": {
+      "env": {
+        "JAVA_HOME": "/opt/homebrew/Cellar/openjdk@11/11.0.29/libexec/openjdk.jdk/Contents/Home",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "JavaSE-16": {
+      "env": {
+        "JAVA_HOME": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/azul-16.0.2/Contents/Home",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "JavaSE-17 LTS": {
+      "env": {
+        "JAVA_HOME": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "JavaSE-21 LTS": {
+      "env": {
+        "JAVA_HOME": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "JavaSE-22": {
+      "env": {
+        "JAVA_HOME": "{{ .chezmoi.homeDir }}/Library/Java/JavaVirtualMachines/openjdk-22.0.1/Contents/Home",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "JavaSE-25 LTS": {
+      "env": {
+        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
+        "ZDOTDIR": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+      },
+      "overrideName": true,
+      "path": "zsh"
+    },
+    "zsh": {
+      "path": "zsh"
+    }
+  },
   "terminal.integrated.tabs.hideCondition": "never",
   "thunder-client.requestLayout": "Top/Bottom",
   "trailing-spaces.backgroundColor": "rgba(255,0,0,0.1)",
@@ -263,89 +343,5 @@
   "xml.server.preferBinary": true,
   "xml.server.vmargs": "-Xmx128M",
   "zig.path": "zig",
-  "zig.zls.enabled": "on",
-  "java.configuration.runtimes": [
-    {
-      "name": "JavaSE-11",
-      "path": "/opt/homebrew/Cellar/openjdk@11/11.0.29/libexec/openjdk.jdk/Contents/Home"
-    },
-    {
-      "name": "JavaSE-16",
-      "path": "/Users/jonathan/Library/Java/JavaVirtualMachines/azul-16.0.2/Contents/Home"
-    },
-    {
-      "name": "JavaSE-17",
-      "path": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17"
-    },
-    {
-      "name": "JavaSE-21",
-      "path": "/Users/jonathan/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home"
-    },
-    {
-      "name": "JavaSE-22",
-      "path": "/Users/jonathan/Library/Java/JavaVirtualMachines/openjdk-22.0.1/Contents/Home"
-    },
-    {
-      "name": "JavaSE-25",
-      "path": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
-      "default": true
-    }
-  ],
-  "terminal.integrated.profiles.osx": {
-    // "zsh": {
-    //   "path": "zsh",
-    //   "env": {
-    //     "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
-    //     "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
-    //   }
-    // },
-    "JavaSE-11 LTS": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/opt/homebrew/Cellar/openjdk@11/11.0.29/libexec/openjdk.jdk/Contents/Home"
-      },
-      "path": "zsh"
-    },
-    "JavaSE-16": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/Users/jonathan/Library/Java/JavaVirtualMachines/azul-16.0.2/Contents/Home"
-      },
-      "path": "zsh"
-    },
-    "JavaSE-17 LTS": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17"
-      },
-      "path": "zsh"
-    },
-    "JavaSE-21 LTS": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/Users/jonathan/Library/Java/JavaVirtualMachines/openjdk-21.0.1/Contents/Home"
-      },
-      "path": "zsh"
-    },
-    "JavaSE-22": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/Users/jonathan/Library/Java/JavaVirtualMachines/openjdk-22.0.1/Contents/Home"
-      },
-      "path": "zsh"
-    },
-    "JavaSE-25 LTS": {
-      "overrideName": true,
-      "env": {
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk",
-        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home"
-      },
-      "path": "zsh"
-    }
-  }
+  "zig.zls.enabled": "on"
 }

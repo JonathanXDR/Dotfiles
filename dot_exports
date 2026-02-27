@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # ---------------------------- Proxy configuration --------------------------- #
 
@@ -59,7 +59,7 @@ export HISTCONTROL="${HISTCONTROL:-ignoreboth}"
 
 # ------------------------------ Pager & manuals ----------------------------- #
 
-# Don’t clear the screen after quitting a manual page.
+# Don't clear the screen after quitting a manual page.
 export MANPAGER="${MANPAGER:-less -X}"
 
 # ------------------------------------ GPG ----------------------------------- #
@@ -71,7 +71,7 @@ export GPG_TTY="$(tty)"
 
 # ------------------------------ macOS quirks -------------------------------- #
 
-# Hide the “default interactive shell is now zsh” warning on macOS.
+# Hide the "default interactive shell is now zsh" warning on macOS.
 export BASH_SILENCE_DEPRECATION_WARNING="${BASH_SILENCE_DEPRECATION_WARNING:-1}"
 
 # --------------------------- Default user prompt ---------------------------- #

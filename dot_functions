@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
@@ -124,7 +124,7 @@ server() {
 	local port="${1:-8000}";
 	sleep 1 && open "http://localhost:${port}/" &
 	# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
-	# And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
+	# And serve everything as UTF-8 (although not technically correct, this doesn't break anything for binary files)
 	python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port";
 }
 
@@ -293,7 +293,7 @@ proxy:set() {
 
   if [[ -z "${proxy_protocol}" || -z "${proxy_host}" || -z "${proxy_port}" ]]; then
     echo "Usage: proxy:set <protocol> <host> <port> [no_proxy]" >&2
-    echo "Or ensure PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT are set in ${HOME}/.shell/.exports" >&2
+    echo "Or ensure PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT are set in ${HOME}/.exports" >&2
     return 1
   fi
 
@@ -616,13 +616,13 @@ env:load() {
   local env_file="${1:-$HOME/.env}"
   if [[ -f "$env_file" ]]; then
     local loaded_count=0
-    
+
     # Process each line
     while IFS= read -r line || [[ -n "$line" ]]; do
       # Skip comments and empty lines
       [[ "$line" =~ ^[[:space:]]*# ]] && continue
       [[ -z "${line// }" ]] && continue
-      
+
       # Validate format (KEY=VALUE) and export
       if [[ "$line" =~ ^[a-zA-Z_][a-zA-Z0-9_]*= ]]; then
         local key="${line%%=*}"
@@ -636,142 +636,9 @@ env:load() {
   fi
 }
 
-# Replace environment variables in npmrc and load .env
-env:replace() {
-  # First load the .env file into the shell environment
-  env:load "$HOME/.env"
-  
-  # Then run the npmrc replacement
-  if [[ -f "${HOME}/.env" ]]; then
-    CURRENT_DIR=$(pwd)
-    cd "$HOME" || exit
-
-    npx npmrc-replace-env -w
-    cd "$CURRENT_DIR" || exit
-  else
-    echo ".env file not found."
-  fi
-}
-
-# --------------------------- Dotfiles Management ---------------------------- #
-
-# Create a symbolic link from source to target, removing existing target if necessary
-dotfiles:symlink() {
-  local source_file="$1"
-  local target_file="$2"
-
-  if [[ ! -e "$source_file" ]]; then
-    log warning "Source file \"$source_file\" not found (skipping)" >&2
-    return 1
-  fi
-
-  if [[ -e "$target_file" || -L "$target_file" ]]; then
-    log success "Removed symlink for \"$target_file\""
-    rm -rf "$target_file"
-  fi
-
-  ln -s "$source_file" "$target_file"
-  log success "Created symlink for \"$(basename "$source_file")\" at \"$target_file\""
-}
-
-# Remove a symbolic link or file
-dotfiles:remove() {
-  local target_file="$2" # Matches signature of dotfiles:symlink (source, target)
-
-  if [[ -L "$target_file" || -e "$target_file" ]]; then
-    rm -rf "$target_file"
-    log success "Removed \"$target_file\""
-  fi
-}
-
-# Generic iterator for dotfiles operations
-dotfiles:iterate() {
-  local cmd="$1"
-  local source_dir="$2"
-  local target_dir="$3"
-  local skip_list="${4:-.DS_Store .git .gitignore LICENSE README.md}"
-  shift 4
-  local files=("$@")
-
-  if [[ ! -d "$source_dir" ]]; then
-    log error "Source dir \"$source_dir\" not found (skipping)" >&2
-    return 1
-  fi
-
-  if [[ ! -d "$target_dir" ]]; then
-    log error "Target dir \"$target_dir\" not found (skipping)" >&2
-    return 1
-  fi
-
-  if (( ${#files[@]} > 0 )); then
-    for filename in "${files[@]}"; do
-      "$cmd" "$source_dir/$filename" "$target_dir/$filename"
-    done
-  else
-    # shellcheck disable=SC2206
-    local -a skip_files=($skip_list)
-    for file in "$source_dir"/.*; do
-      # shellcheck disable=SC2155
-      local filename=$(basename "$file")
-
-      [[ "$filename" == "." || "$filename" == ".." ]] && continue
-
-      if [[ " ${skip_files[*]} " == *" $filename "* ]]; then
-        # Only warn on skip if we are linking, to avoid noise when unlinking
-        [[ "$cmd" == "dotfiles:symlink" ]] && log info "Skipping \"$filename\""
-        continue
-      fi
-
-      "$cmd" "$file" "$target_dir/$filename"
-    done
-  fi
-}
-
-# Helper to process dotfiles (link or unlink)
-dotfiles:process() {
-  local cmd="$1"
-  shift
-  local -a default_sources=("${DOTFILES_REPO_PATH}/.home" "${DOTFILES_REPO_PATH}/.shell" "${DOTFILES_CONFIG_PATH_PROTECTED}")
-  (( $# == 0 )) && set -- "${default_sources[@]}"
-  local -a source_dirs=("${@}")
-
-  # Process dotfiles & secrets in home directory
-  for source_dir in "${source_dirs[@]}"; do
-    dotfiles:iterate "$cmd" "$source_dir" "$HOME" ""
-  done
-
-  # Process VSCode settings files
-  if [[ -d "$VSCODE_CONFIG_PATH" ]]; then
-    dotfiles:iterate "$cmd" "${DOTFILES_REPO_PATH}/.vscode" "$VSCODE_CONFIG_PATH" "" "settings.json" "keybindings.json"
-  elif [[ "$cmd" == "dotfiles:symlink" ]]; then
-    echo "Directory not found: $VSCODE_CONFIG_PATH (skipping)" >&2
-  fi
-
-  dotfiles:cleanup
-}
-
-# Cleanup stale lock files and fix permissions
-dotfiles:cleanup() {
-  # Fix warnings from zsh completions about insecure directories, this will remove group-write permissions
-  compaudit | xargs chmod g-w
-
-  # Remove stale lock files
-  rm -f "$DOTFILES_CONFIG_PATH_PROTECTED/.gnupg/public-keys.d/pubring.db"*.lock
-}
-
-# Main entry point to link dotfiles from repo/config paths to $HOME
-dotfiles:link() {
-  dotfiles:process "dotfiles:symlink" "$@"
-}
-
-# Main entry point to unlink dotfiles
-dotfiles:unlink() {
-  dotfiles:process "dotfiles:remove" "$@"
-}
-
 # ------------------------------------ Git ----------------------------------- #
 
-# Use Git’s colored diff when available
+# Use Git's colored diff when available
 hash git &>/dev/null;
 if [ $? -eq 0 ]; then
 	diff() {

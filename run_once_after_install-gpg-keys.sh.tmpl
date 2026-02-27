@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+ICLOUD_GPG="{{ .icloud_secrets }}/gnupg"
+TARGET_DIR="${HOME}/.gnupg"
+
+if [[ ! -d "$ICLOUD_GPG" ]]; then
+  echo "iCloud GPG directory not found: $ICLOUD_GPG"
+  echo "Skipping GPG key installation."
+  exit 0
+fi
+
+# Ensure iCloud files are downloaded
+if command -v brctl &>/dev/null; then
+  brctl download "$ICLOUD_GPG" 2>/dev/null || true
+  sleep 2
+fi
+
+mkdir -p "$TARGET_DIR"
+chmod 700 "$TARGET_DIR"
+
+for file in "$ICLOUD_GPG"/*; do
+  [[ -f "$file" ]] || continue
+  filename="$(basename "$file")"
+  cp "$file" "$TARGET_DIR/$filename"
+  chmod 600 "$TARGET_DIR/$filename"
+  echo "Installed GPG file: $filename"
+done
+
+echo "GPG keys installed to $TARGET_DIR"
