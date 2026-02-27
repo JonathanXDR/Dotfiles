@@ -1,0 +1,4 @@
+# Shared non-secret data for chezmoi templates
+# Values here are available in all templates as .key_name
+
+default_hostname = "void(0)"

@@ -21,8 +21,7 @@ export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
 export VSCODE_CONFIG_PATH="$HOME/Library/Application Support/Code/User"
 
 # Dotfiles metadata
-export DOTFILES_REPO_PATH="$HOME/Developer/Git/GitHub/Dotfiles"                             # Dotfiles inside this repo
-export DOTFILES_CONFIG_PATH_PROTECTED="$HOME/Documents/General/Developer/configs/dotfiles"  # Dotifles at a protected location outside this repo (e.g. for secrets)
+export DOTFILES_REPO_PATH={{ .chezmoi.sourceDir | quote }}
 
 # Docker & Kubernetes configs
 export K3S_KUBECONFIG_MODE="644"
