@@ -292,13 +292,13 @@
     }
   ],
   "terminal.integrated.profiles.osx": {
-    "zsh": {
-      "path": "zsh",
-      "env": {
-        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
-      }
-    },
+    // "zsh": {
+    //   "path": "zsh",
+    //   "env": {
+    //     "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
+    //     "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+    //   }
+    // },
     "JavaSE-11 LTS": {
       "overrideName": true,
       "env": {
