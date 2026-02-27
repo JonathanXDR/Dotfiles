@@ -243,17 +243,15 @@
     "FIG_NEW_SESSION": "1",
     "Q_NEW_SESSION": "1"
   },
-  "terminal.integrated.profiles.osx": {
-    "zsh": {
-      "path": "zsh"
-    }
-  },
   "terminal.integrated.tabs.hideCondition": "never",
   "thunder-client.requestLayout": "Top/Bottom",
   "trailing-spaces.backgroundColor": "rgba(255,0,0,0.1)",
   "trailing-spaces.includeEmptyLines": false,
   "trailing-spaces.trimOnSave": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
+  "vs-kubernetes": {
+    "vs-kubernetes.crd-code-completion": "disabled"
+  },
   "vsicons.dontShowNewVersionMessage": true,
   "vsicons.projectDetection.autoReload": true,
   "workbench.colorTheme": "Atom One Dark",
@@ -294,13 +292,13 @@
     }
   ],
   "terminal.integrated.profiles.osx": {
-    "zsh": {
-      "path": "zsh",
-      "env": {
-        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
-        "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
-      }
-    },
+    // "zsh": {
+    //   "path": "zsh",
+    //   "env": {
+    //     "JAVA_HOME": "/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home",
+    //     "ZDOTDIR": "/Users/jonathan/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk"
+    //   }
+    // },
     "JavaSE-11 LTS": {
       "overrideName": true,
       "env": {
