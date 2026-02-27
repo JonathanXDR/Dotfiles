@@ -249,6 +249,9 @@
   "trailing-spaces.includeEmptyLines": false,
   "trailing-spaces.trimOnSave": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
+  "vs-kubernetes": {
+    "vs-kubernetes.crd-code-completion": "disabled"
+  },
   "vsicons.dontShowNewVersionMessage": true,
   "vsicons.projectDetection.autoReload": true,
   "workbench.colorTheme": "Atom One Dark",
