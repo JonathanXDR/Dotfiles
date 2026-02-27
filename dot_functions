@@ -331,19 +331,16 @@ proxy:probe() {
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
     [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
   else
-    # echo "Detected normal network, turning off proxy."
     proxy:unset
     [[ "${with_dns}" == "dns" ]] && dns:change "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
   fi
 }
 
 network:check() {
-  local cmd="$1" url="$2"
-  if command -v "$cmd" >/dev/null 2>&1; then
-    if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
+  local tool="$1" cmd="$2" url="$3"
+  if command -v "$tool" >/dev/null 2>&1; then
+    if curl -m3 -sSf "$url" >/dev/null 2>&1; then
       "$cmd"
-    else
-      log "Skipping \"$cmd\" (network unavailable or blocked)"
     fi
   fi
 }
