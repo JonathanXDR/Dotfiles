@@ -1,4 +1,6 @@
 registry=https://registry.npmjs.org/
 //registry.npmjs.org/:_authToken={{ template "apw" list "registry.npmjs.org" "npm" }}
+{{ if eq .machine_type "work" -}}
 //bin.swisscom.com/artifactory/api/npm/:_authToken={{ template "apw" list "bin.swisscom.com" "swisscom-npm" }}
 //bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ template "apw" list "bin.swisscom.com" "apps-team-npm" }}
+{{ end -}}

@@ -52,8 +52,8 @@ source "${HOME}/.completions"
 autoload -U add-zsh-hook
 add-zsh-hook chpwd nvmrc:load
 
-network:check bun:update https://registry.npmjs.org
-network:check nvm:update https://raw.githubusercontent.com
+network:check bun bun:update https://registry.npmjs.org
+network:check nvm nvm:update https://raw.githubusercontent.com
 
 nvmrc:load
 
