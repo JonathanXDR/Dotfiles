@@ -12,10 +12,10 @@ log() {
 
   case "$level" in
     error|red)     shift; printf "${red}Error:${reset}   %s\n" "$*";;
-    success|green)  shift; printf "${green}Success:${reset} %s\n" "$*";;
+    success|green) shift; printf "${green}Success:${reset} %s\n" "$*";;
     warning|yellow) shift; printf "${yellow}Warning:${reset} %s\n" "$*";;
-    info|blue)      shift; printf "${blue}Info:${reset}    %s\n" "$*";;
-    *)              echo "$@";;
+    info|blue)     shift; printf "${blue}Info:${reset}    %s\n" "$*";;
+    *)             echo "$@";;
   esac
 }
 
@@ -24,16 +24,10 @@ cmd:exists() {
     echo "Usage: cmd:exists <command>" >&2
     return 1
   }
-  if command -v "$1" &>/dev/null; then
-    return 0
-  else
-    log error "Command \"$1\" not found" >&2
-    return 1
-  fi
+  command -v "$1" &>/dev/null
 }
 
-# PATH utility function (build once, mind order)
-# Safely adds a directory to PATH only if it exists and isn't already there
+# Safely prepend a directory to PATH if it exists and isn't already there
 path:add() {
   [[ -d "$1" ]] && case ":$PATH:" in
     *":$1:"*) ;;
@@ -41,7 +35,7 @@ path:add() {
   esac
 }
 
-# PATH utility function for appending (less common, but useful)
+# Safely append a directory to PATH if it exists and isn't already there
 path:append() {
   [[ -d "$1" ]] && case ":$PATH:" in
     *":$1:"*) ;;
@@ -51,176 +45,145 @@ path:append() {
 
 # Create a new directory and enter it
 mkd() {
-	mkdir -p "$@" && cd "$_" || exit;
+  mkdir -p "$@" && cd "$_" || return
 }
 
 # Change working directory to the top-most Finder window location
-cdf() { # short for `cdfinder`
-	cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || exit;
+cdf() {
+  cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
 }
 
 # ----------------------------- Files & Archives ----------------------------- #
 
 # Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
 targz() {
-  local tmpFile="${1%/}.tar";
-  tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1;
+  local tmpFile="${1%/}.tar"
+  tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1
 
-	size=$(
-		stat -f"%z" "${tmpFile}" 2> /dev/null; # macOS `stat`
-		stat -c"%s" "${tmpFile}" 2> /dev/null;  # GNU `stat`
-	);
+  local size
+  size=$(stat -f"%z" "${tmpFile}" 2>/dev/null)
 
-	local cmd="";
-	if (( size < 52428800 )) && hash zopfli 2> /dev/null; then
-		# the .tar file is smaller than 50 MB and Zopfli is available; use it
-		cmd="zopfli";
-	else
-		if hash pigz 2> /dev/null; then
-			cmd="pigz";
-		else
-			cmd="gzip";
-		fi;
-	fi;
+  local cmd=""
+  if (( size < 52428800 )) && hash zopfli 2>/dev/null; then
+    cmd="zopfli"
+  elif hash pigz 2>/dev/null; then
+    cmd="pigz"
+  else
+    cmd="gzip"
+  fi
 
-	echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…";
-	"${cmd}" -v "${tmpFile}" || return 1;
-	[ -f "${tmpFile}" ] && rm "${tmpFile}";
+  echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
+  "${cmd}" -v "${tmpFile}" || return 1
+  [[ -f "${tmpFile}" ]] && rm "${tmpFile}"
 
-	zippedSize=$(
-		stat -f"%z" "${tmpFile}.gz" 2> /dev/null; # macOS `stat`
-		stat -c"%s" "${tmpFile}.gz" 2> /dev/null; # GNU `stat`
-	);
+  local zippedSize
+  zippedSize=$(stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
 
-	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully.";
+  echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
 # Determine size of a file or total size of a directory
 fs() {
-  if du -b /dev/null > /dev/null 2>&1; then
-    local arg=-sbh;
-  else
-    local arg=-sh;
-  fi
   if (( $# )); then
-    du $arg -- "$@";
+    du -sh -- "$@"
   else
-    du $arg .[^.]* ./*;
-  fi;
+    du -sh .[^.]* ./*
+  fi
 }
 
 # Create a data URL from a file
 dataurl() {
-	# shellcheck disable=SC2155
-	local mimeType=$(file -b --mime-type "$1");
-	if [[ $mimeType == text/* ]]; then
-		mimeType="${mimeType};charset=utf-8";
-	fi
-	echo "data:${mimeType};base64,$(openssl base64 -in "$1" | tr -d '\n')";
+  local mimeType
+  mimeType=$(file -b --mime-type "$1")
+  if [[ $mimeType == text/* ]]; then
+    mimeType="${mimeType};charset=utf-8"
+  fi
+  echo "data:${mimeType};base64,$(openssl base64 -in "$1" | tr -d '\n')"
 }
 
 # Start an HTTP server from a directory, optionally specifying the port
 server() {
-	local port="${1:-8000}";
-	sleep 1 && open "http://localhost:${port}/" &
-	# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
-	# And serve everything as UTF-8 (although not technically correct, this doesn't break anything for binary files)
-	python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port";
+  local port="${1:-8000}"
+  sleep 1 && open "http://localhost:${port}/" &
+  python3 -m http.server "${port}"
 }
 
 # Compare original and gzipped file size
 gz() {
-  # shellcheck disable=SC2155
-	local origsize=$(wc -c < "$1");
-  # shellcheck disable=SC2155
-	local gzipsize=$(gzip -c "$1" | wc -c);
-  # shellcheck disable=SC2155
-	local ratio=$(echo "$gzipsize * 100 / $origsize" | bc -l);
-	printf "orig: %d bytes\n" "$origsize";
-	printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$ratio";
+  local origsize
+  origsize=$(wc -c < "$1")
+  local gzipsize
+  gzipsize=$(gzip -c "$1" | wc -c)
+  local ratio
+  ratio=$(echo "$gzipsize * 100 / $origsize" | bc -l)
+  printf "orig: %d bytes\n" "$origsize"
+  printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$ratio"
 }
 
-# `trec` is a shorthand for `tree color` with hidden files and color enabled, ignoring
-# the `.git` directory, listing directories first. The output gets piped into
-# `less` with options to preserve color and line numbers, unless the output is
-# small enough for one screen.
+# Tree view with colors, ignoring common dirs, piped to less
 trec() {
-  tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
+  tree -aC -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@" | less -FRNX
 }
 
+# Tree view without paging
 tre() {
-  tree -a -I '.git|node_modules|bower_components' --dirsfirst "$@"
+  tree -a -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@"
 }
 
 # ------------------------------ Open & Launch ------------------------------- #
 
-# Normalize `open` across Linux, macOS, and Windows.
-# This is needed to make the `o` function (see below) cross-platform.
-if [ "$(uname -s)" != 'Darwin' ]; then
-  if grep -q Microsoft /proc/version; then
-    # Ubuntu on Windows using the Linux subsystem
-    alias open='explorer.exe';
-  else
-    alias open='xdg-open';
-  fi
-fi
-
-# `o` with no arguments opens the current directory, otherwise opens the given
-# location
+# Open current directory or given location in Finder
 o() {
-	if [ $# -eq 0 ]; then
-		open .;
-	else
-		open "$@";
-	fi;
+  if [[ $# -eq 0 ]]; then
+    open .
+  else
+    open "$@"
+  fi
 }
 
 # -------------------------- Networking, TLS & DNS --------------------------- #
 
 # Run `dig` and display the most useful info
 digga() {
-	dig +nocmd "$1" any +multiline +noall +answer;
+  dig +nocmd "$1" any +multiline +noall +answer
 }
 
-# Show all the names (CNs and SANs) listed in the SSL certificate
-# for a given domain
+# Show all the names (CNs and SANs) listed in the SSL certificate for a given domain
 getcertnames() {
-	if [ -z "${1}" ]; then
-		echo "ERROR: No domain specified.";
-		return 1;
-	fi;
+  if [[ -z "${1}" ]]; then
+    echo "ERROR: No domain specified."
+    return 1
+  fi
 
-	local domain="${1}";
-	echo "Testing ${domain}…";
-	echo ""; # newline
+  local domain="${1}"
+  echo "Testing ${domain}…"
+  echo ""
 
-# shellcheck disable=SC2155
-	local tmp=$(echo -e "GET / HTTP/1.0\nEOT" \
-		| openssl s_client -connect "${domain}:443" -servername "${domain}" 2>&1);
+  local tmp
+  tmp=$(echo -e "GET / HTTP/1.0\nEOT" \
+    | openssl s_client -connect "${domain}:443" -servername "${domain}" 2>&1)
 
-	if [[ "${tmp}" = *"-----BEGIN CERTIFICATE-----"* ]]; then
-    # shellcheck disable=SC2155
-		local certText=$(echo "${tmp}" \
-			| openssl x509 -text -certopt "no_aux, no_header, no_issuer, no_pubkey, \
-			no_serial, no_sigdump, no_signame, no_validity, no_version");
-		echo "Common Name:";
-		echo ""; # newline
-		echo "${certText}" | grep "Subject:" | sed -e "s/^.*CN=//" | sed -e "s/\/emailAddress=.*//";
-		echo ""; # newline
-		echo "Subject Alternative Name(s):";
-		echo ""; # newline
-		echo "${certText}" | grep -A 1 "Subject Alternative Name:" \
-			| sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2;
-		return 0;
-	else
-		echo "ERROR: Certificate not found.";
-		return 1;
-	fi;
+  if [[ "${tmp}" = *"-----BEGIN CERTIFICATE-----"* ]]; then
+    local certText
+    certText=$(echo "${tmp}" \
+      | openssl x509 -text -certopt "no_aux, no_header, no_issuer, no_pubkey, \
+      no_serial, no_sigdump, no_signame, no_validity, no_version")
+    echo "Common Name:"
+    echo ""
+    echo "${certText}" | grep "Subject:" | sed -e "s/^.*CN=//" | sed -e "s/\/emailAddress=.*//"
+    echo ""
+    echo "Subject Alternative Name(s):"
+    echo ""
+    echo "${certText}" | grep -A 1 "Subject Alternative Name:" \
+      | sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2
+    return 0
+  else
+    echo "ERROR: Certificate not found."
+    return 1
+  fi
 }
 
 # Bundle corporate CA certificates into a single PEM file for NODE_EXTRA_CA_CERTS.
-# Node.js uses OpenSSL which cannot resolve certificate chains through the macOS
-# SecureTransport trust store, so corporate CAs must be provided explicitly.
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
   mkdir -p "$(dirname "$output")"
@@ -229,9 +192,9 @@ ssl:bundle() {
   tmp="$(mktemp)"
   local cert_count=0
 
-  IFS=',' read -ra keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
+  IFS=',' read -rA keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
   for cn in "${keychain_certs[@]}"; do
-    cn="$(echo "$cn" | xargs)" # trim whitespace
+    cn="$(echo "$cn" | xargs)"
     [[ -z "$cn" ]] && continue
     if security find-certificate -c "$cn" -p /Library/Keychains/System.keychain >> "$tmp" 2>/dev/null; then
       ((cert_count++))
@@ -240,9 +203,9 @@ ssl:bundle() {
     fi
   done
 
-  IFS=',' read -ra remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
+  IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
   for url in "${remote_certs[@]}"; do
-    url="$(echo "$url" | xargs)" # trim whitespace
+    url="$(echo "$url" | xargs)"
     [[ -z "$url" ]] && continue
     local remote_tmp
     remote_tmp="$(mktemp)"
@@ -275,7 +238,7 @@ dns:change() {
   fi
 
   local network_service="$1"
-  IFS=',' read -ra nameservers <<<"$2"
+  IFS=',' read -rA nameservers <<<"$2"
 
   sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
 }
@@ -297,8 +260,8 @@ proxy:set() {
     return 1
   fi
 
-  # shellcheck disable=SC2155
-  local proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")"
+  local proxy_addr
+  proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")"
 
   export http_proxy="${proxy_addr}"
   export https_proxy="${proxy_addr}"
@@ -337,19 +300,16 @@ proxy:probe() {
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
     [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
   else
-    # echo "Detected normal network, turning off proxy."
     proxy:unset
     [[ "${with_dns}" == "dns" ]] && dns:change "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
   fi
 }
 
 network:check() {
-  local cmd="$1" url="$2"
-  if command -v "$cmd" >/dev/null 2>&1; then
-    if command -v curl >/dev/null 2>&1 && curl -m3 -sSf "$url" >/dev/null 2>&1; then
+  local tool="$1" cmd="$2" url="$3"
+  if command -v "$tool" >/dev/null 2>&1; then
+    if curl -m3 -sSf "$url" >/dev/null 2>&1; then
       "$cmd"
-    else
-      log "Skipping \"$cmd\" (network unavailable or blocked)"
     fi
   fi
 }
@@ -373,25 +333,23 @@ ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
-# ---------------------------- macOS System Tweaks & Utilities --------------------------- #
+# ----------------------- macOS System Tweaks & Utilities -------------------- #
 
 sudo:touch-id() {
-  FILE='/etc/pam.d/sudo'
+  local FILE='/etc/pam.d/sudo'
+  local BACKUP
   BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
 
-  cleanup() {
-    rm -f "$BACKUP"
-  }
+  cleanup() { rm -f "$BACKUP"; }
   trap cleanup EXIT
-
-  trap 'echo "Error detected – restoring original file" >&2; sudo cp "$BACKUP" "$FILE"; exit 1' ERR
+  trap 'echo "Error detected – restoring original file" >&2; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   echo "Backing up $FILE to $BACKUP…"
   sudo cp "$FILE" "$BACKUP"
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
     echo "Required marker comment not found in $FILE" >&2
-    exit 1
+    return 1
   fi
 
   if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
@@ -435,8 +393,7 @@ hostname:set() {
 }
 
 hostname:reset() {
-  local default_hostname="void(0)"
-  hostname:set "$default_hostname"
+  hostname:set "${DEFAULT_HOSTNAME}"
 }
 
 dock:reset() {
@@ -444,9 +401,10 @@ dock:reset() {
   killall Dock
   sleep 5
 
-  local apps=("Zen" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
-
+  IFS=',' read -rA apps <<< "${DOCK_APPS:-}"
   for app in "${apps[@]}"; do
+    app="$(echo "$app" | xargs)"
+    [[ -z "$app" ]] && continue
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
   done
 
@@ -495,12 +453,10 @@ docker:cleanup() {
 # ------------------------------- JS Ecosystem ------------------------------- #
 
 node:works() {
-  # Run node in a subshell to suppress zsh's "killed" signal messages
   (node --version >/dev/null 2>&1) 2>/dev/null
 }
 
 node:verify() {
-  # Check if node command works after switching to LTS version
   if ! node:works; then
     log warning "node command failed, reinstalling LTS..."
     nvm install --lts --latest-npm
@@ -508,7 +464,6 @@ node:verify() {
     nvm use --lts
   fi
 
-  # If LTS is still broken, try other installed versions as fallback
   if ! node:works; then
     log warning "LTS node still broken, trying other installed versions..."
     local broken_version
@@ -530,24 +485,24 @@ node:verify() {
     return 1
   fi
 
-  # shellcheck disable=SC2155
-  local node_version=$(node --version)
+  local node_version
+  node_version=$(node --version)
 
   mkdir -p "${NPM_GLOBALS_LOCK_DIR}"
   local installed_globals_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
 
-  if [ ! -f "${installed_globals_file}" ] || [ -f "${HOME}/.npm.globals" ] && [ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]; then
+  if [[ ! -f "${installed_globals_file}" ]] || { [[ -f "${HOME}/.npm.globals" ]] && [[ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]]; }; then
     globals:install
   fi
 }
 
 nvmrc:load() {
-  # shellcheck disable=SC2155
-  local nvmrc_path="$(nvm_find_nvmrc)"
+  local nvmrc_path
+  nvmrc_path="$(nvm_find_nvmrc)"
 
   if [[ -n "${nvmrc_path}" ]]; then
-    # shellcheck disable=SC2155
-    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+    local nvmrc_node_version
+    nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
 
     if [[ "${nvmrc_node_version}" == "N/A" ]]; then
       nvm install
@@ -568,7 +523,6 @@ nvm:update() {
   nvm alias default 'lts/*'
   nvm use --lts
 
-  # If the newly installed LTS is broken, fall back to previous version
   if ! node:works; then
     log warning "Newly installed LTS node is broken (binary killed or crashed)"
     if [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
@@ -586,11 +540,11 @@ bun:update() {
 }
 
 globals:install() {
-  if [ -f "$NPM_GLOBALS" ]; then
+  if [[ -f "$NPM_GLOBALS" ]]; then
     grep -vE '^#|^$' "$NPM_GLOBALS" | xargs npm install -g --force
 
-    # shellcheck disable=SC2155
-    local node_version=$(node --version)
+    local node_version
+    node_version=$(node --version)
 
     mkdir -p "${NPM_GLOBALS_LOCK_DIR}"
     local lock_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
@@ -612,12 +566,11 @@ ncu:update() {
 # ------------------------------------ Git ----------------------------------- #
 
 # Use Git's colored diff when available
-hash git &>/dev/null;
-if [ $? -eq 0 ]; then
-	diff() {
-		git diff --no-index --color-words "$@";
-	}
-fi;
+if command -v git &>/dev/null; then
+  diff() {
+    git diff --no-index --color-words "$@"
+  }
+fi
 
 git:diff() {
   local source_branch="$1"
@@ -640,28 +593,28 @@ git:diff() {
 }
 
 git:history() {
-  editor="code"
-  editor_args=""
-  while [ $# -gt 0 ]; do
+  local editor="${EDITOR:-vi}"
+  local editor_args=""
+  while [[ $# -gt 0 ]]; do
     case "$1" in
-    --editor)
-      shift
-      if [ $# -eq 0 ]; then
-        printf 'Error: --editor requires an argument.\n' >&2
+      --editor)
+        shift
+        if [[ $# -eq 0 ]]; then
+          printf 'Error: --editor requires an argument.\n' >&2
+          return 1
+        fi
+        editor="$1"
+        shift
+        ;;
+      --)
+        shift
+        editor_args="$*"
+        break
+        ;;
+      *)
+        printf 'Usage: git:history [--editor <editor>] [-- <editor_args>]\n' >&2
         return 1
-      fi
-      editor="$1"
-      shift
-      ;;
-    --)
-      shift
-      editor_args="$*"
-      break
-      ;;
-    *)
-      printf 'Usage: git:history [--editor <editor>] [-- <editor_args>]\n' >&2
-      return 1
-      ;;
+        ;;
     esac
   done
 
@@ -670,6 +623,7 @@ git:history() {
     return 1
   fi
 
+  local tmpfile
   tmpfile=$(mktemp -t git-history-XXXXXX)
   git log --pretty=medium >"$tmpfile"
 
@@ -679,15 +633,13 @@ git:history() {
     return 1
   fi
 
-  if [ -z "$editor_args" ]; then
+  if [[ -z "$editor_args" ]]; then
     case "$editor" in
-    code | idea)
-      editor_args="--wait"
-      ;;
+      code|idea) editor_args="--wait" ;;
     esac
   fi
 
-  if [ -n "$editor_args" ]; then
+  if [[ -n "$editor_args" ]]; then
     $editor "$editor_args" "$tmpfile" || {
       printf 'Error: Editor exited with an error.\n' >&2
       rm -f "$tmpfile"
@@ -702,86 +654,76 @@ git:history() {
   fi
 
   printf 'Are you sure you want to rewrite the entire git history? (Yes/No): '
-  read confirmation
+  read -r confirmation
   case "$confirmation" in
-  Yes | yes) ;;
-  *)
-    printf 'Aborted by user.\n'
-    rm -f "$tmpfile"
-    return 1
-    ;;
+    Yes|yes) ;;
+    *)
+      printf 'Aborted by user.\n'
+      rm -f "$tmpfile"
+      return 1
+      ;;
   esac
 
-  # Create a temporary mapping directory.
+  local mapping_dir
   mapping_dir=$(mktemp -d -t git-history-map-XXXXXX)
 
-  # Process the git log output to build mapping files.
-  commit_hash=""
-  author=""
-  email=""
-  date=""
-  message=""
-  in_message=0
-  first_message_line=1
+  local commit_hash="" author="" email="" date="" message=""
+  local in_message=0 first_message_line=1
 
-  while IFS= read -r line || [ -n "$line" ]; do
+  while IFS= read -r line || [[ -n "$line" ]]; do
     case "$line" in
-    commit\ *)
-      if [ -n "$commit_hash" ]; then
-        # Write out the mapping for the previous commit.
-        {
-          printf "%s\n" "$author"
-          printf "%s\n" "$email"
-          printf "%s\n" "$date"
-          printf "\n"
-          printf "%s\n" "$message"
-        } >"$mapping_dir/$commit_hash"
-      fi
-      commit_hash=$(printf '%s' "$line" | sed 's/^commit //')
-      author=""
-      email=""
-      date=""
-      message=""
-      in_message=0
-      first_message_line=1
-      ;;
-    Merge:\ *)
-      # Ignore merge header lines.
-      ;;
-    Author:\ *)
-      author_line=$(printf '%s' "$line" | sed 's/^Author: //')
-      author=$(printf '%s' "$author_line" | sed 's/ <.*//')
-      email=$(printf '%s' "$author_line" | sed 's/^.*<//; s/>$//')
-      ;;
-    Date:\ *)
-      date=$(printf '%s' "$line" | sed 's/^Date: //; s/^ *//; s/ *$//')
-      ;;
-    "")
-      if [ $in_message -eq 1 ]; then
-        message="$message
-"
-      else
-        in_message=1
-        first_message_line=1
-      fi
-      ;;
-    *)
-      if [ $in_message -eq 1 ]; then
-        trimmed=$(printf '%s' "$line" | sed 's/^    //')
-        if [ $first_message_line -eq 1 ]; then
-          message="$message$trimmed"
-          first_message_line=0
-        else
-          message="$message
-$trimmed"
+      commit\ *)
+        if [[ -n "$commit_hash" ]]; then
+          {
+            printf "%s\n" "$author"
+            printf "%s\n" "$email"
+            printf "%s\n" "$date"
+            printf "\n"
+            printf "%s\n" "$message"
+          } >"$mapping_dir/$commit_hash"
         fi
-      fi
-      ;;
+        commit_hash=$(printf '%s' "$line" | sed 's/^commit //')
+        author="" email="" date="" message=""
+        in_message=0
+        first_message_line=1
+        ;;
+      Merge:\ *)
+        ;;
+      Author:\ *)
+        local author_line
+        author_line=$(printf '%s' "$line" | sed 's/^Author: //')
+        author=$(printf '%s' "$author_line" | sed 's/ <.*//')
+        email=$(printf '%s' "$author_line" | sed 's/^.*<//; s/>$//')
+        ;;
+      Date:\ *)
+        date=$(printf '%s' "$line" | sed 's/^Date: //; s/^ *//; s/ *$//')
+        ;;
+      "")
+        if [[ $in_message -eq 1 ]]; then
+          message="$message
+"
+        else
+          in_message=1
+          first_message_line=1
+        fi
+        ;;
+      *)
+        if [[ $in_message -eq 1 ]]; then
+          local trimmed
+          trimmed=$(printf '%s' "$line" | sed 's/^    //')
+          if [[ $first_message_line -eq 1 ]]; then
+            message="$message$trimmed"
+            first_message_line=0
+          else
+            message="$message
+$trimmed"
+          fi
+        fi
+        ;;
     esac
   done <"$tmpfile"
 
-  # Write mapping for the last commit (if any).
-  if [ -n "$commit_hash" ]; then
+  if [[ -n "$commit_hash" ]]; then
     {
       printf "%s\n" "$author"
       printf "%s\n" "$email"
@@ -794,7 +736,6 @@ $trimmed"
   rm -f "$tmpfile"
   export MAPPING_DIR="$mapping_dir"
 
-  # Rewrite history using filter-branch, looking up metadata by commit hash.
   FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
     --env-filter '
       if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
@@ -815,7 +756,6 @@ $trimmed"
     ' \
     --msg-filter '
       if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
-        # Delete the first 4 lines (author, email, date, blank) and output the remainder as the commit message.
         m=$(sed "1,4d" "$MAPPING_DIR/$GIT_COMMIT")
         if [ -n "$m" ]; then
           printf "%s\n" "$m"
@@ -832,7 +772,6 @@ $trimmed"
     return 1
   }
 
-  # Clean up the mapping directory.
   rm -rf "$MAPPING_DIR"
 
   printf 'Git history has been rewritten successfully.\n'
