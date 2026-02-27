@@ -1,24 +1,63 @@
 # Kiro CLI pre block. Keep at the top of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
 
-# Load shell configuration (order matters: vars → func → paths → aliases → completions)
-for f in .exports .functions .paths .aliases .completions; do
-  [[ -r "${HOME}/${f}" ]] && source "${HOME}/${f}" || printf '\033[0;31mError:\033[0m %s\n' "Missing ${f}. Run: chezmoi apply"
-done
+# --------------------------------- Sources ---------------------------------- #
+
+source "${HOME}/.exports"
+source "${HOME}/.functions"
+
+# ----------------------------- PATH & Toolchain ----------------------------- #
+
+# Development tool paths
+path:add "$HOME/.local/bin"
+path:add "$HOME/.rd/bin"
+path:add "$BUN_INSTALL/bin"
+path:add "$HOME/.rvm/bin"
+path:add "$HOME/.console-ninja/.bin"
+path:add "/Library/Frameworks/Python.framework/Versions/Current/bin"
+path:add "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
+path:append "$HOME/Library/Application Support/Coursier/bin"
+path:add "/opt/homebrew/opt/trash-cli/bin"
+
+# Homebrew
+if [[ -x "/opt/homebrew/bin/brew" ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x "/usr/local/bin/brew" && $(arch) == "i386" ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+# Pyenv
+command -v pyenv >/dev/null 2>&1 && eval "$(pyenv init --path)"
+
+# NVM
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+  source "$NVM_DIR/nvm.sh"
+elif [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
+  source "/opt/homebrew/opt/nvm/nvm.sh"
+fi
+
+# RVM
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+
+# System-specific PATH additions
+[[ -n "${PATH_ADD}" ]] && path:append "${PATH_ADD}"
+
+# --------------------------------- Sources ---------------------------------- #
+
+source "${HOME}/.aliases"
+source "${HOME}/.completions"
+
+# --------------------------------- Runtime ---------------------------------- #
 
 autoload -U add-zsh-hook
 add-zsh-hook chpwd nvmrc:load
 
-# Only run update commands if network endpoints are reachable
 network:check bun:update https://registry.npmjs.org
 network:check nvm:update https://raw.githubusercontent.com
 
 nvmrc:load
 
-# Set up proxy if in VPN or not
 [[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
-
-# Start sshAgent automatically
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
