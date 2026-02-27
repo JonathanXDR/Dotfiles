@@ -1,4 +1,5 @@
 # Shared non-secret data for chezmoi templates
-# Values here are available in all templates as .key_name
 
 default_hostname = "void(0)"
+tree_ignore = ".git|node_modules"
+dock_apps = ["Zen", "Notion", "Visual Studio Code", "Microsoft Teams", "Discord", "GitKraken"]

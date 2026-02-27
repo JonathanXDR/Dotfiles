@@ -429,8 +429,7 @@ hostname:set() {
 }
 
 hostname:reset() {
-  local default_hostname="void(0)"
-  hostname:set "$default_hostname"
+  hostname:set "${DEFAULT_HOSTNAME}"
 }
 
 dock:reset() {
@@ -438,9 +437,10 @@ dock:reset() {
   killall Dock
   sleep 5
 
-  local apps=("Zen" "Notion" "Visual Studio Code" "Microsoft Teams" "Discord" "GitKraken")
-
+  IFS=',' read -rA apps <<< "${DOCK_APPS:-}"
   for app in "${apps[@]}"; do
+    app="$(echo "$app" | xargs)"
+    [[ -z "$app" ]] && continue
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
   done
 

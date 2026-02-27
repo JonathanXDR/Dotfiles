@@ -13,6 +13,7 @@
 {{- $ssl_bundle_keychain_certs := "" -}}
 {{- $ssl_bundle_remote_certs := "" -}}
 {{- $enterprise_domain := "" -}}
+{{- $forgeops_path := "" -}}
 
 {{- if eq $machine_type "work" -}}
 {{-   $proxy_host = promptStringOnce . "proxy_host" "Proxy host (e.g. proxy.company.com)" -}}
@@ -24,6 +25,7 @@
 {{-   $ssl_bundle_keychain_certs = promptStringOnce . "ssl_bundle_keychain_certs" "SSL bundle: keychain cert CNs (comma-separated, leave empty for none)" -}}
 {{-   $ssl_bundle_remote_certs = promptStringOnce . "ssl_bundle_remote_certs" "SSL bundle: remote cert URLs (comma-separated, leave empty for none)" -}}
 {{-   $enterprise_domain = promptStringOnce . "enterprise_domain" "Enterprise domain (leave empty for none)" -}}
+{{-   $forgeops_path = promptStringOnce . "forgeops_path" "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
 {{- end -}}
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}
@@ -47,3 +49,4 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   ssl_bundle_keychain_certs = {{ $ssl_bundle_keychain_certs | quote }}
   ssl_bundle_remote_certs = {{ $ssl_bundle_remote_certs | quote }}
   enterprise_domain = {{ $enterprise_domain | quote }}
+  forgeops_path = {{ $forgeops_path | quote }}

@@ -9,24 +9,21 @@ export KUBE_EDITOR="vi"
 export BUN_INSTALL="$HOME/.bun"
 export NVM_DIR="$HOME/.nvm"
 export SDKMAN_DIR="$HOME/.sdkman"
-export KUBECONFIG_PATH="$HOME/.kube"
-export FORGEOPS_PATH="$HOME/Developer/Git/Swisscom/wfidb"
-
-export RESOLV='/etc/resolv.conf'
 export NPM_GLOBALS="$HOME/.npm.globals"
 export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
-
-# Applications
-export VSCODE_CONFIG_PATH="$HOME/Library/Application Support/Code/User"
 
 # Dotfiles metadata
 export DOTFILES_REPO_PATH={{ .chezmoi.sourceDir | quote }}
 
-# Docker & Kubernetes
-export K3S_KUBECONFIG_MODE="644"
+# Docker
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
-export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+{{ if eq .machine_type "work" -}}
+# Work-specific paths
+export FORGEOPS_PATH={{ .forgeops_path | quote }}
+export KUBECONFIG_PATH="$HOME/.kube"
+{{ end -}}
 
 # ---------------------------- Proxy configuration --------------------------- #
 
@@ -77,61 +74,55 @@ export SSL_BUNDLE_REMOTE_CERTS={{ .ssl_bundle_remote_certs | quote }}
 
 # Enable persistent REPL history for `node`.
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
-
-# Allow 32³ entries; the default is 1000.
 export NODE_REPL_HISTORY_SIZE="${NODE_REPL_HISTORY_SIZE:-32768}"
-
-# Use sloppy mode by default, matching web browsers.
 export NODE_REPL_MODE="${NODE_REPL_MODE:-sloppy}"
 
 # ---------------------------------- Python ---------------------------------- #
 
-# Make Python use UTF-8 encoding for output to stdin, stdout, and stderr.
 export PYTHONIOENCODING="${PYTHONIOENCODING:-UTF-8}"
 
 # ------------------------------ Locale & encoding --------------------------- #
 
-# Prefer US English and use UTF-8.
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 # ---------------------------------- History --------------------------------- #
 
-# Increase history size. Allow 32³ entries; the default is lower.
-export HISTSIZE="${HISTSIZE:-32768}"
-export HISTFILESIZE="${HISTFILESIZE:-$HISTSIZE}"
-# Omit duplicates and commands that begin with a space from history (bash-only).
-export HISTCONTROL="${HISTCONTROL:-ignoreboth}"
+HISTSIZE=32768
+SAVEHIST=32768
+HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+
+setopt HIST_IGNORE_DUPS       # skip consecutive duplicates
+setopt HIST_IGNORE_SPACE      # skip commands starting with space
+setopt HIST_REDUCE_BLANKS     # trim superfluous whitespace
+setopt SHARE_HISTORY          # share history across sessions
+setopt APPEND_HISTORY         # append rather than overwrite
 
 # ------------------------------ Pager & manuals ----------------------------- #
 
-# Don't clear the screen after quitting a manual page.
 export MANPAGER="${MANPAGER:-less -X}"
 
 # ------------------------------------ GPG ----------------------------------- #
 
-# Avoid issues with `gpg` as installed via Homebrew.
 # https://stackoverflow.com/a/42265848/96656
-# shellcheck disable=SC2155
 export GPG_TTY="$(tty)"
 
-# ------------------------------ macOS quirks -------------------------------- #
+# ----------------------------- Default values ------------------------------ #
 
-# Hide the "default interactive shell is now zsh" warning on macOS.
-export BASH_SILENCE_DEPRECATION_WARNING="${BASH_SILENCE_DEPRECATION_WARNING:-1}"
-
-# --------------------------- Default user prompt ---------------------------- #
-
-# Set our username so prompts that respect DEFAULT_USER can hide it.
 export DEFAULT_USER="${DEFAULT_USER:-$USER}"
+export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
+
+# Tree view default ignore pattern (used by trec/tre functions)
+export TREE_IGNORE={{ .tree_ignore | quote }}
+
+# Dock apps for dock:reset (comma-separated)
+export DOCK_APPS={{ .dock_apps | join "," | quote }}
 
 # ----------------------------------- Paths ---------------------------------- #
 
-# Add more things to PATH only specific to this specific system
-# Automatically appended to PATH in .functions
+# System-specific paths (appended to PATH in .zshrc)
 export PATH_ADD="${PATH_ADD:-}"
 
 # ----------------------------------- SSH ------------------------------------ #
 
-# This seems to cause some error with the zsh syntax highlighting
-# AUTOSTART_SSH_AGENT="true"
+export AUTOSTART_SSH_AGENT="${AUTOSTART_SSH_AGENT:-false}"
