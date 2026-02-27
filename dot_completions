@@ -1,16 +1,21 @@
 #!/usr/bin/env zsh
 # Shell completions and autocompletion setup
 
-# Homebrew zsh-completions
+# Homebrew prefix (cached for all plugin lookups below)
+local brew_share=""
 if cmd:exists brew; then
-  FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+  local brew_prefix
+  brew_prefix="$(brew --prefix)"
+  brew_share="${brew_prefix}/share"
+
+  FPATH="${brew_share}/zsh-completions:$FPATH"
 
   autoload -Uz compinit
   compinit
 fi
 
-# bun completions
-[ -s "/Users/$USER/.bun/_bun" ] && source "/Users/$USER/.bun/_bun"
+# Bun completions
+[[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
 # NVM bash completion
 if [[ -s "$NVM_DIR/bash_completion" ]]; then
@@ -20,28 +25,43 @@ elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
 fi
 
 # Angular CLI autocompletion
-source <(ng completion script)
+cmd:exists ng && source <(ng completion script)
 
-# zsh plugins
-source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /opt/homebrew/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+# zsh plugins (guard each in case plugin is uninstalled)
+if [[ -n "$brew_share" ]]; then
+  [[ -f "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
+    && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+  [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]] \
+    && source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+fi
 
 # Kiro CLI compatibility:
 # Kiro renders inline suggestions via figterm (terminal-level overlay), which
 # gets wiped whenever zsh-autocomplete redraws the screen. Disable the
 # as-you-type completion menu to prevent it from overwriting Kiro's suggestions.
-.autocomplete:async:complete() { return 0 }
+if (( $+functions[.autocomplete:async:complete] )); then
+  .autocomplete:async:complete() { return 0 }
+fi
 
 # Shift+Tab triggers zsh-autocomplete's menu as a manual fallback, since Tab
-# is reserved by Kiro CLI.  Clears ghost text first to prevent it from being
+# is reserved by Kiro CLI. Clears ghost text first to prevent it from being
 # committed into the buffer alongside the selected completion.
-_zsh_autocomplete_fallback() {
-  unset POSTDISPLAY
-  zle menu-select
-}
+if (( $+widgets[menu-select] )); then
+  _zsh_autocomplete_fallback() {
+    unset POSTDISPLAY
+    zle menu-select
+  }
 
-zle -N _zsh_autocomplete_fallback
-bindkey '\e[Z' _zsh_autocomplete_fallback
+  zle -N _zsh_autocomplete_fallback
+  bindkey '\e[Z' _zsh_autocomplete_fallback
+fi
 
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+# Syntax highlighting (must be sourced near end of .zshrc / completions)
+if [[ -n "$brew_share" ]]; then
+  [[ -f "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
+    && source "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+  [[ -f "${brew_share}/zsh-history-substring-search/zsh-history-substring-search.zsh" ]] \
+    && source "${brew_share}/zsh-history-substring-search/zsh-history-substring-search.zsh"
+fi
