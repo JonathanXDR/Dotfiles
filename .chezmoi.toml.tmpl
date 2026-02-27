@@ -3,6 +3,29 @@
 {{- $gpg_key := promptStringOnce . "gpg_key" "GPG signing key ID (leave empty to disable signing)" -}}
 {{- $machine_type := promptChoiceOnce . "machine_type" "Machine type" (list "personal" "work") -}}
 
+{{- /* Work-only proxy and SSL configuration */ -}}
+{{- $proxy_host := "" -}}
+{{- $proxy_port := "" -}}
+{{- $proxy_protocol := "http" -}}
+{{- $proxy_dns := "" -}}
+{{- $no_proxy := "localhost,127.0.0.1" -}}
+{{- $no_proxy_dns := "" -}}
+{{- $ssl_bundle_keychain_certs := "" -}}
+{{- $ssl_bundle_remote_certs := "" -}}
+{{- $enterprise_domain := "" -}}
+
+{{- if eq $machine_type "work" -}}
+{{-   $proxy_host = promptStringOnce . "proxy_host" "Proxy host (e.g. proxy.company.com)" -}}
+{{-   $proxy_port = promptStringOnce . "proxy_port" "Proxy port (e.g. 8080)" -}}
+{{-   $proxy_protocol = promptStringOnce . "proxy_protocol" "Proxy protocol (http/https/socks5)" -}}
+{{-   $proxy_dns = promptStringOnce . "proxy_dns" "DNS servers when proxy active (comma-separated, leave empty for none)" -}}
+{{-   $no_proxy = promptStringOnce . "no_proxy" "No-proxy list (comma-separated)" -}}
+{{-   $no_proxy_dns = promptStringOnce . "no_proxy_dns" "DNS servers when proxy inactive (comma-separated, leave empty for none)" -}}
+{{-   $ssl_bundle_keychain_certs = promptStringOnce . "ssl_bundle_keychain_certs" "SSL bundle: keychain cert CNs (comma-separated, leave empty for none)" -}}
+{{-   $ssl_bundle_remote_certs = promptStringOnce . "ssl_bundle_remote_certs" "SSL bundle: remote cert URLs (comma-separated, leave empty for none)" -}}
+{{-   $enterprise_domain = promptStringOnce . "enterprise_domain" "Enterprise domain (leave empty for none)" -}}
+{{- end -}}
+
 sourceDir = {{ .chezmoi.sourceDir | quote }}
 
 [data]
@@ -11,3 +34,16 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   gpg_key = {{ $gpg_key | quote }}
   machine_type = {{ $machine_type | quote }}
   icloud_secrets = {{ joinPath .chezmoi.homeDir "Library/Mobile Documents/com~apple~CloudDocs/Secrets" | quote }}
+
+  # Proxy & network (populated for work machines)
+  proxy_host = {{ $proxy_host | quote }}
+  proxy_port = {{ $proxy_port | quote }}
+  proxy_protocol = {{ $proxy_protocol | quote }}
+  proxy_dns = {{ $proxy_dns | quote }}
+  no_proxy = {{ $no_proxy | quote }}
+  no_proxy_dns = {{ $no_proxy_dns | quote }}
+
+  # SSL & enterprise (populated for work machines)
+  ssl_bundle_keychain_certs = {{ $ssl_bundle_keychain_certs | quote }}
+  ssl_bundle_remote_certs = {{ $ssl_bundle_remote_certs | quote }}
+  enterprise_domain = {{ $enterprise_domain | quote }}
