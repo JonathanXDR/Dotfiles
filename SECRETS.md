@@ -12,7 +12,7 @@ Secrets are split across two Apple-native storage layers based on their type. Ne
 dotfiles repo (GitHub)
 │
 │   Templates reference secrets but never contain them:
-│   {{ output "apw" "pw" "get" "npmjs.org" "token" | trim }}
+│   {{ template "apw" list "registry.npmjs.org" "npm" }}
 │
 ├── iCloud Keychain (Apple Passwords) ───────────────────────────┐
 │   Small text secrets: tokens, passwords, API keys              │
@@ -103,18 +103,18 @@ Since apw is read-only, you create entries through the Passwords app. The trick 
 
 | Website (domain) | Username | Password |
 |---|---|---|
-| `npmjs.org` | `token` | `npm_XXXXXXXXXXXX` |
+| `registry.npmjs.org` | `npm` | `npm_XXXXXXXXXXXX` |
+| `bin.swisscom.com` | `swisscom-npm` | `eyJ...` (Artifactory JWT) |
+| `bin.swisscom.com` | `apps-team-npm` | `eyJ...` (Artifactory JWT) |
+| `ntlm` | `credentials` | `user@domain:hash` (NTLM credentials) |
 | `github.com` | `personal-access-token` | `ghp_XXXXXXXXXXXX` |
-| `registry.company.com` | `auth` | `base64-credentials` |
-| `docker.io` | `registry-token` | `dkr_XXXXXXXXXXXX` |
-| `api.openai.com` | `key` | `sk-XXXXXXXXXXXX` |
 
 To add an entry:
 
 1. Open **Passwords** app (or System Settings > Passwords)
 2. Click **+** to add a new entry
-3. Set **Website** to the domain identifier (e.g., `npmjs.org`)
-4. Set **Username** to a descriptive key (e.g., `token`)
+3. Set **Website** to the domain identifier (e.g., `registry.npmjs.org`)
+4. Set **Username** to a descriptive key (e.g., `npm`)
 5. Set **Password** to the secret value
 6. Save
 
@@ -135,10 +135,10 @@ chezmoi retrieves secrets from apw using the `output` template function, which r
 
 ```
 {{- /* dot_npmrc.tmpl */ -}}
-//registry.npmjs.org/:_authToken={{ (index (output "apw" "pw" "get" "npmjs.org" "token" | fromJson).results 0).password }}
+//registry.npmjs.org/:_authToken={{ (index (output "apw" "pw" "get" "registry.npmjs.org" "npm" | fromJson).results 0).password }}
 ```
 
-To keep templates readable, consider extracting repeated lookups into chezmoi's template data or using `define` blocks:
+To keep templates readable, extract repeated lookups into a named template:
 
 ```
 {{- /* .chezmoitemplates/apw */ -}}
@@ -149,7 +149,7 @@ Then in templates:
 
 ```
 {{- /* dot_npmrc.tmpl */ -}}
-//registry.npmjs.org/:_authToken={{ template "apw" list "npmjs.org" "token" }}
+//registry.npmjs.org/:_authToken={{ template "apw" list "registry.npmjs.org" "npm" }}
 ```
 
 ### What belongs here
@@ -178,15 +178,16 @@ chezmoi `run_` scripts copy these files to their target locations and set correc
     ├── ssh/
     │   ├── id_ed25519
     │   ├── id_ed25519.pub
-    │   └── config
+    │   ├── config
+    │   └── known_hosts
     ├── gnupg/
     │   ├── private-keys-v1.d/
-    │   └── pubring.kbx
-    ├── certs/
-    │   ├── ca-bundle.pem
-    │   └── client.p12
-    └── env/
-        └── .env
+    │   ├── openpgp-revocs.d/
+    │   ├── trustdb.gpg
+    │   ├── common.conf
+    │   └── sshcontrol
+    └── ssl/
+        └── ca-bundle.pem
 ```
 
 The path `~/Library/Mobile Documents/com~apple~CloudDocs/` is the macOS filesystem location for iCloud Drive. The `Secrets/` subfolder is a convention — name it whatever you prefer.
@@ -262,12 +263,10 @@ On a new Mac, iCloud Drive may keep files as cloud-only stubs to save disk space
 ### What belongs here
 
 - SSH key pairs (`id_ed25519`, `id_rsa`, etc.)
-- SSH client config (`~/.ssh/config`)
-- GPG/PGP keys and keyrings
-- TLS/SSL certificates and private keys
-- CA bundles (`.pem`, `.crt`)
-- Client certificates (`.p12`, `.pfx`)
-- Complete `.env` files (if you prefer file-based over individual Passwords entries)
+- SSH client config (`~/.ssh/config`) and `known_hosts`
+- GPG/PGP private keys, revocation certs, and trust database
+- SSL/TLS CA bundles for corporate proxy (`.pem`)
+- Client certificates (`.p12`, `.pfx`) if needed
 
 ---
 
@@ -296,25 +295,28 @@ Advanced Data Protection enables end-to-end encryption for iCloud Drive (among o
 ### Steps
 
 ```bash
-# 1. Install tools
+# 1. Clone the dotfiles repo
+git clone https://github.com/<your-username>/dotfiles.git ~/Developer/Git/GitHub/Dotfiles
+
+# 2. Install tools
 brew install chezmoi
 brew install bendews/homebrew-tap/apw
 
-# 2. Start and authenticate the apw daemon
+# 3. Start and authenticate the apw daemon
 brew services start apw
 apw auth    # Touch ID or system password — once per boot
 
-# 3. Verify iCloud Keychain secrets are synced
-apw pw list github.com
+# 4. Verify iCloud Keychain secrets are synced
+apw pw list registry.npmjs.org
 
-# 4. Ensure iCloud Drive secrets folder is downloaded
+# 5. Ensure iCloud Drive secrets folder is downloaded
 brctl download ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets
 
-# 5. Initialize and apply chezmoi
-chezmoi init https://github.com/<your-username>/dotfiles.git
-chezmoi apply
+# 6. Initialize and apply chezmoi
+chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 
 # chezmoi will:
+#   - Prompt for email, name, GPG key, machine type (first time only)
 #   - Resolve all apw template calls via iCloud Keychain
 #   - Run all run_ scripts which copy files from iCloud Drive
 #   - Write fully resolved config files to their target locations
@@ -333,7 +335,7 @@ All secrets flow from iCloud — one Touch ID tap, no keys to transfer, no files
 3. Reference it in a chezmoi template:
 
    ```
-   api_key={{ (index (output "apw" "pw" "get" "api.example.com" "key" | fromJson).results 0).password }}
+   api_key={{ template "apw" list "api.example.com" "key" }}
    ```
 
 4. Run `chezmoi apply`
@@ -377,68 +379,56 @@ apw otp get github.com
 
 ## Migration from Current Setup
 
-The current dotfiles system stores secrets in two places:
+### What was migrated
+
+The old dotfiles system stored secrets in two places:
 
 - **`$HOME/.env`** — tokens and credentials loaded via `env:load` and injected via `env:replace`
 - **`$DOTFILES_CONFIG_PATH_PROTECTED`** (`~/Documents/General/Developer/configs/dotfiles`) — sensitive files (SSH, GPG, etc.) symlinked by `dotfiles:link`
 
-### Step 1: Move tokens to Apple Passwords
+### `.env` is fully superseded
 
-For each `KEY=VALUE` pair in `~/.env`, create an entry in the Passwords app:
+All values from the old `.env` file are now handled by chezmoi:
 
-| `.env` variable | Passwords entry |
+| Old `.env` variable | Now handled by |
 |---|---|
-| `NPM_TOKEN=npm_abc123` | Website: `npmjs.org`, Username: `token`, Password: `npm_abc123` |
-| `GITHUB_TOKEN=ghp_xxx` | Website: `github.com`, Username: `personal-access-token`, Password: `ghp_xxx` |
+| `ALWAYS_PROXY_PROBE`, `PROXY_*`, `NO_PROXY*` | `dot_exports.tmpl` via `.chezmoi.toml` data (prompted during `chezmoi init`) |
+| `SSL_BUNDLE_*`, `NODE_EXTRA_CA_CERTS` | `dot_exports.tmpl` via `.chezmoi.toml` data |
+| `NODE_USE_ENV_PROXY` | `dot_exports.tmpl` (hardcoded for work machines) |
+| `ENTERPRISE_DOMAIN` | `.chezmoi.toml` data |
+| `NTLM_CREDENTIALS` | `dot_exports.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
+| `NPM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
+| `SWISSCOM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
+| `APPS_TEAM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
 
-Open the **Passwords** app and create each entry. They sync to iCloud immediately.
+There is no longer a need for `$HOME/.env`, `env:load` at startup, or `env:replace`. The `env:load` function still exists in `dot_functions` for manual development use if needed.
 
-### Step 2: Move files to iCloud Drive
+### Tokens in Apple Passwords
 
-```bash
-SECRETS=~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets
-PROTECTED=~/Documents/General/Developer/configs/dotfiles
+These entries must exist in the Passwords app for `chezmoi apply` to resolve templates:
 
-mkdir -p "$SECRETS/ssh" "$SECRETS/gnupg" "$SECRETS/certs" "$SECRETS/env"
+| Website (domain) | Username | Template that uses it |
+|---|---|---|
+| `registry.npmjs.org` | `npm` | `dot_npmrc.tmpl` |
+| `bin.swisscom.com` | `swisscom-npm` | `dot_npmrc.tmpl` (work only) |
+| `bin.swisscom.com` | `apps-team-npm` | `dot_npmrc.tmpl` (work only) |
+| `ntlm` | `credentials` | `dot_exports.tmpl` (work only) |
 
-# SSH keys and config
-cp "$PROTECTED"/.ssh/* "$SECRETS/ssh/"
+### Files in iCloud Drive
 
-# GPG keys
-cp -R "$PROTECTED"/.gnupg/* "$SECRETS/gnupg/"
+These files were copied to `~/Library/Mobile Documents/com~apple~CloudDocs/Secrets/`:
 
-# Environment file (as backup or for non-token values)
-cp "$PROTECTED"/.env "$SECRETS/env/"
-```
+| Source | iCloud Drive path | chezmoi run script |
+|---|---|---|
+| `.ssh/id_ed25519`, `.pub`, `config`, `known_hosts` | `Secrets/ssh/` | `run_once_after_install-ssh-keys.sh.tmpl` |
+| `.gnupg/private-keys-v1.d/`, `trustdb.gpg`, etc. | `Secrets/gnupg/` | `run_once_after_install-gpg-keys.sh.tmpl` |
+| `.ssl/ca-bundle.pem` | `Secrets/ssl/` | `run_once_after_install-ssl-bundle.sh.tmpl` (work only) |
 
-### Step 3: Create chezmoi templates
+### Cleanup
 
-Convert static config files to templates that pull from apw:
-
-```bash
-chezmoi add --template ~/.npmrc
-chezmoi edit ~/.npmrc
-# Replace hardcoded tokens with apw output calls
-```
-
-### Step 4: Create run_ scripts for file-based secrets
-
-Add `run_once_after_` scripts to your chezmoi source that copy keys and certificates from iCloud Drive (see the [chezmoi integration](#chezmoi-integration-1) examples above).
-
-### Step 5: Verify and clean up
+Once verified working, the old protected configs directory can be removed:
 
 ```bash
-# Start apw if not running
-brew services start apw
-apw auth
-
-# Preview what chezmoi would write
-chezmoi diff
-
-# Apply
-chezmoi apply
-
-# Once confirmed working, the old protected configs directory can be removed
 # rm -rf ~/Documents/General/Developer/configs/dotfiles
 ```
 
@@ -515,9 +505,9 @@ chezmoi edit <file>                    # Edit a managed file
 chezmoi cd                             # Enter the source directory
 
 # --- Template syntax for apw in chezmoi ---
-# Single value:
-{{ (index (output "apw" "pw" "get" "domain" "user" | fromJson).results 0).password }}
+# Single value (verbose):
+{{ (index (output "apw" "pw" "get" "registry.npmjs.org" "npm" | fromJson).results 0).password }}
 
-# Using a shared template:
-{{ template "apw" list "domain" "user" }}
+# Using the shared template helper (recommended):
+{{ template "apw" list "registry.npmjs.org" "npm" }}
 ```
