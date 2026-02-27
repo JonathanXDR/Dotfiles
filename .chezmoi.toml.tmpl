@@ -1,0 +1,13 @@
+{{- $email := promptStringOnce . "email" "Git email address" -}}
+{{- $name := promptStringOnce . "name" "Git full name" -}}
+{{- $gpg_key := promptStringOnce . "gpg_key" "GPG signing key ID (leave empty to disable signing)" -}}
+{{- $machine_type := promptChoiceOnce . "machine_type" "Machine type" (list "personal" "work") -}}
+
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+
+[data]
+  email = {{ $email | quote }}
+  name = {{ $name | quote }}
+  gpg_key = {{ $gpg_key | quote }}
+  machine_type = {{ $machine_type | quote }}
+  icloud_secrets = {{ joinPath .chezmoi.homeDir "Library/Mobile Documents/com~apple~CloudDocs/Secrets" | quote }}

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # -------------------------- Filesystem & Navigation ------------------------- #
 
@@ -88,7 +88,7 @@ alias showdesktop="defaults write com.apple.finder CreateDesktop -bool true && k
 # Flush Directory Service cache
 alias flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
 
-# Clean up LaunchServices to remove duplicates in the “Open With” menu
+# Clean up LaunchServices to remove duplicates in the "Open With" menu
 alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 
 # Disable Spotlight
@@ -126,7 +126,7 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-# Enable aliases to be sudo’ed
+# Enable aliases to be sudo'ed
 alias sudo='sudo '
 
 # Get week number
@@ -194,14 +194,11 @@ if [[ ! -L "$(which "${EDITOR}")" ]]; then
   fi
 fi
 
-# Edit shell config
-alias es='$EDITOR ${HOME}/.zshrc'
-if [[ -L "${HOME}/.zshrc" ]] && cmd:exists readlink && cmd:exists dirname; then
-  alias es='$EDITOR $(dirname $(readlink -f "${HOME}"/.zshrc))'
-fi
+# Edit shell config (opens chezmoi source file)
+alias es='chezmoi edit ~/.zshrc'
 
-# Edit variables
-alias ev='$EDITOR ${DOTFILES_REPO_PATH}/.shell/.exports'
+# Edit variables (opens chezmoi source file)
+alias ev='chezmoi edit ~/.exports'
 
 # Open editor in current directory
 alias e='$EDITOR .'
@@ -252,12 +249,10 @@ grb() {
 
 # ------------------------------- Suffix alias ------------------------------- #
 
-if [ -n "$ZSH_VERSION" ]; then
-  alias -s go='$EDITOR'
-  alias -s md='$EDITOR'
-  alias -s yaml='$EDITOR'
-  alias -s yml='$EDITOR'
-  alias -s js='$EDITOR'
-  alias -s ts='$EDITOR'
-  alias -s json='$EDITOR'
-fi
+alias -s go='$EDITOR'
+alias -s md='$EDITOR'
+alias -s yaml='$EDITOR'
+alias -s yml='$EDITOR'
+alias -s js='$EDITOR'
+alias -s ts='$EDITOR'
+alias -s json='$EDITOR'

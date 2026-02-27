@@ -1,14 +1,16 @@
 [user]
-	email = jonathan.russ@bluewin.ch
-	name = Jonathan Russ
-	signingKey = F44B0A318D12FD8ED21AF709D587AFB98E05D878
+	email = {{ .email }}
+	name = {{ .name }}
+{{- if ne .gpg_key "" }}
+	signingKey = {{ .gpg_key }}
+{{- end }}
 [gpg]
 	program = gpg
 	format = openpgp
 [commit]
-	gpgSign = true
+	gpgSign = {{ ne .gpg_key "" }}
 [tag]
-	forceSignAnnotated = true
+	forceSignAnnotated = {{ ne .gpg_key "" }}
 [init]
 	defaultBranch = main
 [core]
@@ -22,4 +24,4 @@
 	rebase = true
 [gpg "ssh"]
 	program = ssh-keygen
-	allowedSignersFile = 
+	allowedSignersFile =

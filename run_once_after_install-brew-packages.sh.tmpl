@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+# Ensure Homebrew is in PATH
+if [[ -x "/opt/homebrew/bin/brew" ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x "/usr/local/bin/brew" ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+{{ if eq .machine_type "work" -}}
+BREWFILE="{{ .chezmoi.sourceDir }}/Brewfile.swisscom"
+{{ else -}}
+BREWFILE="{{ .chezmoi.sourceDir }}/Brewfile.personal"
+{{ end -}}
+
+if [[ -f "$BREWFILE" ]]; then
+  echo "Installing Homebrew packages from $BREWFILE..."
+  brew bundle --file="$BREWFILE" --no-lock
+else
+  echo "Brewfile not found: $BREWFILE"
+fi

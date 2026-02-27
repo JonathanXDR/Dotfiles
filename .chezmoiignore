@@ -1,0 +1,12 @@
+README.md
+CLAUDE.md
+SECRETS.md
+LICENSE
+Brewfile.*
+.env.example
+.gitignore
+.git
+.claude
+.home
+.shell
+.vscode
