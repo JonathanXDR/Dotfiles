@@ -243,6 +243,133 @@ dns:change() {
   sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
 }
 
+vpn:state() {
+  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
+
+  [[ -x "$vpn_bin" ]] || {
+    log warning "Cisco VPN CLI not found at $vpn_bin"
+    return 1
+  }
+
+  "$vpn_bin" state 2>/dev/null
+}
+
+vpn:hosts() {
+  /opt/cisco/secureclient/bin/vpn hosts
+}
+
+vpn:is-connected() {
+  vpn:state | grep -Eqi '^[[:space:]]*state[[:space:]]*:[[:space:]]*connected([[:space:]]|$)|^[[:space:]]*connected([[:space:]]|$)'
+}
+
+vpn:internet-ok() {
+  curl -fsSIL --connect-timeout 3 --max-time 5 \
+    https://www.google.com/generate_204 >/dev/null 2>&1
+}
+
+vpn:google-ok() {
+  curl -fsSIL --connect-timeout 3 --max-time 5 \
+    https://accounts.google.com >/dev/null 2>&1
+}
+
+vpn:google-broken() {
+  vpn:internet-ok && ! vpn:google-ok
+}
+
+vpn:refresh() {
+  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
+
+  [[ -x "$vpn_bin" ]] || {
+    log warning "Cisco VPN CLI not found at $vpn_bin"
+    return 1
+  }
+
+  log info "Cisco state before refresh:"
+  vpn:state || true
+
+  log info "Disconnecting Cisco VPN..."
+  "$vpn_bin" disconnect >/dev/null 2>&1 || true
+  sleep 3
+
+  log info "Cisco state after disconnect:"
+  vpn:state || true
+
+  if ! vpn:google-broken; then
+    log success "Broken TLS state appears cleared after disconnect."
+    return 0
+  fi
+
+  log info "Attempting reconnect. MFA may be required..."
+  "$vpn_bin" connect
+  local rc=$?
+
+  log info "Cisco state after connect attempt:"
+  vpn:state || true
+
+  if [[ $rc -ne 0 ]]; then
+    log warning "Connect command returned non-zero ($rc). Likely cancelled, MFA pending, or blocked."
+  fi
+
+  if vpn:google-broken; then
+    log error "Drive is still broken after refresh."
+    return 1
+  fi
+
+  log success "Drive works after refresh."
+}
+
+vpn:soft-refresh() {
+  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
+
+  [[ -x "$vpn_bin" ]] || {
+    log warning "Cisco VPN CLI not found at $vpn_bin"
+    return 1
+  }
+
+  log info "Cisco state before soft refresh:"
+  vpn:state || true
+
+  log info "Soft-refresh: disconnecting Cisco VPN..."
+  "$vpn_bin" disconnect >/dev/null 2>&1 || true
+  sleep 3
+
+  log info "Cisco state after soft refresh:"
+  vpn:state || true
+
+  if vpn:google-broken; then
+    log warning "Drive still broken after disconnect-only soft refresh."
+    return 1
+  fi
+
+  log success "Drive works again after disconnect-only soft refresh."
+}
+
+vpn:full-refresh() {
+  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
+  local vpn_host="${1:-${VPN_DEFAULT_HOST}}"
+
+  [[ -x "$vpn_bin" ]] || {
+    log warning "Cisco VPN CLI not found at $vpn_bin"
+    return 1
+  }
+
+  if [[ -z "$vpn_host" ]]; then
+    log warning "No VPN host specified. Pass one explicitly or set VPN_DEFAULT_HOST."
+    return 1
+  fi
+
+  vpn:soft-refresh || true
+  log info "Starting full reconnect to \"$vpn_host\". MFA may be required."
+  "$vpn_bin" connect "$vpn_host"
+}
+
+vpn:reset-filter() {
+  log info "Restarting Cisco Secure Client UI to try resetting socket filter..."
+  killall "Cisco Secure Client" 2>/dev/null || true
+  sleep 2
+  open -a "Cisco Secure Client"
+}
+
 proxy:compose-addr() {
   [[ $# -eq 3 ]] || return 1
   printf "%s://%s:%s" "$1" "$2" "$3"
@@ -276,7 +403,6 @@ proxy:set() {
   export NO_PROXY="${no_proxy}"
   export MAVEN_OPTS="-Dhttp.proxyHost=${proxy_host} -Dhttp.proxyPort=${proxy_port} -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port}"
 
-  # Set proxy for GUI apps
   launchctl setenv HTTP_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
@@ -286,7 +412,6 @@ proxy:set() {
 proxy:unset() {
   unset http_proxy https_proxy ftp_proxy all_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS
 
-  # Unset proxy for GUI apps
   launchctl unsetenv HTTP_PROXY 2>/dev/null
   launchctl unsetenv HTTPS_PROXY 2>/dev/null
   launchctl unsetenv ALL_PROXY 2>/dev/null
@@ -295,13 +420,28 @@ proxy:unset() {
 
 proxy:probe() {
   local with_dns="${1:-}"
+
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
-    echo "Detected VPN, turning on proxy."
+    log info "Detected corporate network or reachable proxy, turning proxy on."
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
-    [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
+
+    if [[ "${with_dns}" == "dns" ]]; then
+      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${PROXY_DNS}" ]]; then
+        dns:change "${PROXY_NETWORK_SERVICE}" "${PROXY_DNS}"
+      else
+        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or PROXY_DNS is not set."
+      fi
+    fi
   else
     proxy:unset
-    [[ "${with_dns}" == "dns" ]] && dns:change "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
+
+    if [[ "${with_dns}" == "dns" ]]; then
+      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${NO_PROXY_DNS}" ]]; then
+        dns:change "${PROXY_NETWORK_SERVICE}" "${NO_PROXY_DNS}"
+      else
+        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or NO_PROXY_DNS is not set."
+      fi
+    fi
   fi
 }
 
@@ -311,6 +451,24 @@ network:check() {
     if curl -m3 -sSf "$url" >/dev/null 2>&1; then
       "$cmd"
     fi
+  fi
+}
+
+network:heal() {
+  if vpn:google-broken; then
+    log warning "Detected broken Drive TLS state. Trying soft Cisco refresh..."
+    vpn:soft-refresh || {
+      log warning "Soft refresh did not fix it. Trying Cisco UI restart..."
+      vpn:reset-filter
+      sleep 3
+
+      if vpn:google-broken; then
+        log warning "Drive still appears broken after UI restart. Run vpn:refresh manually if needed."
+        return 1
+      fi
+
+      log success "Drive works again after Cisco UI restart."
+    }
   fi
 }
 
