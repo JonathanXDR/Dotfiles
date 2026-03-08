@@ -276,7 +276,6 @@ proxy:set() {
   export NO_PROXY="${no_proxy}"
   export MAVEN_OPTS="-Dhttp.proxyHost=${proxy_host} -Dhttp.proxyPort=${proxy_port} -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port}"
 
-  # Set proxy for GUI apps
   launchctl setenv HTTP_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
@@ -286,7 +285,6 @@ proxy:set() {
 proxy:unset() {
   unset http_proxy https_proxy ftp_proxy all_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS
 
-  # Unset proxy for GUI apps
   launchctl unsetenv HTTP_PROXY 2>/dev/null
   launchctl unsetenv HTTPS_PROXY 2>/dev/null
   launchctl unsetenv ALL_PROXY 2>/dev/null
@@ -295,13 +293,28 @@ proxy:unset() {
 
 proxy:probe() {
   local with_dns="${1:-}"
+
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
-    echo "Detected VPN, turning on proxy."
+    log info "Detected corporate network or reachable proxy, turning proxy on."
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
-    [[ "${with_dns}" == "dns" ]] && dns:change "${PROXY_DNS:-},${NO_PROXY_DNS:-}"
+
+    if [[ "${with_dns}" == "dns" ]]; then
+      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${PROXY_DNS}" ]]; then
+        dns:change "${PROXY_NETWORK_SERVICE}" "${PROXY_DNS}"
+      else
+        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or PROXY_DNS is not set."
+      fi
+    fi
   else
     proxy:unset
-    [[ "${with_dns}" == "dns" ]] && dns:change "${NO_PROXY_DNS:-},${PROXY_DNS:-}"
+
+    if [[ "${with_dns}" == "dns" ]]; then
+      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${NO_PROXY_DNS}" ]]; then
+        dns:change "${PROXY_NETWORK_SERVICE}" "${NO_PROXY_DNS}"
+      else
+        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or NO_PROXY_DNS is not set."
+      fi
+    fi
   fi
 }
 
