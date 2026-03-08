@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# ---------------------------- Proxy configuration --------------------------- #
+# ---------------------------- Network & Proxy configuration --------------------------- #
 
 export ALWAYS_PROXY_PROBE="${ALWAYS_PROXY_PROBE:-false}"
 export PROXY_PROTOCOL="${PROXY_PROTOCOL:-http}"
@@ -9,6 +9,8 @@ export PROXY_PORT="${PROXY_PORT:-8080}"
 export PROXY_DNS="${PROXY_DNS:-}"
 export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1}"
 export NO_PROXY_DNS="${NO_PROXY_DNS:-}"
+
+export VPN_DEFAULT_HOST="${VPN_DEFAULT_HOST:-}"
 
 # ----------------------------------- Auth ----------------------------------- #
 
