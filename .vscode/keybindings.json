@@ -150,5 +150,15 @@
   "key": "cmd+i",
   "command": "-workbench.action.terminal.chat.start",
   "when": "chatIsEnabled && terminalChatAgentRegistered && terminalFocusInAny && terminalHasBeenCreated || chatIsEnabled && terminalChatAgentRegistered && terminalFocusInAny && terminalProcessSupported"
+},
+{
+  "key": "shift+cmd+m",
+  "command": "markdown.showPreview",
+  "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatagent|skill)$/"
+},
+{
+  "key": "shift+cmd+v",
+  "command": "-markdown.showPreview",
+  "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatagent|skill)$/"
 }
 ]
