@@ -120,12 +120,12 @@ gz() {
 
 # Tree view with colors, ignoring common dirs, piped to less
 trec() {
-  tree -aC -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@" | less -FRNX
+  tree -aC -I "${TREE_IGNORE}" --dirsfirst "$@" | less -FRNX
 }
 
 # Tree view without paging
 tre() {
-  tree -a -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@"
+  tree -a -I "${TREE_IGNORE}" --dirsfirst "$@"
 }
 
 # ------------------------------ Open & Launch ------------------------------- #
