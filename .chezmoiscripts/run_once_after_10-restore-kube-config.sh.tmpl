@@ -1,0 +1,32 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Restore kubeconfig from iCloud Drive (seed-once).
+# After initial restore, manage ~/.kube/config locally — this script won't overwrite.
+
+ICLOUD_KUBE="{{ .icloud_secrets }}/.kube"
+TARGET_DIR="${HOME}/.kube"
+TARGET_FILE="${TARGET_DIR}/config"
+
+# Skip if kubeconfig already exists (seed-once behavior)
+if [[ -f "$TARGET_FILE" ]]; then
+  _log info "Kubeconfig already exists at $TARGET_FILE, skipping restore."
+  exit 0
+fi
+
+if ! _require_icloud_dir "$ICLOUD_KUBE" "kube"; then
+  _log info "To seed kubeconfig: mkdir -p '$ICLOUD_KUBE' && cp ~/.kube/config '$ICLOUD_KUBE/config'"
+  exit 0
+fi
+
+if [[ ! -f "$ICLOUD_KUBE/config" ]]; then
+  _log warning "No kubeconfig found at $ICLOUD_KUBE/config"
+  exit 0
+fi
+
+mkdir -p "$TARGET_DIR"
+cp "$ICLOUD_KUBE/config" "$TARGET_FILE"
+chmod 600 "$TARGET_FILE"
+
+_log success "Kubeconfig restored to $TARGET_FILE"

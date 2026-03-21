@@ -1,14 +1,11 @@
 #!/bin/bash
 set -euo pipefail
+{{ template "shell-helpers" . }}
 
-# Re-export all managed secrets from the login keychain to the iCloud Drive
-# tokens file after every chezmoi apply. This ensures the backup stays in sync
-# even if secrets were updated via `chezmoi secret keyring set`, Keychain
-# Access.app, or any other method that bypasses `secret:set`.
+# Re-export managed secrets from the login keychain to iCloud Drive after every apply.
 
-TOKENS_FILE="{{ .icloud_secrets }}/keychain/tokens"
+TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 
-# Nothing to export if no tokens file exists yet
 [[ -f "$TOKENS_FILE" ]] || exit 0
 
 tmpfile="$(mktemp)"
@@ -27,15 +24,11 @@ while IFS=: read -r service account old_password; do
     echo "$service:$account:$password" >> "$tmpfile"
     [[ "$password" != "$old_password" ]] && changed=true
   else
-    # Keep the old entry if the keychain lookup fails (e.g. entry was removed)
-    # secret:remove handles cleanup; this is just a safety net
     echo "$service:$account:$old_password" >> "$tmpfile"
   fi
 done < "$TOKENS_FILE"
 
 if [[ "$changed" == true ]]; then
   mv "$tmpfile" "$TOKENS_FILE"
-  echo "Keychain → iCloud Drive: tokens file updated."
-else
-  rm -f "$tmpfile"
+  _log success "Keychain -> iCloud Drive: tokens file updated."
 fi

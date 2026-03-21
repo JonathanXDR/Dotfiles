@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# npm globals hash (triggers re-run on change):
+# {{ include "dot_npm.globals" | sha256sum }}
+
+NPM_GLOBALS="${HOME}/.npm.globals"
+
+if [[ ! -f "$NPM_GLOBALS" ]]; then
+  _log warning "npm globals file not found: $NPM_GLOBALS"
+  exit 0
+fi
+
+# Ensure NVM is loaded
+_ensure_nvm
+
+if ! _cmd_exists npm; then
+  _log warning "npm not found, skipping global package installation."
+  exit 0
+fi
+
+_log info "Installing global npm packages..."
+grep -vE '^#|^$' "$NPM_GLOBALS" | xargs npm install -g --force
+_log success "Global npm packages installed."
