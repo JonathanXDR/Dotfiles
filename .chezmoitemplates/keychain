@@ -1,0 +1,1 @@
+{{- output "sh" "-c" (printf "security find-generic-password -s '%s' -a '%s' -w 2>/dev/null || true" (index . 0) (index . 1)) | trim -}}

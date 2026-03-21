@@ -120,12 +120,12 @@ gz() {
 
 # Tree view with colors, ignoring common dirs, piped to less
 trec() {
-  tree -aC -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@" | less -FRNX
+  tree -aC -I "${TREE_IGNORE}" --dirsfirst "$@" | less -FRNX
 }
 
 # Tree view without paging
 tre() {
-  tree -a -I "${TREE_IGNORE:-.git|node_modules}" --dirsfirst "$@"
+  tree -a -I "${TREE_IGNORE}" --dirsfirst "$@"
 }
 
 # ------------------------------ Open & Launch ------------------------------- #
@@ -241,19 +241,23 @@ dns:change() {
   sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
 }
 
-# Cisco VPN binary path (override via CISCO_VPN_BIN env var)
-_CISCO_VPN_BIN="${CISCO_VPN_BIN:-/opt/cisco/secureclient/bin/vpn}"
+# Cisco VPN binary path (set via CISCO_VPN_BIN in .exports)
+_CISCO_VPN_BIN="${CISCO_VPN_BIN}"
 
-vpn:state() {
+_vpn:require-cli() {
   [[ -x "$_CISCO_VPN_BIN" ]] || {
     log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
+}
 
+vpn:state() {
+  _vpn:require-cli || return 1
   "$_CISCO_VPN_BIN" state 2>/dev/null
 }
 
 vpn:hosts() {
+  _vpn:require-cli || return 1
   "$_CISCO_VPN_BIN" hosts
 }
 
@@ -276,10 +280,7 @@ vpn:google-broken() {
 }
 
 vpn:refresh() {
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   log info "Cisco state before refresh:"
   vpn:state || true
@@ -316,10 +317,7 @@ vpn:refresh() {
 }
 
 vpn:soft-refresh() {
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   log info "Cisco state before soft refresh:"
   vpn:state || true
@@ -341,11 +339,7 @@ vpn:soft-refresh() {
 
 vpn:full-refresh() {
   local vpn_host="${1:-${VPN_DEFAULT_HOST}}"
-
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   if [[ -z "$vpn_host" ]]; then
     log warning "No VPN host specified. Pass one explicitly or set VPN_DEFAULT_HOST."
@@ -494,7 +488,12 @@ ssh:agent() {
 
 # Tokens file on iCloud Drive — backup of login keychain secrets.
 # The keychain is the source of truth; this file mirrors it for new-machine setup.
-_SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE:-${HOME}/Documents/General/Developer/.dotfiles/.keychain/tokens}"
+_SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE}"
+
+_secrets:write-header() {
+  echo "# service:account:password" > "$1"
+  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$1"
+}
 
 # Add or update a secret in the login keychain, then export to iCloud Drive.
 # Usage: secret:set <service> <account>
@@ -524,8 +523,7 @@ secret:set() {
   tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
   [[ -d "$tokens_dir" ]] || mkdir -p "$tokens_dir"
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
-    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+    _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
   if ! grep -q "^${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
     echo "$service:$account:placeholder" >> "$_SECRETS_TOKENS_FILE"
@@ -587,8 +585,7 @@ secret:export() {
 
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
     log warning "No tokens file yet — creating empty: $_SECRETS_TOKENS_FILE"
-    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
-    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+    _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
 
   local tmpfile entries=()
@@ -602,8 +599,7 @@ secret:export() {
   # Rewrite the file with fresh passwords from the keychain
   tmpfile="$(mktemp)"
   trap 'rm -f "$tmpfile"' RETURN
-  echo "# service:account:password" > "$tmpfile"
-  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$tmpfile"
+  _secrets:write-header "$tmpfile"
 
   local password
   for entry in "${entries[@]}"; do
@@ -726,15 +722,18 @@ system:sleep() {
 # ---------------------------------- Docker ---------------------------------- #
 
 docker:cleanup() {
+  local ids
   if [[ $# -eq 0 ]]; then
-    docker stop "$(docker ps -aq)" 2>/dev/null || true
-    docker rm "$(docker ps -aq)" 2>/dev/null || true
-    docker rmi "$(docker images -q)" 2>/dev/null || true
+    ids="$(docker ps -aq 2>/dev/null)"
+    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
+    ids="$(docker images -q 2>/dev/null)"
+    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
   else
-    local keywords="$*"
-    docker stop "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rm "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rmi "$(docker images --format '{{.ID}} {{.Repository}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
+    local exclude="$*"
+    ids="$(docker ps -a --format '{{.ID}} {{.Names}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
+    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
+    ids="$(docker images --format '{{.ID}} {{.Repository}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
+    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
   fi
 }
 
@@ -860,209 +859,43 @@ if command -v git &>/dev/null; then
   }
 fi
 
+gdb() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: gdb <branch>"
+    return 1
+  fi
+  git branch -d -- "$1" && git push origin :"$1"
+}
+
+gas() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: gas <stash_index>"
+    return 1
+  fi
+  git stash apply "stash@{$1}"
+}
+
+grb() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: grb <commit_count>"
+    return 1
+  fi
+  git rebase -i "HEAD~$1"
+}
+
 git:diff() {
   local source_branch="$1"
   local target_branch="$2"
   local exclude_pattern="$3"
 
-  if [[ -n "$exclude_pattern" ]]; then
-    git diff --name-only "$source_branch...$target_branch" -- ":!$exclude_pattern" | while read -r file; do
-      echo -e "\n$file:\n"
-      git show "$target_branch:$file"
-    done | pbcopy
-  else
-    git diff --name-only "$source_branch...$target_branch" | while read -r file; do
-      echo -e "\n$file:\n"
-      git show "$target_branch:$file"
-    done | pbcopy
-  fi
+  local diff_args=("$source_branch...$target_branch")
+  [[ -n "$exclude_pattern" ]] && diff_args+=(-- ":!$exclude_pattern")
+
+  git diff --name-only "${diff_args[@]}" | while read -r file; do
+    echo -e "\n$file:\n"
+    git show "$target_branch:$file"
+  done | pbcopy
 
   echo "Diff output copied to clipboard."
 }
 
-git:history() {
-  local editor="${EDITOR:-vi}"
-  local editor_args=""
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --editor)
-        shift
-        if [[ $# -eq 0 ]]; then
-          printf 'Error: --editor requires an argument.\n' >&2
-          return 1
-        fi
-        editor="$1"
-        shift
-        ;;
-      --)
-        shift
-        editor_args="$*"
-        break
-        ;;
-      *)
-        printf 'Usage: git:history [--editor <editor>] [-- <editor_args>]\n' >&2
-        return 1
-        ;;
-    esac
-  done
-
-  if ! git rev-parse --git-dir >/dev/null 2>&1; then
-    printf 'Error: Not a git repository.\n' >&2
-    return 1
-  fi
-
-  local tmpfile
-  tmpfile=$(mktemp -t git-history-XXXXXX)
-  git log --pretty=medium >"$tmpfile"
-
-  if ! command -v "$editor" >/dev/null 2>&1; then
-    printf 'Error: Editor "%s" not found.\n' "$editor" >&2
-    rm -f "$tmpfile"
-    return 1
-  fi
-
-  if [[ -z "$editor_args" ]]; then
-    case "$editor" in
-      code|idea) editor_args="--wait" ;;
-    esac
-  fi
-
-  if [[ -n "$editor_args" ]]; then
-    $editor "$editor_args" "$tmpfile" || {
-      printf 'Error: Editor exited with an error.\n' >&2
-      rm -f "$tmpfile"
-      return 1
-    }
-  else
-    $editor "$tmpfile" || {
-      printf 'Error: Editor exited with an error.\n' >&2
-      rm -f "$tmpfile"
-      return 1
-    }
-  fi
-
-  printf 'Are you sure you want to rewrite the entire git history? (Yes/No): '
-  read -r confirmation
-  case "$confirmation" in
-    Yes|yes) ;;
-    *)
-      printf 'Aborted by user.\n'
-      rm -f "$tmpfile"
-      return 1
-      ;;
-  esac
-
-  local mapping_dir
-  mapping_dir=$(mktemp -d -t git-history-map-XXXXXX)
-
-  local commit_hash="" author="" email="" date="" message=""
-  local in_message=0 first_message_line=1
-
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    case "$line" in
-      commit\ *)
-        if [[ -n "$commit_hash" ]]; then
-          {
-            printf "%s\n" "$author"
-            printf "%s\n" "$email"
-            printf "%s\n" "$date"
-            printf "\n"
-            printf "%s\n" "$message"
-          } >"$mapping_dir/$commit_hash"
-        fi
-        commit_hash=$(printf '%s' "$line" | sed 's/^commit //')
-        author="" email="" date="" message=""
-        in_message=0
-        first_message_line=1
-        ;;
-      Merge:\ *)
-        ;;
-      Author:\ *)
-        local author_line
-        author_line=$(printf '%s' "$line" | sed 's/^Author: //')
-        author=$(printf '%s' "$author_line" | sed 's/ <.*//')
-        email=$(printf '%s' "$author_line" | sed 's/^.*<//; s/>$//')
-        ;;
-      Date:\ *)
-        date=$(printf '%s' "$line" | sed 's/^Date: //; s/^ *//; s/ *$//')
-        ;;
-      "")
-        if [[ $in_message -eq 1 ]]; then
-          message="$message
-"
-        else
-          in_message=1
-          first_message_line=1
-        fi
-        ;;
-      *)
-        if [[ $in_message -eq 1 ]]; then
-          local trimmed
-          trimmed=$(printf '%s' "$line" | sed 's/^    //')
-          if [[ $first_message_line -eq 1 ]]; then
-            message="$message$trimmed"
-            first_message_line=0
-          else
-            message="$message
-$trimmed"
-          fi
-        fi
-        ;;
-    esac
-  done <"$tmpfile"
-
-  if [[ -n "$commit_hash" ]]; then
-    {
-      printf "%s\n" "$author"
-      printf "%s\n" "$email"
-      printf "%s\n" "$date"
-      printf "\n"
-      printf "%s\n" "$message"
-    } >"$mapping_dir/$commit_hash"
-  fi
-
-  rm -f "$tmpfile"
-  export MAPPING_DIR="$mapping_dir"
-
-  FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
-    --env-filter '
-      if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
-        a=$(sed -n "1p" "$MAPPING_DIR/$GIT_COMMIT")
-        e=$(sed -n "2p" "$MAPPING_DIR/$GIT_COMMIT")
-        d=$(sed -n "3p" "$MAPPING_DIR/$GIT_COMMIT")
-        if [ -n "$a" ]; then
-          GIT_AUTHOR_NAME="$a"
-          GIT_AUTHOR_EMAIL="$e"
-          GIT_AUTHOR_DATE="$d"
-          GIT_COMMITTER_NAME="$a"
-          GIT_COMMITTER_EMAIL="$e"
-          GIT_COMMITTER_DATE="$d"
-          export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE
-          export GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
-        fi
-      fi
-    ' \
-    --msg-filter '
-      if [ -f "$MAPPING_DIR/$GIT_COMMIT" ]; then
-        m=$(sed "1,4d" "$MAPPING_DIR/$GIT_COMMIT")
-        if [ -n "$m" ]; then
-          printf "%s\n" "$m"
-        else
-          cat
-        fi
-      else
-        cat
-      fi
-    ' \
-    -- --all || {
-    printf 'Error: Failed to rewrite Git history.\n' >&2
-    rm -rf "$MAPPING_DIR"
-    return 1
-  }
-
-  rm -rf "$MAPPING_DIR"
-
-  printf 'Git history has been rewritten successfully.\n'
-  printf 'Note: If you have already pushed this branch, you will need to force push:\n'
-  printf 'git push --force-with-lease\n'
-}
