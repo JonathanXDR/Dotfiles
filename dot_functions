@@ -434,19 +434,6 @@ proxy:probe() {
   fi
 }
 
-network:check() {
-  local cmd_check="$1"
-  local cmd_run="$2"
-  local url="$3"
-
-  if command -v "$cmd_check" >/dev/null 2>&1; then
-    if command -v curl >/dev/null 2>&1 && curl -m 3 -sSf "$url" >/dev/null 2>&1; then
-      "$cmd_run"
-    else
-      log info "Skipping \"$cmd_run\" (network unavailable or blocked)"
-    fi
-  fi
-}
 
 network:heal() {
   if vpn:google-broken; then
@@ -744,12 +731,45 @@ node:works() {
   (node --version >/dev/null 2>&1) 2>/dev/null
 }
 
+# Diagnose and repair a broken node binary (e.g., invalid code signature on macOS).
+# Usage: nvm:heal [version]   — defaults to nvm current
+nvm:heal() {
+  local version="${1:-$(nvm current 2>/dev/null)}"
+  [[ -z "$version" || "$version" == "none" || "$version" == "system" ]] && return 1
+
+  local node_bin="${NVM_DIR}/versions/node/${version}/bin/node"
+  [[ ! -f "$node_bin" ]] && return 1
+
+  # macOS fast path: ad-hoc re-sign (fixes Gatekeeper kills without redownloading)
+  if [[ "$(uname)" == "Darwin" ]] && ! codesign -v "$node_bin" 2>/dev/null; then
+    log info "Node $version has invalid code signature — attempting ad-hoc re-sign"
+    if codesign --force --sign - "$node_bin" 2>/dev/null && node:works; then
+      log success "Repaired $version via ad-hoc code signing"
+      return 0
+    fi
+  fi
+
+  # Slow path: clear cache and reinstall from scratch
+  node:works && return 0
+  log info "Reinstalling $version from scratch..."
+  local os; os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  rm -rf "${NVM_DIR}/.cache/bin/node-${version}-${os}-$(uname -m)" 2>/dev/null
+  nvm uninstall "$version" 2>/dev/null
+  nvm install "$version"
+  node:works && { log success "Repaired $version via clean reinstall"; return 0; }
+  log error "Could not repair $version"
+  return 1
+}
+
 node:verify() {
   if ! node:works; then
-    log warning "node command failed, reinstalling LTS..."
-    nvm install --lts --latest-npm
-    nvm alias default 'lts/*'
-    nvm use --lts
+    # Try healing the broken binary first (e.g., invalid code signature on macOS)
+    nvm:heal 2>/dev/null || {
+      log warning "node command failed, reinstalling LTS..."
+      nvm install --lts --latest-npm
+      nvm alias default 'lts/*'
+      nvm use --lts
+    }
   fi
 
   if ! node:works; then
@@ -821,13 +841,19 @@ nvm:update() {
   local previous_version
   previous_version=$(nvm current 2>/dev/null)
 
-  nvm install --lts --latest-npm
-  nvm alias default 'lts/*'
-  nvm use --lts
+  if ! nvm install --lts --latest-npm &>/dev/null </dev/null; then
+    log info "Skipping nvm update (could not reach remote)"
+    return
+  fi
+
+  nvm alias default 'lts/*' &>/dev/null
+  nvm use --lts &>/dev/null
 
   if ! node:works; then
     log warning "Newly installed LTS node is broken (binary killed or crashed)"
-    if [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
+    if nvm:heal; then
+      nvm alias default 'lts/*'
+    elif [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
       log info "Falling back to previous version: $previous_version"
       nvm use "$previous_version"
       nvm alias default "$previous_version"
@@ -838,7 +864,17 @@ nvm:update() {
 }
 
 bun:update() {
-  bun upgrade &>/dev/null
+  local start_time elapsed tmplog
+  tmplog=$(mktemp)
+  start_time=$SECONDS
+
+  bun upgrade &>"$tmplog" || true
+
+  elapsed=$(( SECONDS - start_time ))
+  if (( elapsed >= 5 )); then
+    cat "$tmplog"
+  fi
+  rm -f "$tmplog"
 }
 
 globals:install() {
