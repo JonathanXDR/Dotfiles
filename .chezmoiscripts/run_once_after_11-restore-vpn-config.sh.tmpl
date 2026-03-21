@@ -1,0 +1,33 @@
+{{ if eq .machine_type "work" -}}
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Restore Cisco AnyConnect preferences from iCloud Drive (seed-once).
+
+ICLOUD_VPN="{{ .icloud_secrets }}/.vpn"
+TARGET_DIR="${HOME}/.vpn"
+TARGET_FILE="${TARGET_DIR}/.anyconnect"
+
+# Skip if already exists (seed-once behavior)
+if [[ -f "$TARGET_FILE" ]]; then
+  _log info "VPN config already exists at $TARGET_FILE, skipping restore."
+  exit 0
+fi
+
+if ! _require_icloud_dir "$ICLOUD_VPN" "VPN"; then
+  _log info "To seed VPN config: mkdir -p '$ICLOUD_VPN' && cp ~/.vpn/.anyconnect '$ICLOUD_VPN/.anyconnect'"
+  exit 0
+fi
+
+if [[ ! -f "$ICLOUD_VPN/.anyconnect" ]]; then
+  _log warning "No AnyConnect config found at $ICLOUD_VPN/.anyconnect"
+  exit 0
+fi
+
+mkdir -p "$TARGET_DIR"
+cp "$ICLOUD_VPN/.anyconnect" "$TARGET_FILE"
+chmod 644 "$TARGET_FILE"
+
+_log success "VPN config restored to $TARGET_FILE"
+{{ end -}}
