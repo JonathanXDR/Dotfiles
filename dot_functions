@@ -914,3 +914,58 @@ git:diff() {
   echo "Diff output copied to clipboard."
 }
 
+# --------------------------------- Chezmoi ---------------------------------- #
+
+chezmoi:sync() {
+  # Sync template-managed files back to chezmoi source.
+  # Files that only use {{ .chezmoi.homeDir }} are auto-synced (reverse substitution).
+  # Files with secrets or other template vars are flagged for manual merge.
+  cmd:exists chezmoi || { log error "chezmoi not found"; return 1; }
+
+  local home_dir="${HOME}"
+  local updated=0
+  local skipped=0
+
+  while IFS= read -r target; do
+    local src
+    src="$(chezmoi source-path "$target" 2>/dev/null)" || continue
+
+    [[ "$src" != *.tmpl ]] && continue
+    [[ "$src" == *".chezmoi"* || "$src" == *"chezmoiscripts"* ]] && continue
+    [[ ! -f "$target" ]] && continue
+
+    # Reverse homeDir substitution on the target
+    local tmp
+    tmp="$(mktemp)"
+    sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
+
+    # Already in sync — skip
+    if diff -q "$src" "$tmp" >/dev/null 2>&1; then
+      rm -f "$tmp"
+      continue
+    fi
+
+    local rel="${target#"$home_dir"/}"
+
+    # Check for complex template syntax beyond .chezmoi.homeDir
+    if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
+      log warning "${rel} (has secrets/variables — use \`chezmoi merge ${target}\`)"
+      skipped=$((skipped + 1))
+      rm -f "$tmp"
+      continue
+    fi
+
+    cp "$tmp" "$src"
+    rm -f "$tmp"
+    log success "${rel}"
+    updated=$((updated + 1))
+  done < <(chezmoi managed --include=files --path-style=absolute)
+
+  if (( updated + skipped == 0 )); then
+    log info "All template-managed files are in sync."
+  else
+    (( updated > 0 )) && log info "Synced ${updated} file(s) back to source."
+    (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates."
+  fi
+}
+
