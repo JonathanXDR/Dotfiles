@@ -197,30 +197,6 @@ alias gba="git branch -av"
 alias gsl="git stash list"
 alias gsc="git stash clear"
 
-gdb() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>"
-    return 1
-  fi
-  git branch -d -- "$1" && git push origin :"$1"
-}
-
-gas() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: gas <stash_index>"
-    return 1
-  fi
-  git stash apply "stash@{$1}"
-}
-
-grb() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: grb <commit_count>"
-    return 1
-  fi
-  git rebase -i "HEAD~$1"
-}
-
 # ------------------------------- Suffix alias ------------------------------- #
 
 alias -s go='$EDITOR'
