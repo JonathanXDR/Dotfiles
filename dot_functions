@@ -744,12 +744,45 @@ node:works() {
   (node --version >/dev/null 2>&1) 2>/dev/null
 }
 
+# Diagnose and repair a broken node binary (e.g., invalid code signature on macOS).
+# Usage: nvm:heal [version]   — defaults to nvm current
+nvm:heal() {
+  local version="${1:-$(nvm current 2>/dev/null)}"
+  [[ -z "$version" || "$version" == "none" || "$version" == "system" ]] && return 1
+
+  local node_bin="${NVM_DIR}/versions/node/${version}/bin/node"
+  [[ ! -f "$node_bin" ]] && return 1
+
+  # macOS fast path: ad-hoc re-sign (fixes Gatekeeper kills without redownloading)
+  if [[ "$(uname)" == "Darwin" ]] && ! codesign -v "$node_bin" 2>/dev/null; then
+    log info "Node $version has invalid code signature — attempting ad-hoc re-sign"
+    if codesign --force --sign - "$node_bin" 2>/dev/null && node:works; then
+      log success "Repaired $version via ad-hoc code signing"
+      return 0
+    fi
+  fi
+
+  # Slow path: clear cache and reinstall from scratch
+  node:works && return 0
+  log info "Reinstalling $version from scratch..."
+  local os; os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  rm -rf "${NVM_DIR}/.cache/bin/node-${version}-${os}-$(uname -m)" 2>/dev/null
+  nvm uninstall "$version" 2>/dev/null
+  nvm install "$version"
+  node:works && { log success "Repaired $version via clean reinstall"; return 0; }
+  log error "Could not repair $version"
+  return 1
+}
+
 node:verify() {
   if ! node:works; then
-    log warning "node command failed, reinstalling LTS..."
-    nvm install --lts --latest-npm
-    nvm alias default 'lts/*'
-    nvm use --lts
+    # Try healing the broken binary first (e.g., invalid code signature on macOS)
+    nvm:heal 2>/dev/null || {
+      log warning "node command failed, reinstalling LTS..."
+      nvm install --lts --latest-npm
+      nvm alias default 'lts/*'
+      nvm use --lts
+    }
   fi
 
   if ! node:works; then
