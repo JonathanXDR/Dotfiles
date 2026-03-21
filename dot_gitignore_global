@@ -173,6 +173,7 @@ Temporary Items
 
 # AI Tools
 .claude/*
+.remember/*
 CLAUDE.md
 AGENTS.md
 

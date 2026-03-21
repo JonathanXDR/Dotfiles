@@ -27,7 +27,7 @@ This is a macOS dotfiles management system built on [chezmoi](https://chezmoi.io
 - **File-copy model**: chezmoi copies files to `$HOME` rather than symlinking them
 - **Template-driven**: sensitive and machine-specific values injected via Go templates at apply time
 - **Run scripts**: idempotent scripts handle package installation, SSH/GPG key setup, and system configuration
-- **Secrets via Apple Passwords CLI**: `.npmrc` tokens and other credentials fetched from Apple Passwords (via `apw`) at apply time
+- **Secrets via macOS Keychain**: `.npmrc` tokens and other credentials fetched from the macOS login keychain via chezmoi's built-in `keyring` function at apply time
 - **Layered configuration**: ordered loading of exports → functions → paths → aliases → completions
 - **Automatic context switching**: Node versions, proxy detection, SSH agent management
 - **Enterprise-ready**: VPN/proxy auto-detection, multi-environment support
@@ -70,7 +70,7 @@ chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 2. Renders templates using data from `chezmoi.toml` and chezmoi built-ins
 3. Copies rendered files to `$HOME` (replacing the `dot_` prefix with `.`)
 4. Runs `run_once_*` and `run_onchange_*` scripts in lexicographic order
-5. Fetches `.npmrc` tokens from Apple Passwords CLI via the `apw` helper template
+5. Fetches `.npmrc` tokens from the macOS login keychain via chezmoi's built-in `keyring` function
 
 **File name mapping examples:**
 
@@ -172,7 +172,7 @@ nvmrc:load
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && source ...
 ```
 
-**Note:** `env:replace` is no longer called at shell startup. chezmoi handles `.npmrc` token substitution at apply time using the `apw` Apple Passwords CLI helper.
+**Note:** `env:replace` is no longer called at shell startup. chezmoi handles `.npmrc` token substitution at apply time using the built-in `keyring` function (reads from the macOS login keychain).
 
 ---
 
@@ -190,7 +190,7 @@ Dotfiles/
 ├── dot_paths                          # ~/.paths (PATH configuration)
 ├── dot_aliases                        # ~/.aliases (command shortcuts)
 ├── dot_completions                    # ~/.completions (auto-completion rules)
-├── dot_npmrc.tmpl                     # ~/.npmrc (templated via apw)
+├── dot_npmrc.tmpl                     # ~/.npmrc (templated via keyring)
 ├── dot_npm.globals                    # ~/.npm.globals (global npm packages list)
 │
 ├── Library/
@@ -202,17 +202,16 @@ Dotfiles/
 │
 ├── .chezmoi.toml.tmpl                 # chezmoi config template (prompts on init)
 ├── .chezmoiignore                     # Files chezmoi ignores
-├── .chezmoitemplates/
-│   └── apw                            # Apple Passwords CLI helper template
+├── .chezmoitemplates/                 # (empty — apw template removed)
 │
-├── run_once_01_install_homebrew.sh.tmpl      # Install Homebrew if missing
-├── run_onchange_02_brew_packages.sh.tmpl     # Install Homebrew packages
-├── run_onchange_03_ssh_keys.sh.tmpl          # Restore SSH keys from iCloud
-├── run_onchange_04_gpg_keys.sh.tmpl          # Restore GPG keys from iCloud
-├── run_onchange_05_env_from_icloud.sh.tmpl   # Copy .env from iCloud
-├── run_onchange_06_npm_globals.sh.tmpl       # Install global npm packages
-├── run_once_07_zsh_permissions.sh            # Fix zsh completion permissions
-├── run_onchange_08_apw_daemon.sh.tmpl        # Configure apw daemon
+├── run_once_before_install-homebrew.sh       # Install Homebrew if missing
+├── run_once_before_import-keychain.sh.tmpl   # Import tokens from iCloud into login keychain
+├── run_once_after_install-brew-packages.sh.tmpl  # Install Homebrew packages
+├── run_once_after_install-ssh-keys.sh.tmpl   # Restore SSH keys from iCloud
+├── run_once_after_install-gpg-keys.sh.tmpl   # Restore GPG keys from iCloud
+├── run_once_after_install-ssl-bundle.sh.tmpl # Restore SSL bundle from iCloud (work only)
+├── run_onchange_install-npm-globals.sh.tmpl  # Install global npm packages
+├── run_once_after_fix-permissions.sh         # Fix zsh completion permissions
 │
 ├── Brewfile.personal                  # Personal Homebrew packages
 ├── Brewfile.swisscom                  # Enterprise/work Homebrew packages
@@ -279,10 +278,10 @@ chezmoi templates use Go's `text/template` syntax. Template files have a `.tmpl`
 {{ end }}
 ```
 
-**Including a named template:**
+**Using the built-in `keyring` function:**
 
 ```
-{{ template "apw" (list "com.example.item" "field") }}
+{{ keyring "service-name" "account-name" }}
 ```
 
 ### `.chezmoi.toml.tmpl`
@@ -302,15 +301,15 @@ This file is evaluated once during `chezmoi init` to produce `~/.config/chezmoi/
   machine_type = {{ $machine_type | quote }}
 ```
 
-### `.chezmoitemplates/apw`
+### Built-in `keyring` Function
 
-A named template that wraps the Apple Passwords CLI (`apw`) to fetch secrets at apply time. Used in `.npmrc.tmpl` and other templates that need credentials:
+chezmoi's built-in `keyring` template function reads secrets from the macOS login keychain at apply time. No daemon, no external binary — it calls `/usr/bin/security` directly.
 
 ```
-{{ template "apw" (list "com.example.registry" "token") }}
+{{ keyring "service-name" "account-name" }}
 ```
 
-This invokes `apw` to retrieve the item from Apple Passwords, avoiding secrets in the repo.
+Secrets are stored in the macOS login keychain (via `security add-generic-password`) and backed up to iCloud Drive for new machine setup.
 
 ---
 
@@ -354,10 +353,10 @@ export DOTFILES_REPO_PATH="{{ .chezmoi.sourceDir }}"
 export VSCODE_CONFIG_PATH="{{ .chezmoi.homeDir }}/Library/Application Support/Code/User"
 ```
 
-**`dot_npmrc.tmpl` (using apw):**
+**`dot_npmrc.tmpl` (using keyring):**
 
 ```
-//registry.npmjs.org/:_authToken={{ template "apw" (list "npm.registry" "token") }}
+//registry.npmjs.org/:_authToken={{ keyring "registry.npmjs.org" "npm" }}
 ```
 
 ---
@@ -607,7 +606,43 @@ env:load                    # Load ~/.env
 env:load .env.production    # Load specific file
 ```
 
-**Note:** `env:replace` has been removed. chezmoi handles `.npmrc` token substitution at `chezmoi apply` time using the `apw` template helper.
+**Note:** `env:replace` has been removed. chezmoi handles `.npmrc` token substitution at `chezmoi apply` time using the built-in `keyring` function.
+
+### Secrets Management
+
+Shell functions that keep the macOS login keychain and iCloud Drive backup in sync. The keychain is the source of truth.
+
+#### `secret:set <service> <account>`
+
+Add or update a secret. Prompts for the password interactively (never in shell history). Writes to the keychain, then auto-exports to iCloud Drive.
+
+```zsh
+secret:set registry.npmjs.org npm
+```
+
+#### `secret:get <service> <account>`
+
+Read a secret from the login keychain.
+
+```zsh
+secret:get registry.npmjs.org npm
+```
+
+#### `secret:remove <service> <account>`
+
+Remove a secret from the keychain and iCloud Drive backup.
+
+```zsh
+secret:remove api.example.com key
+```
+
+#### `secret:list`
+
+List all managed secrets (service/account pairs, no passwords shown).
+
+#### `secret:export`
+
+Re-export all managed secrets from the keychain to the iCloud Drive tokens file. Called automatically by `secret:set` and `secret:remove`. Use manually if you edited the keychain directly.
 
 ### Git
 
@@ -842,9 +877,9 @@ Fixes zsh completion directory permissions by removing group-write bits. Prevent
 compaudit | xargs chmod g-w
 ```
 
-### `run_onchange_08_apw_daemon.sh.tmpl`
+### `run_once_before_import-keychain.sh.tmpl`
 
-Configures the Apple Passwords CLI (`apw`) daemon. Re-runs when the script changes.
+Imports tokens from the iCloud Drive backup file (`Secrets/keychain/tokens`) into the macOS login keychain. Runs once before templates are rendered, ensuring `keyring` calls succeed on a fresh machine.
 
 ---
 
@@ -896,12 +931,12 @@ globals:install
 
 ### `.npmrc` Token Management
 
-`.npmrc` is managed via `dot_npmrc.tmpl`. Tokens are fetched at apply time from Apple Passwords using the `apw` helper template. There is no runtime token replacement (`env:replace` has been removed).
+`.npmrc` is managed via `dot_npmrc.tmpl`. Tokens are fetched at apply time from the macOS login keychain using chezmoi's built-in `keyring` function. There is no runtime token replacement (`env:replace` has been removed).
 
 **To update a token:**
 
-1. Update the secret in Apple Passwords
-2. Run `chezmoi apply` — the template re-renders with the fresh token
+1. `secret:set registry.npmjs.org npm` — updates keychain + auto-exports to iCloud Drive
+2. `chezmoi apply` — re-renders the template with the fresh token
 
 ### Node Version Manager (NVM)
 
@@ -950,7 +985,7 @@ chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 - Write `~/.config/chezmoi/chezmoi.toml` with your answers
 - Copy all `dot_*` files to `$HOME`
 - Render `.tmpl` templates with your data
-- Run all `run_once_*` and `run_onchange_*` scripts (Homebrew, packages, SSH/GPG keys, .env, npm globals, zsh permissions, apw daemon)
+- Run all `run_once_*` and `run_onchange_*` scripts (keychain import, Homebrew, packages, SSH/GPG keys, npm globals, zsh permissions)
 
 ### Editing Configuration Files
 
@@ -1156,7 +1191,7 @@ chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 **Causes:**
 
 1. Missing variable in `chezmoi.toml`
-2. `apw` daemon not running or item not found in Apple Passwords
+2. Secret not found in macOS login keychain (run `chezmoi secret keyring set` to add it)
 3. Syntax error in a `.tmpl` file
 
 **Debug:**
@@ -1178,13 +1213,18 @@ chezmoi apply
 
 **Symptoms:** npm registry authentication fails
 
-**Cause:** `apw` could not fetch the token (daemon not running, item not in Apple Passwords)
+**Cause:** Secret not found in the macOS login keychain
 
 **Solution:**
 
 ```zsh
-# Ensure apw daemon is running
-# Then re-apply to re-render .npmrc
+# Check if the secret exists
+secret:get registry.npmjs.org npm
+
+# If missing, add it (writes to keychain + iCloud Drive)
+secret:set registry.npmjs.org npm
+
+# Re-apply to re-render .npmrc
 chezmoi apply
 
 # Verify rendered output
@@ -1335,7 +1375,7 @@ zsh -xv 2>&1 | tee /tmp/zsh-profile.log
 This dotfiles system provides:
 
 1. **chezmoi-managed configuration** — file-copy model with Go template rendering, replacing the previous symlink system
-2. **Template-driven secrets** — credentials injected at apply time via Apple Passwords CLI (`apw`), never stored in the repo
+2. **Template-driven secrets** — credentials injected at apply time via macOS login keychain (`keyring`), never stored in the repo
 3. **Idempotent run scripts** — Homebrew, packages, SSH/GPG keys, `.env`, npm globals, and system config handled automatically on `chezmoi apply`
 4. **Comprehensive shell utilities** — proxy/VPN handling, Node version management, Docker cleanup, git workflow enhancements
 5. **Machine-type aware config** — `personal` vs `work` drives Brewfile selection and conditional template blocks
