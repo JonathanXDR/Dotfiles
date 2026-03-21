@@ -35,7 +35,7 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   name = {{ $name | quote }}
   gpg_key = {{ $gpg_key | quote }}
   machine_type = {{ $machine_type | quote }}
-  icloud_secrets = {{ joinPath .chezmoi.homeDir "Library/Mobile Documents/com~apple~CloudDocs/Secrets" | quote }}
+  icloud_secrets = {{ joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" | quote }}
 
   # Proxy & network (populated for work machines)
   proxy_host = {{ $proxy_host | quote }}

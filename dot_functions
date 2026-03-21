@@ -493,7 +493,7 @@ ssh:agent() {
 
 # Tokens file on iCloud Drive — backup of login keychain secrets.
 # The keychain is the source of truth; this file mirrors it for new-machine setup.
-_SECRETS_TOKENS_FILE="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Secrets/keychain/tokens"
+_SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE:-${HOME}/Documents/General/Developer/.dotfiles/.keychain/tokens}"
 
 # Add or update a secret in the login keychain, then export to iCloud Drive.
 # Usage: secret:set <service> <account>

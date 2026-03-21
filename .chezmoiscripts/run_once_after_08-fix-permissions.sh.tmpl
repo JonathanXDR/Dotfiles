@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Fix zsh completion directory permissions to prevent compaudit warnings
+
+_ensure_brew
+
+if _cmd_exists brew; then
+  BREW_PREFIX="$(brew --prefix)"
+  for dir in "${BREW_PREFIX}/share/zsh-completions" "${BREW_PREFIX}/share/zsh/site-functions"; do
+    if [[ -d "$dir" ]]; then
+      chmod g-w "$dir" 2>/dev/null || true
+    fi
+  done
+fi
+
+_log success "Zsh completion directory permissions fixed."
