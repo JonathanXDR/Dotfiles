@@ -6,6 +6,4 @@ Brewfile.*
 .gitignore
 .git
 .claude
-.home
-.shell
-.vscode
+.remember

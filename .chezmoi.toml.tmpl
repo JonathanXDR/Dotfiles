@@ -35,7 +35,7 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   name = {{ $name | quote }}
   gpg_key = {{ $gpg_key | quote }}
   machine_type = {{ $machine_type | quote }}
-  icloud_secrets = {{ joinPath .chezmoi.homeDir "Library/Mobile Documents/com~apple~CloudDocs/Secrets" | quote }}
+  icloud_secrets = {{ joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" | quote }}
 
   # Proxy & network (populated for work machines)
   proxy_host = {{ $proxy_host | quote }}
@@ -50,3 +50,13 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   ssl_bundle_remote_certs = {{ $ssl_bundle_remote_certs | quote }}
   enterprise_domain = {{ $enterprise_domain | quote }}
   forgeops_path = {{ $forgeops_path | quote }}
+
+[scriptEnv]
+  HOMEBREW_NO_AUTO_UPDATE = "1"
+  HOMEBREW_NO_INSTALL_CLEANUP = "1"
+  NONINTERACTIVE = "1"
+
+[[textconv]]
+  pattern = "**/*.json"
+  command = "jq"
+  args = ["."]

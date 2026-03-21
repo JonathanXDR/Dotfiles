@@ -1,4 +1,3 @@
-#!/usr/bin/env zsh
 # Shell completions and autocompletion setup
 
 # Homebrew prefix (cached for all plugin lookups below)

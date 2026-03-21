@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+{{ $brewfile_name := "Brewfile.personal" -}}
+{{ if eq .machine_type "work" -}}
+{{   $brewfile_name = "Brewfile.swisscom" -}}
+{{ end -}}
+
+# Brewfile content hash (triggers re-run when Brewfile changes):
+# {{ include $brewfile_name | sha256sum }}
+
+_ensure_brew
+
+BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
+
+if [[ -f "$BREWFILE" ]]; then
+  _log info "Installing Homebrew packages from $BREWFILE..."
+  brew bundle --file="$BREWFILE"
+  _log success "Homebrew packages installed."
+else
+  _log error "Brewfile not found: $BREWFILE"
+fi

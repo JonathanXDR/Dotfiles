@@ -1,9 +1,7 @@
-#!/usr/bin/env zsh
-
 # ----------------------------- Editor & tools ------------------------------- #
 
-export EDITOR="vi"
-export KUBE_EDITOR="vi"
+export EDITOR={{ .editor | quote }}
+export KUBE_EDITOR={{ .editor | quote }}
 
 # Tool directories
 export BUN_INSTALL="$HOME/.bun"
@@ -12,15 +10,11 @@ export SDKMAN_DIR="$HOME/.sdkman"
 export NPM_GLOBALS="$HOME/.npm.globals"
 export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
 
-# Dotfiles metadata
-export DOTFILES_REPO_PATH={{ .chezmoi.sourceDir | quote }}
-
 # Docker
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 {{ if eq .machine_type "work" -}}
-# Work-specific paths
 export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
 {{ end -}}
@@ -47,8 +41,9 @@ export NO_PROXY_DNS=""
 
 # ----------------------------------- Auth ----------------------------------- #
 
+{{- $ntlm := output "sh" "-c" "security find-generic-password -s 'ntlm' -a 'credentials' -w 2>/dev/null || true" | trim }}
 {{ if eq .machine_type "work" -}}
-export NTLM_CREDENTIALS={{ keyring "ntlm" "credentials" | quote }}
+export NTLM_CREDENTIALS={{ $ntlm | quote }}
 {{ else -}}
 export NTLM_CREDENTIALS=""
 {{ end -}}
@@ -88,8 +83,8 @@ export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 # ---------------------------------- History --------------------------------- #
 
-HISTSIZE=32768
-SAVEHIST=32768
+HISTSIZE={{ .history_size }}
+SAVEHIST={{ .history_size }}
 HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
 
 setopt HIST_IGNORE_DUPS       # skip consecutive duplicates
@@ -109,8 +104,13 @@ export GPG_TTY="$(tty)"
 
 # ----------------------------- Default values ------------------------------ #
 
-export DEFAULT_USER="${DEFAULT_USER:-$USER}"
 export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
+
+# Secrets tokens file path (used by secret:* functions)
+export SECRETS_TOKENS_FILE={{ joinPath .icloud_secrets ".keychain/tokens" | quote }}
+
+# Cisco VPN binary (used by vpn:* functions)
+export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
 
 # Tree view default ignore pattern (used by trec/tre functions)
 export TREE_IGNORE={{ .tree_ignore | quote }}
@@ -125,4 +125,4 @@ export PATH_ADD="${PATH_ADD:-}"
 
 # ----------------------------------- SSH ------------------------------------ #
 
-export AUTOSTART_SSH_AGENT="${AUTOSTART_SSH_AGENT:-false}"
+export AUTOSTART_SSH_AGENT="${AUTOSTART_SSH_AGENT:-{{ .autostart_ssh_agent }}}"

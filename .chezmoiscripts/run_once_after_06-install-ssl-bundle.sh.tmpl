@@ -1,0 +1,22 @@
+{{ if eq .machine_type "work" -}}
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+ICLOUD_SSL="{{ .icloud_secrets }}/.ssl"
+TARGET_DIR="${HOME}/.ssl"
+
+_require_icloud_dir "$ICLOUD_SSL" "SSL" || exit 0
+
+mkdir -p "$TARGET_DIR"
+
+for file in "$ICLOUD_SSL"/*; do
+  [[ -f "$file" ]] || continue
+  filename="$(basename "$file")"
+  cp "$file" "$TARGET_DIR/$filename"
+  chmod 600 "$TARGET_DIR/$filename"
+  _log success "Installed: $filename"
+done
+
+_log info "SSL bundle installed to $TARGET_DIR"
+{{ end -}}

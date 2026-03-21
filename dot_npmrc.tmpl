@@ -1,6 +1,17 @@
 registry=https://registry.npmjs.org/
-//registry.npmjs.org/:_authToken={{ keyring "registry.npmjs.org" "npm" }}
-{{ if eq .machine_type "work" -}}
-//bin.swisscom.com/artifactory/api/npm/:_authToken={{ keyring "bin.swisscom.com" "swisscom-npm" }}
-//bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ keyring "bin.swisscom.com" "apps-team-npm" }}
-{{ end -}}
+{{- $npm_token := output "sh" "-c" "security find-generic-password -s 'registry.npmjs.org' -a 'npm' -w 2>/dev/null || true" | trim }}
+{{- if ne $npm_token "" }}
+//registry.npmjs.org/:_authToken={{ $npm_token }}
+{{- else }}
+# WARNING: npm token not found in keychain. Run: secret:set registry.npmjs.org npm
+{{- end }}
+{{- if eq .machine_type "work" }}
+{{- $swisscom := output "sh" "-c" "security find-generic-password -s 'bin.swisscom.com' -a 'swisscom-npm' -w 2>/dev/null || true" | trim }}
+{{- if ne $swisscom "" }}
+//bin.swisscom.com/artifactory/api/npm/:_authToken={{ $swisscom }}
+{{- end }}
+{{- $apps := output "sh" "-c" "security find-generic-password -s 'bin.swisscom.com' -a 'apps-team-npm' -w 2>/dev/null || true" | trim }}
+{{- if ne $apps "" }}
+//bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ $apps }}
+{{- end }}
+{{- end }}
