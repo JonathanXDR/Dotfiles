@@ -241,19 +241,23 @@ dns:change() {
   sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
 }
 
-# Cisco VPN binary path (override via CISCO_VPN_BIN env var)
-_CISCO_VPN_BIN="${CISCO_VPN_BIN:-/opt/cisco/secureclient/bin/vpn}"
+# Cisco VPN binary path (set via CISCO_VPN_BIN in .exports)
+_CISCO_VPN_BIN="${CISCO_VPN_BIN}"
 
-vpn:state() {
+_vpn:require-cli() {
   [[ -x "$_CISCO_VPN_BIN" ]] || {
     log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
+}
 
+vpn:state() {
+  _vpn:require-cli || return 1
   "$_CISCO_VPN_BIN" state 2>/dev/null
 }
 
 vpn:hosts() {
+  _vpn:require-cli || return 1
   "$_CISCO_VPN_BIN" hosts
 }
 
@@ -276,10 +280,7 @@ vpn:google-broken() {
 }
 
 vpn:refresh() {
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   log info "Cisco state before refresh:"
   vpn:state || true
@@ -316,10 +317,7 @@ vpn:refresh() {
 }
 
 vpn:soft-refresh() {
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   log info "Cisco state before soft refresh:"
   vpn:state || true
@@ -341,11 +339,7 @@ vpn:soft-refresh() {
 
 vpn:full-refresh() {
   local vpn_host="${1:-${VPN_DEFAULT_HOST}}"
-
-  [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
-    return 1
-  }
+  _vpn:require-cli || return 1
 
   if [[ -z "$vpn_host" ]]; then
     log warning "No VPN host specified. Pass one explicitly or set VPN_DEFAULT_HOST."
@@ -494,7 +488,12 @@ ssh:agent() {
 
 # Tokens file on iCloud Drive — backup of login keychain secrets.
 # The keychain is the source of truth; this file mirrors it for new-machine setup.
-_SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE:-${HOME}/Documents/General/Developer/.dotfiles/.keychain/tokens}"
+_SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE}"
+
+_secrets:write-header() {
+  echo "# service:account:password" > "$1"
+  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$1"
+}
 
 # Add or update a secret in the login keychain, then export to iCloud Drive.
 # Usage: secret:set <service> <account>
@@ -524,8 +523,7 @@ secret:set() {
   tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
   [[ -d "$tokens_dir" ]] || mkdir -p "$tokens_dir"
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
-    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+    _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
   if ! grep -q "^${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
     echo "$service:$account:placeholder" >> "$_SECRETS_TOKENS_FILE"
@@ -587,8 +585,7 @@ secret:export() {
 
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
     log warning "No tokens file yet — creating empty: $_SECRETS_TOKENS_FILE"
-    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
-    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+    _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
 
   local tmpfile entries=()
@@ -602,8 +599,7 @@ secret:export() {
   # Rewrite the file with fresh passwords from the keychain
   tmpfile="$(mktemp)"
   trap 'rm -f "$tmpfile"' RETURN
-  echo "# service:account:password" > "$tmpfile"
-  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$tmpfile"
+  _secrets:write-header "$tmpfile"
 
   local password
   for entry in "${entries[@]}"; do

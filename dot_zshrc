@@ -42,7 +42,7 @@ fi
 # System-specific PATH additions
 [[ -n "${PATH_ADD}" ]] && path:append "${PATH_ADD}"
 
-# --------------------------------- Sources ---------------------------------- #
+# ------------------------------ Plugins & Aliases --------------------------- #
 
 source "${HOME}/.aliases"
 source "${HOME}/.completions"
