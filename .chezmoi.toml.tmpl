@@ -1,55 +1,98 @@
-{{- $email := promptStringOnce . "email" "Git email address" -}}
-{{- $name := promptStringOnce . "name" "Git full name" -}}
-{{- $gpg_key := promptStringOnce . "gpg_key" "GPG signing key ID (leave empty to disable signing)" -}}
 {{- $machine_type := promptChoiceOnce . "machine_type" "Machine type" (list "personal" "work") -}}
 
-{{- /* Work-only proxy and SSL configuration */ -}}
-{{- $proxy_host := "" -}}
-{{- $proxy_port := "" -}}
-{{- $proxy_protocol := "http" -}}
-{{- $proxy_dns := "" -}}
-{{- $no_proxy := "localhost,127.0.0.1" -}}
-{{- $no_proxy_dns := "" -}}
-{{- $ssl_bundle_keychain_certs := "" -}}
-{{- $ssl_bundle_remote_certs := "" -}}
-{{- $enterprise_domain := "" -}}
-{{- $forgeops_path := "" -}}
+{{- /* Read machine-type config from iCloud config.toml (if available) */ -}}
+{{- $icloudConfigPath := joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles/config.toml" -}}
+{{- $machineConfig := dict -}}
+{{- if stat $icloudConfigPath -}}
+{{-   $allConfig := output "cat" $icloudConfigPath | fromToml -}}
+{{-   if hasKey $allConfig $machine_type -}}
+{{-     $machineConfig = index $allConfig $machine_type -}}
+{{-   end -}}
+{{- end -}}
 
+{{- /* All config keys: defaults and prompt text.
+      Resolution order: config.toml → promptStringOnce (cached/interactive).
+      Keys are resolved in the order listed in $configOrder. */ -}}
+{{- $config := dict
+      "email"                      ""
+      "name"                       ""
+      "gpg_key"                    ""
+      "proxy_host"                 ""
+      "proxy_port"                 ""
+      "proxy_protocol"             "http"
+      "proxy_dns"                  ""
+      "no_proxy"                   "localhost,127.0.0.1"
+      "no_proxy_dns"               ""
+      "ssl_bundle_keychain_certs"  ""
+      "ssl_bundle_remote_certs"    ""
+      "enterprise_domain"          ""
+      "forgeops_path"              "" -}}
+
+{{- $configPrompts := dict
+      "email"                      "Git email address"
+      "name"                       "Git full name"
+      "gpg_key"                    "GPG signing key ID (leave empty to disable signing)"
+      "proxy_host"                 "Proxy host (e.g. proxy.company.com)"
+      "proxy_port"                 "Proxy port (e.g. 8080)"
+      "proxy_protocol"             "Proxy protocol (http/https/socks5)"
+      "proxy_dns"                  "DNS servers when proxy active (comma-separated, leave empty for none)"
+      "no_proxy"                   "No-proxy list (comma-separated)"
+      "no_proxy_dns"               "DNS servers when proxy inactive (comma-separated, leave empty for none)"
+      "ssl_bundle_keychain_certs"  "SSL bundle: keychain cert CNs (comma-separated, leave empty for none)"
+      "ssl_bundle_remote_certs"    "SSL bundle: remote cert URLs (comma-separated, leave empty for none)"
+      "enterprise_domain"          "Enterprise domain (leave empty for none)"
+      "forgeops_path"              "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
+
+{{- /* Keys prompted for all machine types */ -}}
+{{- $sharedKeys := list "email" "name" "gpg_key" -}}
+
+{{- /* Keys prompted only for work machines */ -}}
+{{- $workKeys := list "proxy_host" "proxy_port" "proxy_protocol" "proxy_dns" "no_proxy" "no_proxy_dns" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" "forgeops_path" -}}
+
+{{- /* Resolve shared keys: config.toml → prompt */ -}}
+{{- range $key := $sharedKeys -}}
+{{-   if hasKey $machineConfig $key -}}
+{{-     $_ := set $config $key (index $machineConfig $key) -}}
+{{-   else -}}
+{{-     $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key)) -}}
+{{-   end -}}
+{{- end -}}
+
+{{- /* Resolve work keys: config.toml → prompt (personal keeps defaults) */ -}}
 {{- if eq $machine_type "work" -}}
-{{-   $proxy_host = promptStringOnce . "proxy_host" "Proxy host (e.g. proxy.company.com)" -}}
-{{-   $proxy_port = promptStringOnce . "proxy_port" "Proxy port (e.g. 8080)" -}}
-{{-   $proxy_protocol = promptStringOnce . "proxy_protocol" "Proxy protocol (http/https/socks5)" -}}
-{{-   $proxy_dns = promptStringOnce . "proxy_dns" "DNS servers when proxy active (comma-separated, leave empty for none)" -}}
-{{-   $no_proxy = promptStringOnce . "no_proxy" "No-proxy list (comma-separated)" -}}
-{{-   $no_proxy_dns = promptStringOnce . "no_proxy_dns" "DNS servers when proxy inactive (comma-separated, leave empty for none)" -}}
-{{-   $ssl_bundle_keychain_certs = promptStringOnce . "ssl_bundle_keychain_certs" "SSL bundle: keychain cert CNs (comma-separated, leave empty for none)" -}}
-{{-   $ssl_bundle_remote_certs = promptStringOnce . "ssl_bundle_remote_certs" "SSL bundle: remote cert URLs (comma-separated, leave empty for none)" -}}
-{{-   $enterprise_domain = promptStringOnce . "enterprise_domain" "Enterprise domain (leave empty for none)" -}}
-{{-   $forgeops_path = promptStringOnce . "forgeops_path" "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
+{{-   range $key := $workKeys -}}
+{{-     if hasKey $machineConfig $key -}}
+{{-       $_ := set $config $key (index $machineConfig $key) -}}
+{{-     else -}}
+{{-       $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key)) -}}
+{{-     end -}}
+{{-   end -}}
 {{- end -}}
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}
+mode = "symlink"
 
 [data]
-  email = {{ $email | quote }}
-  name = {{ $name | quote }}
-  gpg_key = {{ $gpg_key | quote }}
+  email = {{ index $config "email" | quote }}
+  name = {{ index $config "name" | quote }}
+  gpg_key = {{ index $config "gpg_key" | quote }}
   machine_type = {{ $machine_type | quote }}
   icloud_secrets = {{ joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" | quote }}
 
   # Proxy & network (populated for work machines)
-  proxy_host = {{ $proxy_host | quote }}
-  proxy_port = {{ $proxy_port | quote }}
-  proxy_protocol = {{ $proxy_protocol | quote }}
-  proxy_dns = {{ $proxy_dns | quote }}
-  no_proxy = {{ $no_proxy | quote }}
-  no_proxy_dns = {{ $no_proxy_dns | quote }}
+  always_proxy_probe = {{ eq $machine_type "work" }}
+  proxy_host = {{ index $config "proxy_host" | quote }}
+  proxy_port = {{ index $config "proxy_port" | quote }}
+  proxy_protocol = {{ index $config "proxy_protocol" | quote }}
+  proxy_dns = {{ index $config "proxy_dns" | quote }}
+  no_proxy = {{ index $config "no_proxy" | quote }}
+  no_proxy_dns = {{ index $config "no_proxy_dns" | quote }}
 
   # SSL & enterprise (populated for work machines)
-  ssl_bundle_keychain_certs = {{ $ssl_bundle_keychain_certs | quote }}
-  ssl_bundle_remote_certs = {{ $ssl_bundle_remote_certs | quote }}
-  enterprise_domain = {{ $enterprise_domain | quote }}
-  forgeops_path = {{ $forgeops_path | quote }}
+  ssl_bundle_keychain_certs = {{ index $config "ssl_bundle_keychain_certs" | quote }}
+  ssl_bundle_remote_certs = {{ index $config "ssl_bundle_remote_certs" | quote }}
+  enterprise_domain = {{ index $config "enterprise_domain" | quote }}
+  forgeops_path = {{ index $config "forgeops_path" | quote }}
 
 [scriptEnv]
   HOMEBREW_NO_AUTO_UPDATE = "1"

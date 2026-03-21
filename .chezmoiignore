@@ -2,7 +2,13 @@ README.md
 ARCHITECTURE.md
 LICENSE
 Brewfile.*
+firebase-debug.log
 .gitignore
 .git
 .claude
 .remember
+
+{{ if ne .machine_type "work" }}
+.ssl
+.vpn
+{{ end }}
