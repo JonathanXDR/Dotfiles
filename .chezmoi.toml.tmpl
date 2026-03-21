@@ -50,3 +50,13 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
   ssl_bundle_remote_certs = {{ $ssl_bundle_remote_certs | quote }}
   enterprise_domain = {{ $enterprise_domain | quote }}
   forgeops_path = {{ $forgeops_path | quote }}
+
+[scriptEnv]
+  HOMEBREW_NO_AUTO_UPDATE = "1"
+  HOMEBREW_NO_INSTALL_CLEANUP = "1"
+  NONINTERACTIVE = "1"
+
+[[textconv]]
+  pattern = "**/*.json"
+  command = "jq"
+  args = ["."]
