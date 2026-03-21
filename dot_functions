@@ -241,19 +241,20 @@ dns:change() {
   sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
 }
 
-vpn:state() {
-  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
+# Cisco VPN binary path (override via CISCO_VPN_BIN env var)
+_CISCO_VPN_BIN="${CISCO_VPN_BIN:-/opt/cisco/secureclient/bin/vpn}"
 
-  [[ -x "$vpn_bin" ]] || {
-    log warning "Cisco VPN CLI not found at $vpn_bin"
+vpn:state() {
+  [[ -x "$_CISCO_VPN_BIN" ]] || {
+    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
 
-  "$vpn_bin" state 2>/dev/null
+  "$_CISCO_VPN_BIN" state 2>/dev/null
 }
 
 vpn:hosts() {
-  /opt/cisco/secureclient/bin/vpn hosts
+  "$_CISCO_VPN_BIN" hosts
 }
 
 vpn:is-connected() {
@@ -275,10 +276,8 @@ vpn:google-broken() {
 }
 
 vpn:refresh() {
-  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
-
-  [[ -x "$vpn_bin" ]] || {
-    log warning "Cisco VPN CLI not found at $vpn_bin"
+  [[ -x "$_CISCO_VPN_BIN" ]] || {
+    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
 
@@ -286,7 +285,7 @@ vpn:refresh() {
   vpn:state || true
 
   log info "Disconnecting Cisco VPN..."
-  "$vpn_bin" disconnect >/dev/null 2>&1 || true
+  "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
   log info "Cisco state after disconnect:"
@@ -298,7 +297,7 @@ vpn:refresh() {
   fi
 
   log info "Attempting reconnect. MFA may be required..."
-  "$vpn_bin" connect
+  "$_CISCO_VPN_BIN" connect
   local rc=$?
 
   log info "Cisco state after connect attempt:"
@@ -317,10 +316,8 @@ vpn:refresh() {
 }
 
 vpn:soft-refresh() {
-  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
-
-  [[ -x "$vpn_bin" ]] || {
-    log warning "Cisco VPN CLI not found at $vpn_bin"
+  [[ -x "$_CISCO_VPN_BIN" ]] || {
+    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
 
@@ -328,7 +325,7 @@ vpn:soft-refresh() {
   vpn:state || true
 
   log info "Soft-refresh: disconnecting Cisco VPN..."
-  "$vpn_bin" disconnect >/dev/null 2>&1 || true
+  "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
   log info "Cisco state after soft refresh:"
@@ -343,11 +340,10 @@ vpn:soft-refresh() {
 }
 
 vpn:full-refresh() {
-  local vpn_bin="/opt/cisco/secureclient/bin/vpn"
   local vpn_host="${1:-${VPN_DEFAULT_HOST}}"
 
-  [[ -x "$vpn_bin" ]] || {
-    log warning "Cisco VPN CLI not found at $vpn_bin"
+  [[ -x "$_CISCO_VPN_BIN" ]] || {
+    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
     return 1
   }
 
@@ -358,7 +354,7 @@ vpn:full-refresh() {
 
   vpn:soft-refresh || true
   log info "Starting full reconnect to \"$vpn_host\". MFA may be required."
-  "$vpn_bin" connect "$vpn_host"
+  "$_CISCO_VPN_BIN" connect "$vpn_host"
 }
 
 vpn:reset-filter() {

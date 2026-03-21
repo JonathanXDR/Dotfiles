@@ -1,5 +1,15 @@
-# Shared non-secret data for chezmoi templates
+# Shared non-secret data for chezmoi templates.
+# Values here are available as template variables (e.g. {{ .editor }}).
 
+# Shell defaults
+editor = "vi"
+history_size = 32768
+autostart_ssh_agent = false
+
+# Display
 default_hostname = "void(0)"
 tree_ignore = ".git|node_modules"
 dock_apps = ["Zen", "Notion", "Visual Studio Code", "Microsoft Teams", "Discord", "GitKraken"]
+
+# Cisco VPN binary (used by vpn:* functions)
+cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
