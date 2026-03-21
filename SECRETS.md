@@ -1,156 +1,109 @@
 # Secrets Management with chezmoi
 
-This document describes the secrets management architecture for migrating from the current dotfiles system to [chezmoi](https://www.chezmoi.io). It covers how secrets are stored, synced, and injected into dotfiles across machines.
+This document describes the secrets management architecture for this dotfiles system. It covers how secrets are stored, synced, and injected into dotfiles across machines.
 
 ---
 
 ## Architecture
 
-Secrets are split across two Apple-native storage layers based on their type. Neither layer stores anything in the dotfiles repository itself — the repo contains only template references.
+Secrets are split across two storage layers based on their type. Neither layer stores anything in the dotfiles repository itself — the repo contains only template references.
 
 ```
 dotfiles repo (GitHub)
 │
 │   Templates reference secrets but never contain them:
-│   {{ template "apw" list "registry.npmjs.org" "npm" }}
+│   {{ keyring "registry.npmjs.org" "npm" }}
 │
-├── iCloud Keychain (Apple Passwords) ───────────────────────────┐
-│   Small text secrets: tokens, passwords, API keys              │
-│   Syncs instantly across Macs via iCloud                       │
-│   E2E encrypted (Secure Enclave)                               │
-│   Accessed via apw CLI                                         │
-│                                                                │
-├── iCloud Drive (Advanced Data Protection) ─────────────────────┤
-│   Secret files: SSH keys, GPG keys, certificates, PEM files    │
-│   Syncs automatically across Macs via iCloud Drive             │
-│   E2E encrypted (requires Advanced Data Protection enabled)    │
-│   Accessed via chezmoi run_ scripts                            │
-└────────────────────────────────────────────────────────────────┘
+├── macOS Login Keychain ──────────────────────────────────┐
+│   Small text secrets: tokens, passwords, API keys         │
+│   Accessed via chezmoi's built-in keyring function         │
+│   Backed up to iCloud Drive for new machine setup          │
+│                                                            │
+├── iCloud Drive (Advanced Data Protection) ────────────────┤
+│   Secret files: SSH keys, GPG keys, certificates           │
+│   Keychain backup: tokens file for new machine import       │
+│   Syncs automatically across Macs via iCloud Drive          │
+│   E2E encrypted (requires Advanced Data Protection)         │
+│   Accessed via chezmoi run_ scripts                         │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### Why this split?
 
 | Type | Example | Best stored as |
 |---|---|---|
-| Short text values | `ghp_abc123...`, `npm_XXXX` | Apple Passwords entry (retrieved at apply-time) |
+| Short text values | `npm_XXXX`, `ghp_abc123` | macOS login keychain entry (retrieved at apply-time via `keyring`) |
 | Files with structure and permissions | `id_ed25519`, `private.pem` | File on iCloud Drive (preserves format, permissions, paths) |
-
-Apple Passwords is ideal for values you inject into config files via templates. iCloud Drive is ideal for files that need to exist as-is on the filesystem with specific permissions.
 
 ---
 
-## Layer 1: iCloud Keychain via apw (Tokens and Passwords)
+## Layer 1: macOS Login Keychain via chezmoi `keyring` (Tokens and Passwords)
 
-### What is apw?
+### How it works
 
-[apw](https://github.com/bendews/apw) (Apple Passwords) is a CLI tool that provides shell access to iCloud Keychain entries stored in the macOS Passwords app. It uses a built-in macOS 14+ helper tool to read credentials and outputs JSON for scripting.
+chezmoi's built-in `keyring` template function reads secrets from the macOS login keychain. Under the hood, it calls `/usr/bin/security find-generic-password` — no daemon, no external binary, no JSON parsing.
 
-**Requirements:** macOS 14 (Sonoma) or later.
-
-**Key constraint:** apw is **read-only**. Secrets are created and managed through the macOS **Passwords app** (System Settings > Passwords, or the standalone Passwords app on macOS Sequoia+). apw only retrieves them.
-
-### Installation
-
-```bash
-brew install bendews/homebrew-tap/apw
-brew services start apw
+```
+{{ keyring "service-name" "account-name" }}
 ```
 
-### Authentication
-
-apw runs a background daemon that must be authenticated once per boot:
-
-```bash
-apw auth
-```
-
-This triggers a standard macOS system authentication prompt (Touch ID or system password). After authenticating, all subsequent `apw` commands work without prompts until the next reboot.
+Maps to the macOS Keychain's **service** and **account** fields (generic password items).
 
 ### CLI reference
 
+**Add or update a secret:**
+
 ```bash
-# Retrieve a password for a domain and username
-apw pw get <domain> [username]
-
-# List all passwords for a domain (JSON)
-apw pw list <domain>
-
-# Retrieve an OTP code
-apw otp get <domain>
-
-# List OTP entries for a domain
-apw otp list <domain>
+chezmoi secret keyring set --service=registry.npmjs.org --user=npm
+# Prompts for the password interactively
 ```
 
-All commands return JSON:
+**Read a secret:**
 
-```json
-{
-  "results": [
-    {
-      "domain": "npmjs.org",
-      "username": "token",
-      "password": "npm_XXXXXXXXXXXX"
-    }
-  ],
-  "status": 0
-}
+```bash
+chezmoi secret keyring get --service=registry.npmjs.org --user=npm
 ```
 
-### How to store secrets in Apple Passwords
+**Delete a secret:**
 
-Since apw is read-only, you create entries through the Passwords app. The trick is to use the **Website** and **Username** fields as a key-pair to identify each secret:
+```bash
+chezmoi secret keyring delete --service=registry.npmjs.org --user=npm
+```
 
-| Website (domain) | Username | Password |
-|---|---|---|
-| `registry.npmjs.org` | `npm` | `npm_XXXXXXXXXXXX` |
-| `bin.swisscom.com` | `swisscom-npm` | `eyJ...` (Artifactory JWT) |
-| `bin.swisscom.com` | `apps-team-npm` | `eyJ...` (Artifactory JWT) |
-| `ntlm` | `credentials` | `user@domain:hash` (NTLM credentials) |
-| `github.com` | `personal-access-token` | `ghp_XXXXXXXXXXXX` |
+**Or use macOS `security` directly:**
 
-To add an entry:
+```bash
+# Add/update
+security add-generic-password -U -s "registry.npmjs.org" -a "npm" -w "npm_XXXX"
 
-1. Open **Passwords** app (or System Settings > Passwords)
-2. Click **+** to add a new entry
-3. Set **Website** to the domain identifier (e.g., `registry.npmjs.org`)
-4. Set **Username** to a descriptive key (e.g., `npm`)
-5. Set **Password** to the secret value
-6. Save
+# Read
+security find-generic-password -s "registry.npmjs.org" -a "npm" -w
 
-The entry syncs to all Macs via iCloud Keychain automatically.
+# Delete
+security delete-generic-password -s "registry.npmjs.org" -a "npm"
+```
 
 ### chezmoi integration
 
-chezmoi retrieves secrets from apw using the `output` template function, which runs a command and captures its stdout. Combined with `fromJson`, you can extract specific fields from apw's JSON response.
-
-**Helper template (recommended):** Define a reusable function in your chezmoi config to keep templates clean:
-
-```toml
-# ~/.config/chezmoi/chezmoi.toml
-# No special secret.command config needed — we use output + fromJson directly
-```
-
-**In templates:**
+In templates, use `keyring` directly:
 
 ```
 {{- /* dot_npmrc.tmpl */ -}}
-//registry.npmjs.org/:_authToken={{ (index (output "apw" "pw" "get" "registry.npmjs.org" "npm" | fromJson).results 0).password }}
+//registry.npmjs.org/:_authToken={{ keyring "registry.npmjs.org" "npm" }}
 ```
 
-To keep templates readable, extract repeated lookups into a named template:
+No named template wrapper needed — `keyring` is a built-in chezmoi function.
 
-```
-{{- /* .chezmoitemplates/apw */ -}}
-{{- (index (output "apw" "pw" "get" (index . 0) (index . 1) | fromJson).results 0).password -}}
-```
+### Required keychain entries
 
-Then in templates:
+These entries must exist in the macOS login keychain for `chezmoi apply` to succeed:
 
-```
-{{- /* dot_npmrc.tmpl */ -}}
-//registry.npmjs.org/:_authToken={{ template "apw" list "registry.npmjs.org" "npm" }}
-```
+| Service | Account | Template that uses it |
+|---|---|---|
+| `registry.npmjs.org` | `npm` | `dot_npmrc.tmpl` |
+| `bin.swisscom.com` | `swisscom-npm` | `dot_npmrc.tmpl` (work only) |
+| `bin.swisscom.com` | `apps-team-npm` | `dot_npmrc.tmpl` (work only) |
+| `ntlm` | `credentials` | `dot_exports.tmpl` (work only) |
 
 ### What belongs here
 
@@ -158,11 +111,12 @@ Then in templates:
 - GitHub / GitLab personal access tokens
 - API keys for cloud services
 - Docker registry credentials
+- NTLM or proxy credentials
 - Any short text secret referenced in config file templates
 
 ---
 
-## Layer 2: iCloud Drive (Keys and Certificates)
+## Layer 2: iCloud Drive (Keys, Certificates, and Keychain Backup)
 
 ### How it works
 
@@ -175,6 +129,8 @@ chezmoi `run_` scripts copy these files to their target locations and set correc
 ```
 ~/Library/Mobile Documents/com~apple~CloudDocs/
 └── Secrets/
+    ├── keychain/
+    │   └── tokens              # Keychain backup for new machine import
     ├── ssh/
     │   ├── id_ed25519
     │   ├── id_ed25519.pub
@@ -190,65 +146,22 @@ chezmoi `run_` scripts copy these files to their target locations and set correc
         └── ca-bundle.pem
 ```
 
-The path `~/Library/Mobile Documents/com~apple~CloudDocs/` is the macOS filesystem location for iCloud Drive. The `Secrets/` subfolder is a convention — name it whatever you prefer.
+### Keychain backup: `tokens` file
 
-### chezmoi integration
+The login keychain doesn't sync via iCloud, so we store a plain text tokens file on iCloud Drive that a chezmoi run script (`run_once_before_import-keychain.sh.tmpl`) imports into the keychain on new machines.
 
-Define the iCloud Drive path as a chezmoi data variable for reuse across scripts:
+**Format:**
 
-```toml
-# ~/.config/chezmoi/chezmoi.toml
-[data]
-    icloud_secrets = "~/Library/Mobile Documents/com~apple~CloudDocs/Secrets"
+```
+# service:account:password
+# Managed by chezmoi — import into macOS login keychain on new machines
+registry.npmjs.org:npm:<actual-token>
+bin.swisscom.com:swisscom-npm:<actual-token>
+bin.swisscom.com:apps-team-npm:<actual-token>
+ntlm:credentials:<actual-credentials>
 ```
 
-Create `run_` scripts in your chezmoi source directory to install the files:
-
-```bash
-# run_once_after_install-ssh-keys.sh.tmpl
-#!/bin/bash
-set -euo pipefail
-
-SECRETS="{{ .icloud_secrets }}/ssh"
-
-# Ensure iCloud has downloaded the files (not just cloud stubs)
-for file in "$SECRETS"/id_ed25519 "$SECRETS"/id_ed25519.pub "$SECRETS"/config; do
-    if [[ -f "$file" ]]; then
-        brctl download "$file" 2>/dev/null || true
-    fi
-done
-
-# Brief wait for download to complete if needed
-sleep 2
-
-# Install SSH keys
-mkdir -p "$HOME/.ssh"
-cp "$SECRETS/id_ed25519"     "$HOME/.ssh/id_ed25519"
-cp "$SECRETS/id_ed25519.pub" "$HOME/.ssh/id_ed25519.pub"
-cp "$SECRETS/config"         "$HOME/.ssh/config"
-
-# Set correct permissions
-chmod 700 "$HOME/.ssh"
-chmod 600 "$HOME/.ssh/id_ed25519"
-chmod 644 "$HOME/.ssh/id_ed25519.pub"
-chmod 644 "$HOME/.ssh/config"
-```
-
-```bash
-# run_once_after_install-gpg-keys.sh.tmpl
-#!/bin/bash
-set -euo pipefail
-
-SECRETS="{{ .icloud_secrets }}/gnupg"
-
-brctl download "$SECRETS" 2>/dev/null || true
-sleep 2
-
-mkdir -p "$HOME/.gnupg"
-chmod 700 "$HOME/.gnupg"
-cp -R "$SECRETS"/* "$HOME/.gnupg/"
-chmod 600 "$HOME/.gnupg/private-keys-v1.d"/*
-```
+**Important:** Keep this file in sync when you update tokens in the keychain. The import script runs once (`run_once_before_`) so it won't overwrite manually-set keychain entries on subsequent `chezmoi apply` runs.
 
 ### About brctl
 
@@ -258,7 +171,7 @@ chmod 600 "$HOME/.gnupg/private-keys-v1.d"/*
 brctl download <path>   # Force-download a cloud-only file stub
 ```
 
-On a new Mac, iCloud Drive may keep files as cloud-only stubs to save disk space. `brctl download` forces macOS to download the actual file contents. Alternatively, right-click the `Secrets/` folder in Finder and choose **Download Now**, or enable **Keep Downloaded** to pin it permanently.
+On a new Mac, iCloud Drive may keep files as cloud-only stubs to save disk space. `brctl download` forces macOS to download the actual file contents.
 
 ### What belongs here
 
@@ -267,6 +180,7 @@ On a new Mac, iCloud Drive may keep files as cloud-only stubs to save disk space
 - GPG/PGP private keys, revocation certs, and trust database
 - SSL/TLS CA bundles for corporate proxy (`.pem`)
 - Client certificates (`.p12`, `.pfx`) if needed
+- Keychain token backup (`tokens` file)
 
 ---
 
@@ -287,7 +201,6 @@ Advanced Data Protection enables end-to-end encryption for iCloud Drive (among o
 ### Prerequisites
 
 - Signed into the same Apple ID
-- iCloud Keychain enabled (System Settings > Apple ID > iCloud > Passwords & Keychain > Sync this Mac)
 - iCloud Drive enabled
 - Advanced Data Protection enabled
 - Homebrew installed
@@ -298,49 +211,89 @@ Advanced Data Protection enables end-to-end encryption for iCloud Drive (among o
 # 1. Clone the dotfiles repo
 git clone https://github.com/<your-username>/dotfiles.git ~/Developer/Git/GitHub/Dotfiles
 
-# 2. Install tools
+# 2. Install chezmoi
 brew install chezmoi
-brew install bendews/homebrew-tap/apw
 
-# 3. Start and authenticate the apw daemon
-brew services start apw
-apw auth    # Touch ID or system password — once per boot
-
-# 4. Verify iCloud Keychain secrets are synced
-apw pw list registry.npmjs.org
-
-# 5. Ensure iCloud Drive secrets folder is downloaded
+# 3. Ensure iCloud Drive secrets folder is downloaded
 brctl download ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets
 
-# 6. Initialize and apply chezmoi
+# 4. Initialize and apply chezmoi
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 
 # chezmoi will:
 #   - Prompt for email, name, GPG key, machine type (first time only)
-#   - Resolve all apw template calls via iCloud Keychain
-#   - Run all run_ scripts which copy files from iCloud Drive
+#   - Run run_once_before_import-keychain.sh.tmpl (imports tokens from iCloud → keychain)
+#   - Resolve all keyring template calls from the login keychain
+#   - Run remaining run_ scripts (SSH keys, GPG keys, Homebrew, etc.)
 #   - Write fully resolved config files to their target locations
 ```
 
-All secrets flow from iCloud — one Touch ID tap, no keys to transfer, no files to copy manually.
+All secrets flow from iCloud Drive → login keychain → config files. No extra tools to install.
 
 ---
 
 ## Day-to-Day Workflows
 
+Shell functions in `~/.functions` keep the keychain and iCloud Drive backup in sync automatically. The keychain is the source of truth — the iCloud Drive tokens file is a mirror.
+
 ### Adding a new token
 
-1. Open the **Passwords** app
-2. Add a new entry with the domain, a descriptive username, and the secret as the password
-3. Reference it in a chezmoi template:
+```bash
+# 1. Add to keychain + auto-export to iCloud Drive (prompts for password)
+secret:set api.example.com key
 
-   ```
-   api_key={{ template "apw" list "api.example.com" "key" }}
-   ```
+# 2. Reference it in a chezmoi template
+#    api_key={{ keyring "api.example.com" "key" }}
 
-4. Run `chezmoi apply`
+# 3. Apply
+chezmoi apply
+```
 
-The Passwords entry syncs to all your Macs automatically. On the other Mac, just run `chezmoi apply` to pick it up.
+### Rotating a secret
+
+```bash
+# Updates keychain + auto-exports to iCloud Drive
+secret:set registry.npmjs.org npm
+
+# Re-render config files with the new value
+chezmoi apply
+```
+
+### Removing a secret
+
+```bash
+# Removes from keychain + auto-exports to iCloud Drive
+secret:remove api.example.com key
+```
+
+### Listing managed secrets
+
+```bash
+secret:list
+# Managed secrets (from tokens file):
+#   registry.npmjs.org / npm
+#   bin.swisscom.com / swisscom-npm
+#   ...
+```
+
+### Reading a secret
+
+```bash
+secret:get registry.npmjs.org npm
+
+# Preview what chezmoi would write
+chezmoi cat ~/.npmrc
+```
+
+### Manually re-exporting to iCloud Drive
+
+If you edited the keychain directly (e.g., via `chezmoi secret keyring set` or Keychain Access.app):
+
+```bash
+secret:export
+```
+
+This reads all entries from the tokens file, fetches fresh passwords from the keychain, and rewrites the file.
 
 ### Adding a new key file
 
@@ -356,81 +309,48 @@ chezmoi cd
 chezmoi apply
 ```
 
-### Rotating a secret
-
-1. Open the **Passwords** app
-2. Find the entry and update the password field
-3. Run `chezmoi apply` on each Mac to regenerate config files with the new value
-
-### Verifying secrets from the command line
-
-```bash
-# List all entries for a domain
-apw pw list npmjs.org
-
-# Get a specific entry
-apw pw get github.com personal-access-token
-
-# Get an OTP code
-apw otp get github.com
-```
-
 ---
 
-## Migration from Current Setup
+## Migration from apw (Apple Passwords CLI)
 
-### What was migrated
+### What changed
 
-The old dotfiles system stored secrets in two places:
+The previous system used `apw` (Apple Passwords CLI) — a Deno-based tool that ran a background daemon to read from iCloud Keychain. This has been replaced with chezmoi's **built-in `keyring` function** which reads from the macOS login keychain via `/usr/bin/security`.
 
-- **`$HOME/.env`** — tokens and credentials loaded via `env:load` and injected via `env:replace`
-- **`$DOTFILES_CONFIG_PATH_PROTECTED`** (`~/Documents/General/Developer/configs/dotfiles`) — sensitive files (SSH, GPG, etc.) symlinked by `dotfiles:link`
-
-### `.env` is fully superseded
-
-All values from the old `.env` file are now handled by chezmoi:
-
-| Old `.env` variable | Now handled by |
+| Before (apw) | After (keyring) |
 |---|---|
-| `ALWAYS_PROXY_PROBE`, `PROXY_*`, `NO_PROXY*` | `dot_exports.tmpl` via `.chezmoi.toml` data (prompted during `chezmoi init`) |
-| `SSL_BUNDLE_*`, `NODE_EXTRA_CA_CERTS` | `dot_exports.tmpl` via `.chezmoi.toml` data |
-| `NODE_USE_ENV_PROXY` | `dot_exports.tmpl` (hardcoded for work machines) |
-| `ENTERPRISE_DOMAIN` | `.chezmoi.toml` data |
-| `NTLM_CREDENTIALS` | `dot_exports.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
-| `NPM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
-| `SWISSCOM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
-| `APPS_TEAM_AUTH_TOKEN` | `dot_npmrc.tmpl` via `{{ template "apw" }}` (Apple Passwords) |
+| `brew install bendews/homebrew-tap/apw` | Nothing to install — built into chezmoi |
+| `apw daemon start` / `apw auth` (once per boot) | No daemon needed |
+| `{{ template "apw" list "domain" "user" }}` | `{{ keyring "service" "account" }}` |
+| Secrets in iCloud Keychain (Passwords app) | Secrets in macOS login keychain |
+| Auto-syncs via iCloud Keychain | Manual sync via iCloud Drive tokens file |
 
-There is no longer a need for `$HOME/.env`, `env:load` at startup, or `env:replace`. The `env:load` function still exists in `dot_functions` for manual development use if needed.
+### Migration steps
 
-### Tokens in Apple Passwords
+1. For each secret in the Passwords app, add it to the login keychain:
 
-These entries must exist in the Passwords app for `chezmoi apply` to resolve templates:
+   ```bash
+   chezmoi secret keyring set --service=registry.npmjs.org --user=npm
+   # Paste the token when prompted
+   ```
 
-| Website (domain) | Username | Template that uses it |
-|---|---|---|
-| `registry.npmjs.org` | `npm` | `dot_npmrc.tmpl` |
-| `bin.swisscom.com` | `swisscom-npm` | `dot_npmrc.tmpl` (work only) |
-| `bin.swisscom.com` | `apps-team-npm` | `dot_npmrc.tmpl` (work only) |
-| `ntlm` | `credentials` | `dot_exports.tmpl` (work only) |
+2. Create the iCloud Drive backup file:
 
-### Files in iCloud Drive
+   ```bash
+   mkdir -p ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets/keychain
+   # Create tokens file with all entries
+   ```
 
-These files were copied to `~/Library/Mobile Documents/com~apple~CloudDocs/Secrets/`:
+3. Run `chezmoi apply` — templates now use `keyring` instead of `template "apw"`
 
-| Source | iCloud Drive path | chezmoi run script |
-|---|---|---|
-| `.ssh/id_ed25519`, `.pub`, `config`, `known_hosts` | `Secrets/ssh/` | `run_once_after_install-ssh-keys.sh.tmpl` |
-| `.gnupg/private-keys-v1.d/`, `trustdb.gpg`, etc. | `Secrets/gnupg/` | `run_once_after_install-gpg-keys.sh.tmpl` |
-| `.ssl/ca-bundle.pem` | `Secrets/ssl/` | `run_once_after_install-ssl-bundle.sh.tmpl` (work only) |
+### Files removed
 
-### Cleanup
+- `.chezmoitemplates/apw` — replaced by built-in `keyring`
+- `run_once_after_setup-apw.sh` — no daemon needed
 
-Once verified working, the old protected configs directory can be removed:
+### Files added
 
-```bash
-# rm -rf ~/Documents/General/Developer/configs/dotfiles
-```
+- `run_once_before_import-keychain.sh.tmpl` — imports tokens from iCloud Drive into login keychain
 
 ---
 
@@ -440,18 +360,18 @@ Once verified working, the old protected configs directory can be removed:
 
 The dotfiles repo contains **zero secrets**. It holds only:
 
-- Template files with `output "apw" ...` references
+- Template files with `keyring` function calls
 - `run_` scripts that reference iCloud Drive paths
 - Non-sensitive configuration
 
 The repo can safely be public.
 
-### iCloud Keychain (Apple Passwords)
+### macOS Login Keychain
 
-- End-to-end encrypted using keys protected by the Secure Enclave
-- Requires device authentication (Touch ID or system password) to access
-- Syncs only to devices signed into the same Apple ID with Keychain sync enabled
-- Apple cannot access the contents
+- Encrypted at rest using the user's login password
+- Accessible only when the user is logged in (unlocked on login)
+- No iCloud sync — stays local to each Mac
+- Backed up to iCloud Drive via plain text tokens file (ADP-encrypted)
 
 ### iCloud Drive with Advanced Data Protection
 
@@ -470,11 +390,11 @@ The repo can safely be public.
 
 | Threat | Mitigation |
 |---|---|
-| Git repo leaked | No secrets in repo — only template references |
-| Mac stolen (powered off) | FileVault encrypts the disk |
+| Git repo leaked | No secrets in repo — only `keyring` function calls |
+| Mac stolen (powered off) | FileVault encrypts the disk; keychain locked |
 | Mac stolen (unlocked) | Physical security; auto-lock; Find My Mac remote wipe |
-| Apple subpoenaed / breached | Advanced Data Protection = E2E; Apple cannot decrypt |
-| iCloud account compromised | 2FA required; ADP prevents decryption without trusted device |
+| Apple subpoenaed / breached | Advanced Data Protection = E2E; Apple cannot decrypt iCloud Drive |
+| iCloud Drive tokens file accessed | ADP encryption; file only useful with Mac access to import |
 | Keychain accessed by malware | macOS prompts for permission when apps access Keychain items |
 
 ---
@@ -482,32 +402,27 @@ The repo can safely be public.
 ## Quick Reference
 
 ```bash
-# --- apw (tokens via iCloud Keychain) ---
-apw auth                               # Authenticate daemon (once per boot)
-apw pw get <domain> [username]         # Retrieve a password
-apw pw list <domain>                   # List passwords for a domain
-apw otp get <domain>                   # Retrieve an OTP code
-apw otp list <domain>                  # List OTP entries for a domain
+# --- Shell functions (recommended — keeps keychain + iCloud in sync) ---
+secret:set <service> <account>         # Add/update (prompts for password, exports to iCloud)
+secret:get <service> <account>         # Read from keychain
+secret:remove <service> <account>      # Remove from keychain + iCloud
+secret:list                            # List managed service/account pairs
+secret:export                          # Re-export keychain → iCloud Drive tokens file
 
-# --- iCloud Drive (secret files) ---
-# Store: copy files to iCloud Drive
+# --- chezmoi keyring (low-level, does NOT sync to iCloud) ---
+chezmoi secret keyring set --service=<svc> --user=<acct>   # Add/update
+chezmoi secret keyring get --service=<svc> --user=<acct>   # Read
+chezmoi secret keyring delete --service=<svc> --user=<acct> # Delete
+
+# --- iCloud Drive (secret files + keychain backup) ---
 cp <file> ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets/<category>/
-
-# Force-download on new Mac
-brctl download ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets
+brctl download ~/Library/Mobile\ Documents/com~apple~CloudDocs/Secrets  # New Mac
 
 # --- chezmoi ---
-chezmoi init <repo-url>                # First-time setup
 chezmoi apply                          # Apply all dotfiles (resolves secrets)
 chezmoi diff                           # Preview what would change
-chezmoi add --template <file>          # Add a file as a template
-chezmoi edit <file>                    # Edit a managed file
-chezmoi cd                             # Enter the source directory
+chezmoi cat <file>                     # Preview rendered output
 
-# --- Template syntax for apw in chezmoi ---
-# Single value (verbose):
-{{ (index (output "apw" "pw" "get" "registry.npmjs.org" "npm" | fromJson).results 0).password }}
-
-# Using the shared template helper (recommended):
-{{ template "apw" list "registry.npmjs.org" "npm" }}
+# --- Template syntax ---
+{{ keyring "registry.npmjs.org" "npm" }}
 ```
