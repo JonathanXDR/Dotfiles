@@ -6,8 +6,8 @@
 // To see all of Zed's default settings without changing your
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
-{{- $ctx7_key := output "sh" "-c" "security find-generic-password -s 'context7' -a 'api-key' -w 2>/dev/null || true" | trim }}
-{{- $github_pat := output "sh" "-c" "security find-generic-password -s 'github.com' -a 'zed-pat' -w 2>/dev/null || true" | trim }}
+{{- $ctx7_key := includeTemplate "keychain" (list "context7" "api-key") }}
+{{- $github_pat := includeTemplate "keychain" (list "github.com" "zed-pat") }}
 {
   "context_servers": {
 {{- if ne $ctx7_key "" }}

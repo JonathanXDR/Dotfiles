@@ -32,15 +32,6 @@ _ensure_icloud() {
   fi
 }
 
-_require_icloud_dir() {
-  local dir="$1" label="${2:-directory}"
-  if [[ ! -d "$dir" ]]; then
-    _log warning "iCloud $label not found: $dir"
-    return 1
-  fi
-  _ensure_icloud "$dir" || true
-}
-
 _ensure_nvm() {
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [[ -s "$NVM_DIR/nvm.sh" ]]; then

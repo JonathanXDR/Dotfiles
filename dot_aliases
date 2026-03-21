@@ -114,16 +114,16 @@ alias sudo='sudo '
 alias week='date +%V'
 
 # Update macOS, Homebrew, npm globals, and Ruby gems (guards each tool)
-alias update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; command -v npm >/dev/null && npm update -g; command -v gem >/dev/null && sudo gem update --system && sudo gem update && sudo gem cleanup'
+alias update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists npm && npm update -g; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
 # Canonical hex dump
-command -v hd >/dev/null || alias hd="hexdump -C"
+cmd:exists hd || alias hd="hexdump -C"
 
 # macOS has no `md5sum`, so use `md5` as a fallback
-command -v md5sum >/dev/null || alias md5sum="md5"
+cmd:exists md5sum || alias md5sum="md5"
 
 # macOS has no `sha1sum`, so use `shasum` as a fallback
-command -v sha1sum >/dev/null || alias sha1sum="shasum"
+cmd:exists sha1sum || alias sha1sum="shasum"
 
 # JavaScriptCore REPL
 if [[ -e "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc" ]]; then
@@ -196,30 +196,6 @@ alias gch="git checkout"
 alias gba="git branch -av"
 alias gsl="git stash list"
 alias gsc="git stash clear"
-
-gdb() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>"
-    return 1
-  fi
-  git branch -d -- "$1" && git push origin :"$1"
-}
-
-gas() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: gas <stash_index>"
-    return 1
-  fi
-  git stash apply "stash@{$1}"
-}
-
-grb() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: grb <commit_count>"
-    return 1
-  fi
-  git rebase -i "HEAD~$1"
-}
 
 # ------------------------------- Suffix alias ------------------------------- #
 

@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Ensure iCloud symlink targets are downloaded and have correct permissions.
+# Re-runs when icloud_secrets path or machine_type changes:
+# {{ .icloud_secrets }}:{{ .machine_type }}
+
+ICLOUD="{{ .icloud_secrets }}"
+
+_fix_dir() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return 0
+  _ensure_icloud "$dir"
+  find "$dir" -type d -exec chmod 700 {} + 2>/dev/null
+  find "$dir" -type f -exec chmod 600 {} + 2>/dev/null
+}
+
+# GPG: key dirs 700, key files 600 (sockets/cache stay local)
+for d in private-keys-v1.d public-keys.d openpgp-revocs.d; do
+  _fix_dir "$ICLOUD/.gnupg/$d"
+done
+for f in common.conf trustdb.gpg sshcontrol; do
+  [[ -f "$ICLOUD/.gnupg/$f" ]] && chmod 600 "$ICLOUD/.gnupg/$f"
+done
+
+# SSH: dirs 700, private keys 600, public/config 644
+if [[ -d "$ICLOUD/.ssh" ]]; then
+  _ensure_icloud "$ICLOUD/.ssh"
+  chmod 700 "$ICLOUD/.ssh"
+  for f in "$ICLOUD/.ssh"/*; do
+    [[ -f "$f" ]] || continue
+    case "${f##*/}" in
+      *.pub|config|known_hosts|authorized_keys) chmod 644 "$f" ;;
+      *) chmod 600 "$f" ;;
+    esac
+  done
+fi
+
+# Kube config: 600
+[[ -f "$ICLOUD/.kube/config" ]] && chmod 600 "$ICLOUD/.kube/config"
+
+{{ if eq .machine_type "work" -}}
+# SSL: dirs 700, files 600
+_fix_dir "$ICLOUD/.ssl"
+
+# VPN: readable config
+if [[ -d "$ICLOUD/.vpn" ]]; then
+  _ensure_icloud "$ICLOUD/.vpn"
+  chmod 755 "$ICLOUD/.vpn"
+  find "$ICLOUD/.vpn" -type f -exec chmod 644 {} + 2>/dev/null
+fi
+{{ end -}}
+
+_log success "iCloud symlink permissions verified."

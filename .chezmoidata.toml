@@ -8,7 +8,7 @@ autostart_ssh_agent = false
 
 # Display
 default_hostname = "void(0)"
-tree_ignore = ".git|node_modules"
+tree_ignore = ".git|node_modules|.DS_Store|dist|build|target|__pycache__|.venv|.next|.nuxt|.svelte-kit|.gradle|coverage"
 dock_apps = ["Zen", "Notion", "Visual Studio Code", "Microsoft Teams", "Discord", "GitKraken"]
 
 # Cisco VPN binary (used by vpn:* functions)

@@ -21,28 +21,18 @@ export KUBECONFIG_PATH="$HOME/.kube"
 
 # ---------------------------- Proxy configuration --------------------------- #
 
-{{ if eq .machine_type "work" -}}
-export ALWAYS_PROXY_PROBE="true"
+export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
 export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
 export PROXY_HOST={{ .proxy_host | quote }}
 export PROXY_PORT={{ .proxy_port | quote }}
 export PROXY_DNS={{ .proxy_dns | quote }}
 export NO_PROXY={{ .no_proxy | quote }}
 export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
-{{ else -}}
-export ALWAYS_PROXY_PROBE="false"
-export PROXY_PROTOCOL="http"
-export PROXY_HOST="localhost"
-export PROXY_PORT="8080"
-export PROXY_DNS=""
-export NO_PROXY="localhost,127.0.0.1"
-export NO_PROXY_DNS=""
-{{ end -}}
 
 # ----------------------------------- Auth ----------------------------------- #
 
-{{- $ntlm := output "sh" "-c" "security find-generic-password -s 'ntlm' -a 'credentials' -w 2>/dev/null || true" | trim }}
 {{ if eq .machine_type "work" -}}
+{{- $ntlm := includeTemplate "keychain" (list "ntlm" "credentials") }}
 export NTLM_CREDENTIALS={{ $ntlm | quote }}
 {{ else -}}
 export NTLM_CREDENTIALS=""

@@ -1,16 +1,16 @@
 registry=https://registry.npmjs.org/
-{{- $npm_token := output "sh" "-c" "security find-generic-password -s 'registry.npmjs.org' -a 'npm' -w 2>/dev/null || true" | trim }}
+{{- $npm_token := includeTemplate "keychain" (list "registry.npmjs.org" "npm") }}
 {{- if ne $npm_token "" }}
 //registry.npmjs.org/:_authToken={{ $npm_token }}
 {{- else }}
 # WARNING: npm token not found in keychain. Run: secret:set registry.npmjs.org npm
 {{- end }}
 {{- if eq .machine_type "work" }}
-{{- $swisscom := output "sh" "-c" "security find-generic-password -s 'bin.swisscom.com' -a 'swisscom-npm' -w 2>/dev/null || true" | trim }}
+{{- $swisscom := includeTemplate "keychain" (list "bin.swisscom.com" "swisscom-npm") }}
 {{- if ne $swisscom "" }}
 //bin.swisscom.com/artifactory/api/npm/:_authToken={{ $swisscom }}
 {{- end }}
-{{- $apps := output "sh" "-c" "security find-generic-password -s 'bin.swisscom.com' -a 'apps-team-npm' -w 2>/dev/null || true" | trim }}
+{{- $apps := includeTemplate "keychain" (list "bin.swisscom.com" "apps-team-npm") }}
 {{- if ne $apps "" }}
 //bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ $apps }}
 {{- end }}

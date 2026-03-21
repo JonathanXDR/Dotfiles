@@ -4,25 +4,25 @@
 [![chezmoi][chezmoi-src]][chezmoi-href]
 [![macOS][macos-src]][macos-href]
 
-> Opinionated macOS dotfiles managed by [chezmoi](https://chezmoi.io) — template-driven, keychain-backed, and idempotent from a clean install.
+> Opinionated macOS dotfiles managed by [chezmoi](https://chezmoi.io) in symlink mode — template-driven, keychain-backed, iCloud-synced, and idempotent from a clean install.
 
 ## Features
 
-- **File-copy model** — chezmoi renders Go templates and copies to `$HOME`, no symlinks
-- **Secrets via macOS Keychain** — credentials injected at apply time, never stored in the repo
-- **iCloud Drive backup** — SSH keys, GPG keys, and keychain tokens synced for new machine bootstrap
+- **Symlink mode** — chezmoi symlinks rendered templates into `$HOME`, edits go straight to the source
+- **Secrets via macOS Keychain** — credentials injected at apply time via `keychain` template helper, never stored in the repo
+- **iCloud Drive as single source** — SSH keys, GPG keys, SSL certs, kubeconfig, and VPN config symlinked directly to iCloud; machine-type config via `config.toml`; keychain tokens backed up for bootstrap
 - **Machine-type aware** — `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
 - **Auto-switching Node** — `.nvmrc` detection on every `cd` via zsh hook
 - **Proxy auto-detection** — VPN/corporate network probe with automatic proxy toggle
-- **~65 shell functions** — proxy, VPN, Docker, secrets, Node, Git, system utilities
+- **~67 shell functions** — proxy, VPN, Docker, secrets, Node, Git, system utilities
 - **~70 aliases** — navigation, git, kubernetes, macOS tweaks, editor shortcuts
-- **11 idempotent setup scripts** — Homebrew, SSH/GPG keys, npm globals, all in numbered order
+- **7 idempotent setup scripts** — Homebrew, keychain import/export, npm globals, permissions
 
 ## Prerequisites
 
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
-- iCloud Drive signed in (for SSH keys, GPG keys, and token backup)
+- iCloud Drive signed in (for keys, config, and token backup)
 
 ## Quick Start
 
@@ -32,20 +32,20 @@ git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfile
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` prompts for your name, email, GPG key, and machine type, then automatically:
+`chezmoi init` prompts for your name, email, GPG key, and machine type. Machine-specific config (proxy, SSL, enterprise) is read automatically from `config.toml` on iCloud Drive — if the file is not found, chezmoi falls back to interactive prompts. After init, chezmoi automatically:
 
 1. Imports tokens from iCloud Drive into the macOS Keychain
 2. Installs Homebrew and all packages from the appropriate Brewfile
-3. Restores SSH keys, GPG keys, and SSL bundles from iCloud Drive
+3. Symlinks SSH, GPG, SSL, kube, and VPN directories to iCloud Drive
 4. Installs global npm packages
-5. Copies all shell config files to `$HOME`
+5. Symlinks all shell config files into `$HOME`
 
 ## Usage
 
 ```bash
 chezmoi apply          # Apply changes to $HOME
 chezmoi diff           # Preview what would change
-chezmoi edit ~/.zshrc  # Edit via chezmoi (keeps source in sync)
+chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly — symlink mode)
 ```
 
 Shortcut aliases:
@@ -74,7 +74,7 @@ After updating a secret, run `chezmoi apply` to re-render templates with the new
 ```text
 ~/.exports       env vars, proxy, locale, history, zsh options
      ↓
-~/.functions     ~65 utility functions
+~/.functions     ~67 utility functions
      ↓
 PATH setup       Homebrew, NVM, pyenv, RVM, Bun, ...
      ↓
@@ -89,9 +89,15 @@ Runtime hooks    nvmrc auto-switch, proxy probe, SSH agent, SDKMAN
 
 ```text
 .chezmoidata.toml             Shared non-secret defaults
-.chezmoi.toml.tmpl            User config (prompted on init)
-.chezmoitemplates/            Reusable bash helpers for scripts
-.chezmoiscripts/              11 numbered setup scripts
+.chezmoi.toml.tmpl            User config (iCloud config.toml or prompts)
+.chezmoitemplates/            keychain helper + bash helpers for scripts
+.chezmoiscripts/              7 numbered setup scripts
+
+symlink_dot_ssh.tmpl          ~/.ssh → iCloud
+symlink_dot_ssl.tmpl          ~/.ssl → iCloud (work only, via .chezmoiignore)
+symlink_dot_vpn.tmpl          ~/.vpn → iCloud (work only, via .chezmoiignore)
+private_dot_gnupg/            ~/.gnupg files → iCloud (6 symlinks)
+private_dot_kube/             ~/.kube/config → iCloud
 
 dot_zshrc                     Shell orchestrator
 dot_exports.tmpl              Env vars, history, zsh options (templated)

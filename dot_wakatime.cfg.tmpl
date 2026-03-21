@@ -1,4 +1,4 @@
-{{- $wakatime_key := output "sh" "-c" "security find-generic-password -s 'wakatime' -a 'api-key' -w 2>/dev/null || true" | trim }}
+{{- $wakatime_key := includeTemplate "keychain" (list "wakatime" "api-key") }}
 {{- if ne $wakatime_key "" -}}
 [settings]
 api_key = {{ $wakatime_key }}
