@@ -444,10 +444,15 @@ proxy:probe() {
 }
 
 network:check() {
-  local tool="$1" cmd="$2" url="$3"
-  if command -v "$tool" >/dev/null 2>&1; then
-    if curl -m3 -sSf "$url" >/dev/null 2>&1; then
-      "$cmd"
+  local cmd_check="$1"
+  local cmd_run="$2"
+  local url="$3"
+
+  if command -v "$cmd_check" >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1 && curl -m 3 -sSf "$url" >/dev/null 2>&1; then
+      "$cmd_run"
+    else
+      log info "Skipping \"$cmd_run\" (network unavailable or blocked)"
     fi
   fi
 }
