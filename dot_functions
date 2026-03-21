@@ -376,7 +376,7 @@ proxy:set() {
   fi
 
   local proxy_addr
-  proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")"
+  proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")" || return 1
 
   export http_proxy="${proxy_addr}"
   export https_proxy="${proxy_addr}"
@@ -421,6 +421,7 @@ proxy:probe() {
       fi
     fi
   else
+    log info "Detected normal network, turning proxy off."
     proxy:unset
 
     if [[ "${with_dns}" == "dns" ]]; then
