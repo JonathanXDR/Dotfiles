@@ -803,6 +803,20 @@ nvmrc:load() {
   fi
 }
 
+conda:load() {
+  # Auto-activate conda env when entering a directory with environment.yml
+  if [[ -f "environment.yml" ]]; then
+    local env_name
+    env_name=$(grep '^name:' environment.yml | sed 's/^name:[[:space:]]*//')
+
+    if [[ -n "$env_name" && "$CONDA_DEFAULT_ENV" != "$env_name" ]]; then
+      conda activate "$env_name" 2>/dev/null || true
+    fi
+  elif [[ -n "$CONDA_DEFAULT_ENV" && "$CONDA_DEFAULT_ENV" != "base" ]]; then
+    conda deactivate
+  fi
+}
+
 nvm:update() {
   local previous_version
   previous_version=$(nvm current 2>/dev/null)
