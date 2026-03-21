@@ -48,7 +48,7 @@ export NO_PROXY_DNS=""
 # ----------------------------------- Auth ----------------------------------- #
 
 {{ if eq .machine_type "work" -}}
-export NTLM_CREDENTIALS={{ template "apw" list "ntlm" "credentials" | quote }}
+export NTLM_CREDENTIALS={{ keyring "ntlm" "credentials" | quote }}
 {{ else -}}
 export NTLM_CREDENTIALS=""
 {{ end -}}

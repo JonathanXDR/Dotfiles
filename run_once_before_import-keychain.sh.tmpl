@@ -1,0 +1,34 @@
+#!/bin/bash
+set -euo pipefail
+
+# Import tokens from iCloud Drive backup into the macOS login keychain.
+# This runs once before templates are rendered, ensuring keyring calls succeed
+# on a fresh machine. The tokens file is plain text, stored on iCloud Drive
+# (ADP-encrypted), with the format: service:account:password
+
+TOKENS_FILE="{{ .icloud_secrets }}/keychain/tokens"
+
+if [[ ! -f "$TOKENS_FILE" ]]; then
+  echo "Keychain tokens file not found: $TOKENS_FILE"
+  echo "Skipping keychain import — add tokens manually with:"
+  echo "  chezmoi secret keyring set --service=<service> --user=<account>"
+  exit 0
+fi
+
+# Ensure iCloud file is downloaded (not just a cloud stub)
+if command -v brctl &>/dev/null; then
+  brctl download "$TOKENS_FILE" 2>/dev/null || true
+  sleep 2
+fi
+
+while IFS=: read -r service account password; do
+  # Skip empty lines and comments
+  [[ -z "$service" || "$service" == \#* ]] && continue
+
+  # -U updates the entry if it already exists
+  if security add-generic-password -U -s "$service" -a "$account" -w "$password" 2>/dev/null; then
+    echo "Imported: $service/$account"
+  else
+    echo "Updated: $service/$account"
+  fi
+done < "$TOKENS_FILE"

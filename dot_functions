@@ -491,6 +491,136 @@ ssh:agent() {
   pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
+# --------------------------------- Secrets ---------------------------------- #
+
+# Tokens file on iCloud Drive — backup of login keychain secrets.
+# The keychain is the source of truth; this file mirrors it for new-machine setup.
+_SECRETS_TOKENS_FILE="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Secrets/keychain/tokens"
+
+# Add or update a secret in the login keychain, then export to iCloud Drive.
+# Usage: secret:set <service> <account>
+# The password is read interactively (never in shell history).
+secret:set() {
+  if [[ $# -ne 2 ]]; then
+    echo "Usage: secret:set <service> <account>" >&2
+    return 1
+  fi
+  local service="$1" account="$2" password
+
+  printf "Password for %s/%s: " "$service" "$account"
+  read -rs password
+  echo
+
+  if [[ -z "$password" ]]; then
+    log error "Password cannot be empty."
+    return 1
+  fi
+
+  security add-generic-password -U -s "$service" -a "$account" -w "$password" \
+    && log success "Keychain updated: $service/$account" \
+    || { log error "Failed to update keychain."; return 1; }
+
+  # Ensure the entry exists in the tokens file so secret:export picks it up
+  local tokens_dir
+  tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
+  [[ -d "$tokens_dir" ]] || mkdir -p "$tokens_dir"
+  if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
+    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
+    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+  fi
+  if ! grep -q "^${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
+    echo "$service:$account:placeholder" >> "$_SECRETS_TOKENS_FILE"
+  fi
+
+  secret:export
+}
+
+# Read a secret from the login keychain.
+# Usage: secret:get <service> <account>
+secret:get() {
+  if [[ $# -ne 2 ]]; then
+    echo "Usage: secret:get <service> <account>" >&2
+    return 1
+  fi
+  security find-generic-password -s "$1" -a "$2" -w 2>/dev/null \
+    || { log error "Not found: $1/$2"; return 1; }
+}
+
+# Remove a secret from the login keychain, then export to iCloud Drive.
+# Usage: secret:remove <service> <account>
+secret:remove() {
+  if [[ $# -ne 2 ]]; then
+    echo "Usage: secret:remove <service> <account>" >&2
+    return 1
+  fi
+  local service="$1" account="$2"
+
+  security delete-generic-password -s "$service" -a "$account" 2>/dev/null \
+    && log success "Removed from keychain: $service/$account" \
+    || log warning "Not found in keychain: $service/$account"
+
+  secret:export
+}
+
+# List all managed secrets (service/account pairs, no passwords).
+secret:list() {
+  if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
+    log warning "Tokens file not found: $_SECRETS_TOKENS_FILE"
+    return 1
+  fi
+  echo "Managed secrets (from tokens file):"
+  while IFS=: read -r service account _; do
+    [[ -z "$service" || "$service" == \#* ]] && continue
+    echo "  $service / $account"
+  done < "$_SECRETS_TOKENS_FILE"
+}
+
+# Export all managed secrets from the login keychain to the iCloud Drive tokens file.
+# Reads the current tokens file for the list of service:account pairs,
+# fetches fresh passwords from the keychain, and rewrites the file.
+secret:export() {
+  local tokens_dir
+  tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
+
+  if [[ ! -d "$tokens_dir" ]]; then
+    mkdir -p "$tokens_dir" || { log error "Cannot create: $tokens_dir"; return 1; }
+  fi
+
+  if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
+    log warning "No tokens file yet — creating empty: $_SECRETS_TOKENS_FILE"
+    echo "# service:account:password" > "$_SECRETS_TOKENS_FILE"
+    echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$_SECRETS_TOKENS_FILE"
+  fi
+
+  local tmpfile entries=()
+
+  # Collect existing service:account pairs
+  while IFS=: read -r service account _; do
+    [[ -z "$service" || "$service" == \#* ]] && continue
+    entries+=("$service:$account")
+  done < "$_SECRETS_TOKENS_FILE"
+
+  # Rewrite the file with fresh passwords from the keychain
+  tmpfile="$(mktemp)"
+  echo "# service:account:password" > "$tmpfile"
+  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$tmpfile"
+
+  local password
+  for entry in "${entries[@]}"; do
+    service="${entry%%:*}"
+    account="${entry#*:}"
+    password="$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null)" || true
+    if [[ -n "$password" ]]; then
+      echo "$service:$account:$password" >> "$tmpfile"
+    else
+      log warning "Skipped (not in keychain): $service/$account"
+    fi
+  done
+
+  mv "$tmpfile" "$_SECRETS_TOKENS_FILE"
+  log success "Exported ${#entries[@]} secret(s) to iCloud Drive."
+}
+
 # ----------------------- macOS System Tweaks & Utilities -------------------- #
 
 sudo:touch-id() {
