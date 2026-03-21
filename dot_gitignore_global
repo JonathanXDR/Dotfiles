@@ -190,5 +190,8 @@ Temporary Items
 CLAUDE.md
 AGENTS.md
 
+# Conda (auto-activate marker)
+environment.yml
+
 # ForgeOps
 forgeops
