@@ -726,15 +726,18 @@ system:sleep() {
 # ---------------------------------- Docker ---------------------------------- #
 
 docker:cleanup() {
+  local ids
   if [[ $# -eq 0 ]]; then
-    docker stop "$(docker ps -aq)" 2>/dev/null || true
-    docker rm "$(docker ps -aq)" 2>/dev/null || true
-    docker rmi "$(docker images -q)" 2>/dev/null || true
+    ids="$(docker ps -aq 2>/dev/null)"
+    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
+    ids="$(docker images -q 2>/dev/null)"
+    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
   else
-    local keywords="$*"
-    docker stop "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rm "$(docker ps -a --format '{{.ID}} {{.Names}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
-    docker rmi "$(docker images --format '{{.ID}} {{.Repository}}' | grep -vE "(${keywords})" | awk '{print $1}')" 2>/dev/null || true
+    local exclude="$*"
+    ids="$(docker ps -a --format '{{.ID}} {{.Names}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
+    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
+    ids="$(docker images --format '{{.ID}} {{.Repository}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
+    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
   fi
 }
 
