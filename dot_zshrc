@@ -57,14 +57,14 @@ autoload -U add-zsh-hook
 add-zsh-hook chpwd nvmrc:load
 add-zsh-hook chpwd conda:load
 
-network:check bun bun:update https://registry.npmjs.org
-network:check nvm nvm:update https://raw.githubusercontent.com
+[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
+[[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
+
+cmd:exists bun && bun:update
+cmd:exists nvm && nvm:update
 
 nvmrc:load
 conda:load
-
-[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
-[[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
