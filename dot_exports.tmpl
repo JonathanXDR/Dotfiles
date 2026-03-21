@@ -12,15 +12,11 @@ export SDKMAN_DIR="$HOME/.sdkman"
 export NPM_GLOBALS="$HOME/.npm.globals"
 export NPM_GLOBALS_LOCK_DIR="$HOME/.npm/_locks"
 
-# Dotfiles metadata
-export DOTFILES_REPO_PATH={{ .chezmoi.sourceDir | quote }}
-
 # Docker
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 {{ if eq .machine_type "work" -}}
-# Work-specific paths
 export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
 {{ end -}}
