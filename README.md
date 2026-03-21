@@ -1,9 +1,5 @@
 # Dotfiles
 
-[![License][license-src]][license-href]
-[![chezmoi][chezmoi-src]][chezmoi-href]
-[![macOS][macos-src]][macos-href]
-
 > Opinionated macOS dotfiles managed by [chezmoi](https://chezmoi.io) in symlink mode — template-driven, keychain-backed, iCloud-synced, and idempotent from a clean install.
 
 ## Features
@@ -14,9 +10,9 @@
 - **Machine-type aware** — `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
 - **Auto-switching Node** — `.nvmrc` detection on every `cd` via zsh hook
 - **Proxy auto-detection** — VPN/corporate network probe with automatic proxy toggle
-- **~67 shell functions** — proxy, VPN, Docker, secrets, Node, Git, system utilities
-- **~70 aliases** — navigation, git, kubernetes, macOS tweaks, editor shortcuts
-- **7 idempotent setup scripts** — Homebrew, keychain import/export, npm globals, permissions
+- **Shell functions** — proxy, VPN, Docker, secrets, Node, Git, system utilities
+- **Aliases** — navigation, git, kubernetes, macOS tweaks, editor shortcuts
+- **Idempotent setup scripts** — Homebrew, keychain import/export, npm globals, permissions
 
 ## Prerequisites
 
@@ -50,11 +46,11 @@ chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly — symlink mode)
 
 Shortcut aliases:
 
-| Alias | Command |
-| ----- | ------- |
-| `es` | `chezmoi edit ~/.zshrc` |
-| `ev` | `chezmoi edit ~/.exports` |
-| `reload` | Reload shell |
+| Alias    | Command                   |
+| -------- | ------------------------- |
+| `es`     | `chezmoi edit ~/.zshrc`   |
+| `ev`     | `chezmoi edit ~/.exports` |
+| `reload` | Reload shell              |
 
 ## Managing Secrets
 
@@ -72,17 +68,17 @@ After updating a secret, run `chezmoi apply` to re-render templates with the new
 ## Shell Loading Order
 
 ```text
-~/.exports       env vars, proxy, locale, history, zsh options
-     ↓
-~/.functions     ~67 utility functions
-     ↓
-PATH setup       Homebrew, NVM, pyenv, RVM, Bun, ...
-     ↓
-~/.aliases       ~70 command aliases
-     ↓
-~/.completions   zsh plugins, autosuggestions, syntax highlighting
-     ↓
-Runtime hooks    nvmrc auto-switch, proxy probe, SSH agent, SDKMAN
+~/.exports ─────────── env vars, proxy, locale, history, zsh options
+        │
+~/.functions ───────── utility functions
+        │
+PATH setup ─────────── Homebrew, NVM, pyenv, RVM, Bun, ...
+        │
+~/.aliases ─────────── command aliases
+        │
+~/.completions ─────── zsh plugins, autosuggestions, syntax highlighting
+        │
+Runtime hooks ──────── nvmrc auto-switch, proxy probe, SSH agent, SDKMAN
 ```
 
 ## Project Structure
@@ -91,7 +87,7 @@ Runtime hooks    nvmrc auto-switch, proxy probe, SSH agent, SDKMAN
 .chezmoidata.toml             Shared non-secret defaults
 .chezmoi.toml.tmpl            User config (iCloud config.toml or prompts)
 .chezmoitemplates/            keychain helper + bash helpers for scripts
-.chezmoiscripts/              7 numbered setup scripts
+.chezmoiscripts/              Numbered setup scripts
 
 symlink_dot_ssh.tmpl          ~/.ssh → iCloud
 symlink_dot_ssl.tmpl          ~/.ssl → iCloud (work only, via .chezmoiignore)
@@ -130,11 +126,3 @@ If you spot a bug or have a suggestion, [open an issue](https://github.com/Jonat
 ## License
 
 [MIT](./LICENSE) &copy; Jonathan Russ
-
-<!-- Badges -->
-[license-src]: https://img.shields.io/github/license/JonathanXDR/Dotfiles?style=flat&colorA=18181B&colorB=28CF8D
-[license-href]: https://github.com/JonathanXDR/Dotfiles/blob/main/LICENSE
-[chezmoi-src]: https://img.shields.io/badge/managed%20by-chezmoi-28CF8D?style=flat&colorA=18181B
-[chezmoi-href]: https://chezmoi.io
-[macos-src]: https://img.shields.io/badge/platform-macOS-28CF8D?style=flat&colorA=18181B
-[macos-href]: https://www.apple.com/macos/
