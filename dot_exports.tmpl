@@ -47,8 +47,9 @@ export NO_PROXY_DNS=""
 
 # ----------------------------------- Auth ----------------------------------- #
 
+{{- $ntlm := output "sh" "-c" "security find-generic-password -s 'ntlm' -a 'credentials' -w 2>/dev/null || true" | trim }}
 {{ if eq .machine_type "work" -}}
-export NTLM_CREDENTIALS={{ keyring "ntlm" "credentials" | quote }}
+export NTLM_CREDENTIALS={{ $ntlm | quote }}
 {{ else -}}
 export NTLM_CREDENTIALS=""
 {{ end -}}
