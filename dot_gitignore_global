@@ -187,6 +187,8 @@ Temporary Items
 # AI Tools
 .claude/*
 .remember/*
+.github/copilot-instructions.md
+
 CLAUDE.md
 AGENTS.md
 
