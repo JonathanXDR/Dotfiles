@@ -188,6 +188,8 @@ Temporary Items
 .claude/*
 .remember/*
 .github/copilot-instructions.md
+# Skilld references (recreated by `skilld install`)
+.skilld
 
 CLAUDE.md
 AGENTS.md
