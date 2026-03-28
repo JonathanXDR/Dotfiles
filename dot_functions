@@ -952,6 +952,26 @@ git:diff() {
 
 # --------------------------------- Chezmoi ---------------------------------- #
 
+chezmoi:cleanup() {
+  # Fix zsh completion insecure directory warnings (removes group-write permissions)
+  if cmd:exists compaudit; then
+    local dirs
+    dirs="$(compaudit 2>/dev/null)"
+    if [[ -n "$dirs" ]]; then
+      echo "$dirs" | xargs chmod g-w 2>/dev/null
+      log success "Fixed insecure zsh completion directories"
+    fi
+  fi
+
+  # Remove stale GnuPG lock files
+  local gpg_locks
+  gpg_locks=("$HOME"/.gnupg/public-keys.d/pubring.db*.lock(N))
+  if (( ${#gpg_locks[@]} )); then
+    rm -f "${gpg_locks[@]}"
+    log success "Removed ${#gpg_locks[@]} stale GnuPG lock file(s)"
+  fi
+}
+
 chezmoi:sync() {
   # Sync template-managed files back to chezmoi source.
   # Files that only use {{ .chezmoi.homeDir }} are auto-synced (reverse substitution).
