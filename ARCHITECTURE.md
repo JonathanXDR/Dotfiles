@@ -4,24 +4,23 @@
 
 ## Bird's Eye View
 
-This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** running in **symlink mode**. chezmoi renders Go-templated configuration files, symlinks them into `$HOME`, and executes idempotent setup scripts — all while injecting secrets from the macOS Keychain at apply time. Sensitive directories (SSH, GPG, SSL, kube, VPN) are symlinked directly to iCloud Drive, making iCloud the single source of truth for both secrets and keys.
+This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** running in **symlink mode**. chezmoi renders Go-templated configuration files, symlinks them into `$HOME`, and executes idempotent setup scripts, all while injecting secrets from the macOS Keychain at apply time. Sensitive directories (SSH, GPG, SSL, kube, VPN) are symlinked directly to iCloud Drive, making iCloud the single source of truth for both secrets and keys.
 
 ```text
 ┌─── chezmoi init ────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                                 │
 │     ┌──────────────────────────────────────┐                 ┌──────────────────────────────────────┐           │
-│     │ iCloud Drive                         │                 │ Interactive                          │           │
-│     │ config.toml                          │                 │ prompts                              │           │
-│     │ [work] / [personal]                  │                 │ (fallback if no                      │           │
-│     │                                      │                 │  config.toml found)                  │           │
+│     │ iCloud Drive                         │                 │ Interactive prompts                  │           │
+│     │ config.toml                          │                 │                                      │           │
+│     │ [work] / [personal]                  │                 │ (fallback if no config.toml found)   │           │
 │     └───────────────────┬──────────────────┘                 └───────────────────┬──────────────────┘           │
-│                         └─────────────────────────┬──────────────────────────────┘                              │
-│                                                   v                                                             │
-│                          ┌──────────────────────────────────────────────────┐                                   │
-│                          │ chezmoi.toml [data]                              │                                   │
-│                          │ email, name, gpg, machine_type,                  │                                   │
-│                          │ proxy, icloud_secrets, ...                       │                                   │
-│                          └──────────────────────────────────────────────────┘                                   │
+│                         └───────────────────────────┬────────────────────────────┘                              │
+│                                                     v                                                           │
+│                            ┌─────────────────────────────────────────────────┐                                  │
+│                            │ chezmoi.toml [data]                             │                                  │
+│                            │ email, name, gpg, machine_type,                 │                                  │
+│                            │ proxy, icloud_secrets, ...                      │                                  │
+│                            └─────────────────────────────────────────────────┘                                  │
 │                                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
@@ -64,7 +63,7 @@ This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** runni
 Dotfiles/
 │
 │  chezmoi configuration
-├── .chezmoi.toml.tmpl              # Config template — reads iCloud config.toml, prompts as fallback
+├── .chezmoi.toml.tmpl              # Config template: reads iCloud config.toml, prompts as fallback
 ├── .chezmoidata.toml               # Shared non-secret defaults
 ├── .chezmoiignore                  # Files excluded from $HOME
 ├── .chezmoitemplates/
@@ -85,18 +84,18 @@ Dotfiles/
 ├── symlink_dot_ssh.tmpl            # ~/.ssh → iCloud/.ssh
 ├── symlink_dot_ssl.tmpl            # ~/.ssl → iCloud/.ssl (ignored on personal via .chezmoiignore)
 ├── symlink_dot_vpn.tmpl            # ~/.vpn → iCloud/.vpn (ignored on personal via .chezmoiignore)
-├── private_dot_gnupg/              # ~/.gnupg — individual files symlinked to iCloud
+├── private_dot_gnupg/              # ~/.gnupg: individual files symlinked to iCloud
 │   ├── symlink_common.conf.tmpl
 │   ├── symlink_trustdb.gpg.tmpl
 │   ├── symlink_sshcontrol.tmpl
 │   ├── symlink_private-keys-v1.d.tmpl
 │   ├── symlink_public-keys.d.tmpl
 │   └── symlink_openpgp-revocs.d.tmpl
-├── private_dot_kube/               # ~/.kube — kubeconfig symlinked to iCloud
+├── private_dot_kube/               # ~/.kube: kubeconfig symlinked to iCloud
 │   └── symlink_config.tmpl
 │
 │  Shell configuration (sourced on every terminal open)
-├── dot_zshrc                       # Shell orchestrator — sources everything below
+├── dot_zshrc                       # Shell orchestrator: sources everything below
 ├── dot_exports.tmpl                # Env vars, history, locale, zsh options (templated)
 ├── dot_functions                   # Shell functions
 ├── dot_aliases                     # Command aliases
@@ -116,15 +115,15 @@ Dotfiles/
 │   └── keybindings.json            # VS Code keybindings
 │
 │  Package lists (consumed by run scripts, not copied to $HOME)
-├── Brewfile.personal               # Homebrew packages — personal machine
-└── Brewfile.swisscom               # Homebrew packages — work machine
+├── Brewfile.personal               # Homebrew packages for personal machine
+└── Brewfile.swisscom               # Homebrew packages for work machine
 ```
 
 ## Key Concepts
 
 ### Symlink Mode
 
-chezmoi runs with `mode = "symlink"`, meaning managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies. This means edits to `~/.zshrc` directly modify the source file — no need to run `chezmoi edit`.
+chezmoi runs with `mode = "symlink"`, meaning managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies. This means edits to `~/.zshrc` directly modify the source file, so there's no need to run `chezmoi edit`.
 
 For sensitive directories (SSH, GPG, SSL, kube, VPN), chezmoi creates symlinks that point to **iCloud Drive** via `symlink_*` templates. This makes iCloud the single source of truth:
 
@@ -193,8 +192,8 @@ chezmoi merges template data from multiple sources (later layers override earlie
 
 Layer 3 values come from two sources, resolved at `chezmoi init` time:
 
-1. **iCloud `config.toml`** — Machine-type-specific config (proxy, SSL, enterprise) is read from `~/Documents/General/Developer/.dotfiles/config.toml` under a `[work]` or `[personal]` section matching the selected `machine_type`. This file is synced via iCloud and kept outside the repo to avoid leaking sensitive infrastructure details.
-2. **Interactive prompts (fallback)** — If `config.toml` is not found or is missing a key, chezmoi falls back to `promptStringOnce`, which asks once and caches the answer.
+1. **iCloud `config.toml`**: Machine-type-specific config (proxy, SSL, enterprise) is read from `~/Documents/General/Developer/.dotfiles/config.toml` under a `[work]` or `[personal]` section matching the selected `machine_type`. This file is synced via iCloud and kept outside the repo to avoid leaking sensitive infrastructure details.
+2. **Interactive prompts (fallback)**: If `config.toml` is not found or is missing a key, chezmoi falls back to `promptStringOnce`, which asks once and caches the answer.
 
 Both `dot_*` template files and run scripts in `.chezmoiscripts/` have access to all three layers.
 
@@ -354,8 +353,8 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 
 | Decision                                                      | Rationale                                                                                                                                                                            |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly — no `chezmoi edit` needed. Templates still render before symlinking.                                                              |
-| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed — chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                        |
+| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                         |
+| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                         |
 | **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                         |
 | **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo. |
 | **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                   |
