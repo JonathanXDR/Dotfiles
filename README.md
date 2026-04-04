@@ -1,18 +1,18 @@
 # Dotfiles
 
-> Opinionated macOS dotfiles managed by [chezmoi](https://chezmoi.io) in symlink mode — template-driven, keychain-backed, iCloud-synced, and idempotent from a clean install.
+> Opinionated macOS dotfiles managed by [chezmoi](https://chezmoi.io) in symlink mode: template-driven, keychain-backed, iCloud-synced, and idempotent from a clean install.
 
 ## Features
 
-- **Symlink mode** — chezmoi symlinks rendered templates into `$HOME`, edits go straight to the source
-- **Secrets via macOS Keychain** — credentials injected at apply time via `keychain` template helper, never stored in the repo
-- **iCloud Drive as single source** — SSH keys, GPG keys, SSL certs, kubeconfig, and VPN config symlinked directly to iCloud; machine-type config via `config.toml`; keychain tokens backed up for bootstrap
-- **Machine-type aware** — `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
-- **Auto-switching Node** — `.nvmrc` detection on every `cd` via zsh hook
-- **Proxy auto-detection** — VPN/corporate network probe with automatic proxy toggle
-- **Shell functions** — proxy, VPN, Docker, secrets, Node, Git, system utilities
-- **Aliases** — navigation, git, kubernetes, macOS tweaks, editor shortcuts
-- **Idempotent setup scripts** — Homebrew, keychain import/export, npm globals, permissions
+- **Symlink mode**: chezmoi symlinks rendered templates into `$HOME`, edits go straight to the source
+- **Secrets via macOS Keychain**: credentials injected at apply time via `keychain` template helper, never stored in the repo
+- **iCloud Drive as single source**: SSH keys, GPG keys, SSL certs, kubeconfig, and VPN config symlinked directly to iCloud; machine-type config via `config.toml`; keychain tokens backed up for bootstrap
+- **Machine-type aware**: `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
+- **Auto-switching Node**: `.nvmrc` detection on every `cd` via zsh hook
+- **Proxy auto-detection**: VPN/corporate network probe with automatic proxy toggle
+- **Shell functions**: proxy, VPN, Docker, secrets, Node, Git, system utilities
+- **Aliases**: navigation, git, kubernetes, macOS tweaks, editor shortcuts
+- **Idempotent setup scripts**: Homebrew, keychain import/export, npm globals, permissions
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfile
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` prompts for your name, email, GPG key, and machine type. Machine-specific config (proxy, SSL, enterprise) is read automatically from `config.toml` on iCloud Drive — if the file is not found, chezmoi falls back to interactive prompts. After init, chezmoi automatically:
+`chezmoi init` prompts for your name, email, GPG key, and machine type. Machine-specific config (proxy, SSL, enterprise) is read automatically from `config.toml` on iCloud Drive. If the file is not found, chezmoi falls back to interactive prompts. After init, chezmoi automatically:
 
 1. Imports tokens from iCloud Drive into the macOS Keychain
 2. Installs Homebrew and all packages from the appropriate Brewfile
@@ -41,7 +41,7 @@ chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```bash
 chezmoi apply          # Apply changes to $HOME
 chezmoi diff           # Preview what would change
-chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly — symlink mode)
+chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly: symlink mode)
 ```
 
 Shortcut aliases:
