@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Rendered hosts content hash (triggers re-run when template output changes):
+# {{ include "dot_config/hosts.tmpl" | sha256sum }}
+
+HOSTS_SRC="{{ .chezmoi.homeDir }}/.config/hosts"
+
+if [[ ! -f "$HOSTS_SRC" ]]; then
+  _log error "Rendered hosts file not found: $HOSTS_SRC"
+  exit 1
+fi
+
+if [[ -L /etc/hosts && "$(readlink /etc/hosts)" == "$HOSTS_SRC" ]]; then
+  _log info "/etc/hosts already symlinked to $HOSTS_SRC"
+else
+  _log info "Symlinking /etc/hosts → $HOSTS_SRC (requires sudo)..."
+  sudo ln -sf "$HOSTS_SRC" /etc/hosts
+  _log success "/etc/hosts symlinked."
+fi

@@ -1,0 +1,12 @@
+# Localhost
+127.0.0.1 localhost
+
+# Docker / Kubernetes
+127.0.0.1 host.docker.internal docker-for-desktop
+127.0.0.1 kubernetes.docker.internal
+
+{{ if eq .machine_type "work" -}}
+# Work
+127.0.0.1 cdk.example.com
+127.0.0.1 cdk.victorinox.corproot.net
+{{ end -}}
