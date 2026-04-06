@@ -65,8 +65,8 @@ fi
 cmd:exists bun && run:daily bun bun:update
 cmd:exists nvm && run:daily nvm nvm:update
 
-cmd:exists nvm && nvmrc:load
-cmd:exists conda && conda:load
+nvmrc:load
+conda:load
 
 # THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"

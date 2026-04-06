@@ -46,15 +46,8 @@ cmd:exists() {
 run:daily() {
   local name="$1"; shift
   local stamp="${HOME}/.cache/daily/${name}"
-
-  if [[ -f "$stamp" ]]; then
-    local now mtime age
-    zmodload -s zsh/datetime
-    now=$EPOCHSECONDS
-    mtime=$(stat -f %m "$stamp")
-    age=$(( now - mtime ))
-    (( age < 86400 )) && return 0
-  fi
+  local -a fresh=( ${stamp}(N.mh-24) )
+  (( ${#fresh} )) && return 0
 
   mkdir -p "${stamp:h}"
   "$@" && touch "$stamp"
