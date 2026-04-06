@@ -458,7 +458,7 @@ proxy:probe() {
   fi
 }
 
-proxy:daemon:reload() {
+proxyd:reload() {
   local label="local.proxy-watchd"
   local plist="${HOME}/Library/LaunchAgents/${label}.plist"
 
@@ -469,21 +469,38 @@ proxy:daemon:reload() {
   log success "Reloaded ${label}"
 }
 
-proxy:daemon:status() {
+proxyd:status() {
   local label="local.proxy-watchd"
   local state_file="${HOME}/.cache/proxy-state"
 
-  echo "LaunchAgent:"
-  launchctl print "gui/$(id -u)/${label}" 2>/dev/null \
-    | head -5 || log warning "Agent not loaded"
-  echo ""
-  echo "State file:"
-  if [[ -f "${state_file}" ]]; then
-    echo "  value: $(< "${state_file}")"
-    echo "  mtime: $(stat -f '%Sm' "${state_file}")"
+  if launchctl print "gui/$(id -u)/${label}" &>/dev/null; then
+    echo "Agent:  loaded (trigger-based, runs on network change)"
   else
-    log warning "State file not found: ${state_file}"
+    log warning "Agent not loaded"
   fi
+
+  if [[ -f "${state_file}" ]]; then
+    echo "Proxy:  $(< "${state_file}") (since $(stat -f '%Sm' "${state_file}"))"
+  else
+    log warning "State file not found"
+  fi
+
+  local _v
+  echo ""
+  echo "  Active (toggled by proxy:set/proxy:unset):"
+  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS; do
+    printf "    %-15s %s\n" "${_v}" "${(P)_v:-<unset>}"
+  done
+
+  echo ""
+  echo "  Configuration (static, set by chezmoi):"
+  for _v in NTLM_CREDENTIALS NODE_EXTRA_CA_CERTS NODE_TLS_REJECT_UNAUTHORIZED NODE_USE_ENV_PROXY SSL_BUNDLE_KEYCHAIN_CERTS SSL_BUNDLE_REMOTE_CERTS; do
+    printf "    %-30s %s\n" "${_v}" "${(P)_v:-<unset>}"
+  done
+}
+
+proxyd:log() {
+  /usr/bin/log show --predicate 'eventMessage CONTAINS "proxy-watchd"' --last "${1:-5m}"
 }
 
 network:heal() {

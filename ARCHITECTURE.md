@@ -276,14 +276,14 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 
 The `machine_type` variable (`personal` or `work`), set once during `chezmoi init`, drives conditional behavior:
 
-| Layer              | `personal`                              | `work`                                        |
-| ------------------ | --------------------------------------- | --------------------------------------------- |
-| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                           |
+| Layer              | `personal`                              | `work`                                                |
+| ------------------ | --------------------------------------- | ----------------------------------------------------- |
+| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                                   |
 | **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback |
-| **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud     |
-| **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud |
-| **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy             |
-| **npm registries** | Public only                             | Public + corporate Artifactory                |
+| **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud             |
+| **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud         |
+| **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy                     |
+| **npm registries** | Public only                             | Public + corporate Artifactory                        |
 
 ### Shell Loading Order
 
@@ -355,20 +355,20 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Symlink a new dir to iCloud          | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                   |
 | Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                    |
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                         |
-| Debug proxy daemon                   | `proxy:daemon:status`, or `log show --predicate 'eventMessage CONTAINS "proxy-watchd"'`   |
-| Reload proxy daemon                  | `proxy:daemon:reload`                                                                     |
+| Debug proxy daemon                   | `proxyd:status`, `proxyd:log`, or `proxyd:log 1h`                                         |
+| Reload proxy daemon                  | `proxyd:reload`                                                                           |
 
 ## Design Decisions
 
-| Decision                                                      | Rationale                                                                                                                                                                            |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                         |
-| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                         |
-| **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                         |
-| **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo. |
-| **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                   |
-| **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                     |
-| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                        |
-| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                      |
-| **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                     |
+| Decision                                                      | Rationale                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                                                                                                      |
+| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                      |
+| **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                                                                                                      |
+| **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo.                                                                              |
+| **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                                                                                                |
+| **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                                                                                                  |
+| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                                                                                                     |
+| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                                                                                                   |
+| **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                                                                                                  |
 | **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot. |
