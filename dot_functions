@@ -826,6 +826,32 @@ docker:cleanup() {
 
 # ------------------------------- JS Ecosystem ------------------------------- #
 
+# Source nvm.sh and completions (idempotent — safe to call multiple times).
+nvm:init() {
+  (( $+functions[nvm_find_nvmrc] )) && return 0
+  unfunction nvm node npm npx 2>/dev/null
+
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    source "$NVM_DIR/nvm.sh"
+  elif [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
+    source "/opt/homebrew/opt/nvm/nvm.sh"
+  fi
+
+  if [[ -s "$NVM_DIR/bash_completion" ]]; then
+    source "$NVM_DIR/bash_completion"
+  elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
+    source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+  fi
+}
+
+# Register lightweight stubs that defer nvm.sh sourcing until first use.
+nvm:lazy() {
+  local cmd
+  for cmd in nvm node npm npx; do
+    eval "${cmd}() { nvm:init; ${cmd} \"\$@\" }"
+  done
+}
+
 node:works() {
   # Subshell catches zsh's "killed" message when macOS terminates an invalid binary
   (node --version >/dev/null 2>&1) 2>/dev/null
@@ -915,6 +941,11 @@ node:verify() {
 }
 
 nvmrc:load() {
+  if ! (( $+functions[nvm_find_nvmrc] )); then
+    [[ -f .nvmrc || -f .node-version ]] || return 0
+    nvm:init
+  fi
+
   local nvmrc_path
   nvmrc_path="$(nvm_find_nvmrc)"
 
