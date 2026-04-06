@@ -930,16 +930,16 @@ ncu:update() {
 
 # ------------------------------------ Git ----------------------------------- #
 
-# Use Git's colored diff when available
-if command -v git &>/dev/null; then
-  diff() {
+# Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)
+if cmd:exists git; then
+  gdiff() {
     git diff --no-index --color-words "$@"
   }
 fi
 
 gdb() {
   if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>"
+    echo "Usage: gdb <branch>" >&2
     return 1
   fi
   git branch -d -- "$1" && git push origin :"$1"
