@@ -255,7 +255,7 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 **How it works:**
 
 1. **Keychain is the source of truth for secrets.** Templates read secrets via `includeTemplate "keychain" (list "<service>" "<account>")`, which wraps `security find-generic-password` with graceful fallback to empty string.
-2. **iCloud Drive is the backup.** Script `02` imports tokens from iCloud into the keychain on a fresh machine. Script `09` exports keychain entries back to iCloud after every apply.
+2. **iCloud Drive is the backup.** Script `02` imports tokens from iCloud into the keychain on a fresh machine. Script `08` exports keychain entries back to iCloud after every apply.
 3. **Shell functions** (`secret:set`, `secret:get`, `secret:remove`, `secret:list`, `secret:export`) manage the keychain/iCloud lifecycle interactively.
 
 > **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?** The `keyring` function panics when a key is missing. The `keychain` helper wraps `security find-generic-password ... || true` via `includeTemplate`, which degrades gracefully to an empty string. Templates can then render a warning comment instead of failing.
