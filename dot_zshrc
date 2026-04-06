@@ -66,8 +66,8 @@ if [[ "${ALWAYS_PROXY_PROBE}" == "true" ]]; then
 fi
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
-cmd:exists bun && bun:update
-cmd:exists nvm && nvm:update
+cmd:exists bun && run:daily bun bun:update
+cmd:exists nvm && run:daily nvm nvm:update
 
 nvmrc:load
 conda:load

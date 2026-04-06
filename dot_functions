@@ -41,6 +41,25 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
+# Run a command at most once per day (24 h), gated by a stamp file.
+# Usage: run:daily <name> <command...>
+run:daily() {
+  local name="$1"; shift
+  local stamp="${HOME}/.cache/daily/${name}"
+
+  if [[ -f "$stamp" ]]; then
+    local now mtime age
+    zmodload -s zsh/datetime
+    now=$EPOCHSECONDS
+    mtime=$(stat -f %m "$stamp")
+    age=$(( now - mtime ))
+    (( age < 86400 )) && return 0
+  fi
+
+  mkdir -p "${stamp:h}"
+  "$@" && touch "$stamp"
+}
+
 # Safely prepend directories to PATH (skips missing or duplicate entries)
 path:add() {
   local dir
