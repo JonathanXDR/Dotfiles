@@ -9,7 +9,7 @@
 - **iCloud Drive as single source**: SSH keys, GPG keys, SSL certs, kubeconfig, and VPN config symlinked directly to iCloud; machine-type config via `config.toml`; keychain tokens backed up for bootstrap
 - **Machine-type aware**: `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
 - **Auto-switching Node**: `.nvmrc` detection on every `cd` via zsh hook
-- **Proxy auto-detection**: VPN/corporate network probe with automatic proxy toggle
+- **Proxy auto-detection**: event-driven LaunchAgent watches for network changes (Wi-Fi, VPN) and toggles proxy automatically
 - **Shell functions**: proxy, VPN, Docker, secrets, Node, Git, system utilities
 - **Aliases**: navigation, git, kubernetes, macOS tweaks, editor shortcuts
 - **Idempotent setup scripts**: Homebrew, keychain import/export, npm globals, permissions
@@ -78,7 +78,7 @@ PATH setup ─────────── Homebrew, NVM, pyenv, RVM, Bun, ...
         │
 ~/.completions ─────── zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ──────── nvmrc auto-switch, proxy probe, SSH agent, SDKMAN
+Runtime hooks ──────── nvmrc auto-switch, proxy state load, SSH agent, SDKMAN
 ```
 
 ## Project Structure
@@ -94,6 +94,11 @@ symlink_dot_ssl.tmpl          ~/.ssl → iCloud (work only, via .chezmoiignore)
 symlink_dot_vpn.tmpl          ~/.vpn → iCloud (work only, via .chezmoiignore)
 private_dot_gnupg/            ~/.gnupg files → iCloud (6 symlinks)
 private_dot_kube/             ~/.kube/config → iCloud
+
+dot_local/bin/                ~/.local/bin/ scripts
+  executable_proxy-watchd.tmpl  Proxy state daemon (work only)
+Library/LaunchAgents/         ~/Library/LaunchAgents/
+  local.proxy-watchd.plist.tmpl  Network-change watcher (work only)
 
 dot_zshrc                     Shell orchestrator
 dot_exports.tmpl              Env vars, history, zsh options (templated)

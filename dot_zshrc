@@ -57,7 +57,13 @@ autoload -U add-zsh-hook
 add-zsh-hook chpwd nvmrc:load
 add-zsh-hook chpwd conda:load
 
-[[ "${ALWAYS_PROXY_PROBE}" == "true" ]] && proxy:probe
+if [[ "${ALWAYS_PROXY_PROBE}" == "true" ]]; then
+  case "$(cat "${HOME}/.cache/proxy-state" 2>/dev/null)" in
+    on)  proxy:set ;;
+    off) proxy:unset ;;
+    *)   proxy:probe ;;
+  esac
+fi
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
 cmd:exists bun && bun:update

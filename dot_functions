@@ -434,6 +434,33 @@ proxy:probe() {
   fi
 }
 
+proxy:daemon:reload() {
+  local label="local.proxy-watchd"
+  local plist="${HOME}/Library/LaunchAgents/${label}.plist"
+
+  [[ -f "${plist}" ]] || { log error "Plist not found: ${plist}"; return 1; }
+
+  launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "${plist}"
+  log success "Reloaded ${label}"
+}
+
+proxy:daemon:status() {
+  local label="local.proxy-watchd"
+  local state_file="${HOME}/.cache/proxy-state"
+
+  echo "LaunchAgent:"
+  launchctl print "gui/$(id -u)/${label}" 2>/dev/null \
+    | head -5 || log warning "Agent not loaded"
+  echo ""
+  echo "State file:"
+  if [[ -f "${state_file}" ]]; then
+    echo "  value: $(< "${state_file}")"
+    echo "  mtime: $(stat -f '%Sm' "${state_file}")"
+  else
+    log warning "State file not found: ${state_file}"
+  fi
+}
 
 network:heal() {
   if vpn:google-broken; then

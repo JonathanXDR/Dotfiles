@@ -76,6 +76,7 @@ Dotfiles/
 │   ├── run_once_before_02-*        # Import keychain tokens from iCloud
 │   ├── run_onchange_after_03-*     # Install Brew packages (re-runs on Brewfile change)
 │   ├── run_onchange_after_04-*     # Fix iCloud symlink permissions (re-runs on config change)
+│   ├── run_onchange_after_05-*     # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
 │   ├── run_onchange_after_07-*     # Install global npm packages (re-runs on list change)
 │   ├── run_once_after_08-*         # Fix zsh completion permissions
 │   └── run_after_09-*              # Export keychain to iCloud (every apply)
@@ -93,6 +94,12 @@ Dotfiles/
 │   └── symlink_openpgp-revocs.d.tmpl
 ├── private_dot_kube/               # ~/.kube: kubeconfig symlinked to iCloud
 │   └── symlink_config.tmpl
+│
+│  Proxy daemon (work only, ignored on personal via .chezmoiignore)
+├── dot_local/bin/
+│   └── executable_proxy-watchd.tmpl   # Event-driven proxy state script (called by LaunchAgent)
+├── Library/LaunchAgents/
+│   └── local.proxy-watchd.plist.tmpl  # Watches network changes, triggers proxy-watchd
 │
 │  Shell configuration (sourced on every terminal open)
 ├── dot_zshrc                       # Shell orchestrator: sources everything below
@@ -272,7 +279,7 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 | Layer              | `personal`                              | `work`                                        |
 | ------------------ | --------------------------------------- | --------------------------------------------- |
 | **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                           |
-| **Proxy**          | Disabled (`always_proxy_probe = false`) | Auto-detection via `proxy:probe`              |
+| **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback |
 | **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud     |
 | **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud |
 | **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy             |
@@ -301,7 +308,7 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
   ~/.completions ─────────────── Zsh completions, autosuggestions, syntax highlighting
           │
           v
-  Runtime hooks ──────────────── nvmrc auto-switch, network checks, proxy probe, SSH agent
+  Runtime hooks ──────────────── nvmrc auto-switch, proxy state load, SSH agent
           │
           v
   SDKMAN ─────────────────────── Java SDK manager (must be last)
@@ -348,6 +355,8 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Symlink a new dir to iCloud          | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                   |
 | Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                    |
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                         |
+| Debug proxy daemon                   | `proxy:daemon:status`, or `log show --predicate 'eventMessage CONTAINS "proxy-watchd"'`   |
+| Reload proxy daemon                  | `proxy:daemon:reload`                                                                     |
 
 ## Design Decisions
 
@@ -362,3 +371,4 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                        |
 | **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                      |
 | **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                     |
+| **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot. |

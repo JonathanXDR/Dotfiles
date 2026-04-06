@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.proxy-watchd</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{ joinPath .chezmoi.homeDir ".local/bin/proxy-watchd" }}</string>
+  </array>
+
+  <key>WatchPaths</key>
+  <array>
+    <string>/Library/Preferences/SystemConfiguration</string>
+    <string>/var/run/resolv.conf</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardErrorPath</key>
+  <string>{{ joinPath .chezmoi.homeDir "Library/Logs/proxy-watchd.log" }}</string>
+</dict>
+</plist>
