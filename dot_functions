@@ -1,20 +1,36 @@
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
 log() {
-  local level="$1"
-  local red='\033[0;31m'
-  local green='\033[0;32m'
-  local yellow='\033[0;33m'
-  local blue='\033[0;34m'
-  local reset='\033[0m'
+  local level="$1"; shift
+  local red green yellow blue gray reset
+
+  if [[ -t 2 ]]; then
+    red='\033[0;31m' green='\033[0;32m' yellow='\033[0;33m'
+    blue='\033[0;34m' gray='\033[0;90m' reset='\033[0m'
+  fi
 
   case "$level" in
-    error|red)     shift; printf "${red}Error:${reset}   %s\n" "$*";;
-    success|green) shift; printf "${green}Success:${reset} %s\n" "$*";;
-    warning|yellow) shift; printf "${yellow}Warning:${reset} %s\n" "$*";;
-    info|blue)     shift; printf "${blue}Info:${reset}    %s\n" "$*";;
-    *)             echo "$@";;
+    error|red)      printf "${red}Error:${reset}   %s\n" "$*" >&2 ;;
+    success|green)  printf "${green}Success:${reset} %s\n" "$*" ;;
+    warning|yellow) printf "${yellow}Warning:${reset} %s\n" "$*" >&2 ;;
+    info|blue)      printf "${blue}Info:${reset}    %s\n" "$*" ;;
+    debug)          [[ -n "${DEBUG:-}" ]] && printf "${gray}Debug:${reset}   %s\n" "$*" >&2 ;;
+    *)              echo "$level" "$@" ;;
   esac
+}
+
+# Retry a command up to N times with a delay between attempts (from bash-it)
+# Usage: retry <attempts> <delay_seconds> <command...>
+retry() {
+  local attempts="$1" delay="$2"; shift 2
+  local i
+  for (( i = 1; i <= attempts; i++ )); do
+    if "$@"; then
+      return 0
+    fi
+    (( i < attempts )) && sleep "$delay"
+  done
+  return 1
 }
 
 cmd:exists() {
@@ -25,25 +41,31 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
-# Safely prepend a directory to PATH if it exists and isn't already there
+# Safely prepend directories to PATH (skips missing or duplicate entries)
 path:add() {
-  [[ -d "$1" ]] && case ":$PATH:" in
-    *":$1:"*) ;;
-    *) export PATH="$1:$PATH" ;;
-  esac
+  local dir
+  for dir in "$@"; do
+    [[ -d "$dir" ]] && case ":$PATH:" in
+      *":$dir:"*) ;;
+      *) export PATH="$dir:$PATH" ;;
+    esac
+  done
 }
 
-# Safely append a directory to PATH if it exists and isn't already there
+# Safely append directories to PATH (skips missing or duplicate entries)
 path:append() {
-  [[ -d "$1" ]] && case ":$PATH:" in
-    *":$1:"*) ;;
-    *) export PATH="$PATH:$1" ;;
-  esac
+  local dir
+  for dir in "$@"; do
+    [[ -d "$dir" ]] && case ":$PATH:" in
+      *":$dir:"*) ;;
+      *) export PATH="$PATH:$dir" ;;
+    esac
+  done
 }
 
 # Create a new directory and enter it
 mkd() {
-  mkdir -p "$@" && cd "$_" || return
+  mkdir -p "$@" && cd "${@[-1]}" || return
 }
 
 # Change working directory to the top-most Finder window location
@@ -62,22 +84,22 @@ targz() {
   size=$(stat -f"%z" "${tmpFile}" 2>/dev/null)
 
   local cmd=""
-  if (( size < 52428800 )) && hash zopfli 2>/dev/null; then
+  if (( size < 52428800 )) && cmd:exists zopfli; then
     cmd="zopfli"
-  elif hash pigz 2>/dev/null; then
+  elif cmd:exists pigz; then
     cmd="pigz"
   else
     cmd="gzip"
   fi
 
-  echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
+  log info "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
   "${cmd}" -v "${tmpFile}" || return 1
   [[ -f "${tmpFile}" ]] && rm "${tmpFile}"
 
   local zippedSize
   zippedSize=$(stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
 
-  echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
+  log success "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
 # Determine size of a file or total size of a directory
@@ -91,6 +113,7 @@ fs() {
 
 # Create a data URL from a file
 dataurl() {
+  [[ -f "${1:-}" ]] || { log error "Usage: dataurl <file>"; return 1; }
   local mimeType
   mimeType=$(file -b --mime-type "$1")
   if [[ $mimeType == text/* ]]; then
@@ -102,12 +125,13 @@ dataurl() {
 # Start an HTTP server from a directory, optionally specifying the port
 server() {
   local port="${1:-8000}"
-  sleep 1 && open "http://localhost:${port}/" &
+  { retry 5 1 curl -fs "http://localhost:${port}/" -o /dev/null && open "http://localhost:${port}/"; } &
   python3 -m http.server "${port}"
 }
 
 # Compare original and gzipped file size
 gz() {
+  [[ -f "${1:-}" ]] || { log error "Usage: gz <file>"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
   local gzipsize
@@ -132,11 +156,7 @@ tre() {
 
 # Open current directory or given location in Finder
 o() {
-  if [[ $# -eq 0 ]]; then
-    open .
-  else
-    open "$@"
-  fi
+  open "${@:-.}"
 }
 
 # -------------------------- Networking, TLS & DNS --------------------------- #
@@ -149,7 +169,7 @@ digga() {
 # Show all the names (CNs and SANs) listed in the SSL certificate for a given domain
 getcertnames() {
   if [[ -z "${1}" ]]; then
-    echo "ERROR: No domain specified."
+    log error "No domain specified."
     return 1
   fi
 
@@ -158,25 +178,24 @@ getcertnames() {
   echo ""
 
   local tmp
-  tmp=$(echo -e "GET / HTTP/1.0\nEOT" \
+  tmp=$(printf 'GET / HTTP/1.0\nEOT\n' \
     | openssl s_client -connect "${domain}:443" -servername "${domain}" 2>&1)
 
   if [[ "${tmp}" = *"-----BEGIN CERTIFICATE-----"* ]]; then
     local certText
-    certText=$(echo "${tmp}" \
-      | openssl x509 -text -certopt "no_aux, no_header, no_issuer, no_pubkey, \
-      no_serial, no_sigdump, no_signame, no_validity, no_version")
+    certText=$(openssl x509 -text -certopt "no_aux, no_header, no_issuer, no_pubkey, \
+      no_serial, no_sigdump, no_signame, no_validity, no_version" <<< "${tmp}")
     echo "Common Name:"
     echo ""
-    echo "${certText}" | grep "Subject:" | sed -e "s/^.*CN=//" | sed -e "s/\/emailAddress=.*//"
+    grep "Subject:" <<< "${certText}" | sed -e "s/^.*CN=//" -e "s/\/emailAddress=.*//"
     echo ""
     echo "Subject Alternative Name(s):"
     echo ""
-    echo "${certText}" | grep -A 1 "Subject Alternative Name:" \
+    grep -A 1 "Subject Alternative Name:" <<< "${certText}" \
       | sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2
     return 0
   else
-    echo "ERROR: Certificate not found."
+    log error "Certificate not found."
     return 1
   fi
 }
@@ -188,11 +207,13 @@ ssl:bundle() {
 
   local tmp
   tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
   local cert_count=0
 
   IFS=',' read -rA keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
+  local cn
   for cn in "${keychain_certs[@]}"; do
-    cn="$(echo "$cn" | xargs)"
+    cn="$(printf '%s' "$cn" | xargs)"
     [[ -z "$cn" ]] && continue
     if security find-certificate -c "$cn" -p /Library/Keychains/System.keychain >> "$tmp" 2>/dev/null; then
       ((cert_count++))
@@ -202,10 +223,10 @@ ssl:bundle() {
   done
 
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
+  local url remote_tmp
   for url in "${remote_certs[@]}"; do
-    url="$(echo "$url" | xargs)"
+    url="$(printf '%s' "$url" | xargs)"
     [[ -z "$url" ]] && continue
-    local remote_tmp
     remote_tmp="$(mktemp)"
     if curl -sf ${http_proxy:+--proxy "$http_proxy"} "$url" -o "$remote_tmp" 2>/dev/null; then
       if openssl x509 -inform DER -in "$remote_tmp" -outform PEM >> "$tmp" 2>/dev/null; then
@@ -221,7 +242,6 @@ ssl:bundle() {
 
   if ((cert_count == 0)); then
     log error "No certificates were bundled"
-    rm -f "$tmp"
     return 1
   fi
 
@@ -398,12 +418,16 @@ proxy:set() {
 }
 
 proxy:unset() {
-  unset http_proxy https_proxy ftp_proxy all_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS
+  local var
+  for var in http_proxy https_proxy ftp_proxy all_proxy \
+             HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY \
+             PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS; do
+    unset "$var"
+  done
 
-  launchctl unsetenv HTTP_PROXY 2>/dev/null
-  launchctl unsetenv HTTPS_PROXY 2>/dev/null
-  launchctl unsetenv ALL_PROXY 2>/dev/null
-  launchctl unsetenv NO_PROXY 2>/dev/null
+  for var in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; do
+    launchctl unsetenv "$var" 2>/dev/null
+  done
 }
 
 proxy:probe() {
@@ -483,20 +507,25 @@ network:heal() {
 # ------------------------------------ SSH ----------------------------------- #
 
 ssh:reagent() {
+  local agent
   for agent in /tmp/ssh-*/agent.*; do
     export SSH_AUTH_SOCK="${agent}"
     if ssh-add -l &>/dev/null; then
-      echo "Found working SSH Agent:"
+      log success "Found working SSH Agent:"
       ssh-add -l
       return 0
     fi
   done
-  echo "Cannot find ssh agent - maybe you should reconnect and forward it?"
+  log warning "Cannot find ssh agent — maybe you should reconnect and forward it?"
   return 1
 }
 
 ssh:agent() {
-  pgrep -x ssh-agent &>/dev/null && ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
+  if pgrep -x ssh-agent &>/dev/null; then
+    ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
+  else
+    eval "$(ssh-agent)" &>/dev/null
+  fi
 }
 
 # --------------------------------- Secrets ---------------------------------- #
@@ -529,9 +558,12 @@ secret:set() {
     return 1
   fi
 
-  security add-generic-password -U -s "$service" -a "$account" -w "$password" \
-    && log success "Keychain updated: $service/$account" \
-    || { log error "Failed to update keychain."; return 1; }
+  if security add-generic-password -U -s "$service" -a "$account" -w "$password"; then
+    log success "Keychain updated: $service/$account"
+  else
+    log error "Failed to update keychain."
+    return 1
+  fi
 
   # Ensure the entry exists in the tokens file so secret:export picks it up
   local tokens_dir
@@ -540,7 +572,7 @@ secret:set() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
     _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
-  if ! grep -q "^${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
+  if ! grep -qF "${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
     echo "$service:$account:placeholder" >> "$_SECRETS_TOKENS_FILE"
   fi
 
@@ -567,9 +599,11 @@ secret:remove() {
   fi
   local service="$1" account="$2"
 
-  security delete-generic-password -s "$service" -a "$account" 2>/dev/null \
-    && log success "Removed from keychain: $service/$account" \
-    || log warning "Not found in keychain: $service/$account"
+  if security delete-generic-password -s "$service" -a "$account" 2>/dev/null; then
+    log success "Removed from keychain: $service/$account"
+  else
+    log warning "Not found in keychain: $service/$account"
+  fi
 
   secret:export
 }
@@ -581,6 +615,7 @@ secret:list() {
     return 1
   fi
   echo "Managed secrets (from tokens file):"
+  local service account
   while IFS=: read -r service account _; do
     [[ -z "$service" || "$service" == \#* ]] && continue
     echo "  $service / $account"
@@ -604,6 +639,7 @@ secret:export() {
   fi
 
   local tmpfile entries=()
+  local service account password entry
 
   # Collect existing service:account pairs
   while IFS=: read -r service account _; do
@@ -613,10 +649,8 @@ secret:export() {
 
   # Rewrite the file with fresh passwords from the keychain
   tmpfile="$(mktemp)"
-  trap 'rm -f "$tmpfile"' RETURN
+  trap 'rm -f "$tmpfile"' EXIT
   _secrets:write-header "$tmpfile"
-
-  local password
   for entry in "${entries[@]}"; do
     service="${entry%%:*}"
     account="${entry#*:}"
@@ -639,29 +673,30 @@ sudo:touch-id() {
   local BACKUP
   BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
 
-  cleanup() { rm -f "$BACKUP"; }
-  trap cleanup EXIT
-  trap 'echo "Error detected – restoring original file" >&2; sudo cp "$BACKUP" "$FILE"; return 1' ERR
+  trap 'rm -f "$BACKUP"' EXIT
 
-  echo "Backing up $FILE to $BACKUP…"
-  sudo cp "$FILE" "$BACKUP"
+  log info "Backing up $FILE to $BACKUP…"
+  sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
+
+  # Only enable restore-on-error after a valid backup exists
+  trap 'trap - ERR; log error "Error detected – restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
-    echo "Required marker comment not found in $FILE" >&2
+    log error "Required marker comment not found in $FILE"
     return 1
   fi
 
   if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
-    echo "Inserting pam_tid line…"
+    log info "Inserting pam_tid line…"
     sudo sed -i '' '/^# sudo: auth account password session/a\
 auth       sufficient     pam_tid.so
 ' "$FILE"
   else
-    echo "pam_tid line already present, skipping insertion."
+    log info "pam_tid line already present, skipping insertion."
   fi
 
   trap - ERR
-  echo "Done. $FILE has been updated successfully."
+  log success "$FILE has been updated successfully."
 }
 
 gatekeeper:disable() {
@@ -688,7 +723,7 @@ hostname:set() {
   sudo scutil --set HostName "$new_hostname"
   sudo scutil --set LocalHostName "$new_hostname"
 
-  echo "Hostname set to \"$new_hostname\". A restart may be required for all changes to take effect."
+  log success "Hostname set to \"$new_hostname\". A restart may be required for all changes to take effect."
 }
 
 hostname:reset() {
@@ -701,8 +736,9 @@ dock:reset() {
   sleep 5
 
   IFS=',' read -rA apps <<< "${DOCK_APPS:-}"
+  local app
   for app in "${apps[@]}"; do
-    app="$(echo "$app" | xargs)"
+    app="$(printf '%s' "$app" | xargs)"
     [[ -z "$app" ]] && continue
     defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/${app}.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
   done
@@ -739,22 +775,23 @@ system:sleep() {
 docker:cleanup() {
   local ids
   if [[ $# -eq 0 ]]; then
-    ids="$(docker ps -aq 2>/dev/null)"
-    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
-    ids="$(docker images -q 2>/dev/null)"
-    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
+    ids="$(docker ps -aq 2>/dev/null)" || true
+    [[ -n "$ids" ]] && echo "$ids" | xargs docker stop 2>/dev/null && echo "$ids" | xargs docker rm 2>/dev/null || true
+    ids="$(docker images -q 2>/dev/null)" || true
+    [[ -n "$ids" ]] && echo "$ids" | xargs docker rmi 2>/dev/null || true
   else
     local exclude="$*"
-    ids="$(docker ps -a --format '{{.ID}} {{.Names}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
-    [[ -n "$ids" ]] && docker stop $ids 2>/dev/null && docker rm $ids 2>/dev/null || true
-    ids="$(docker images --format '{{.ID}} {{.Repository}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')"
-    [[ -n "$ids" ]] && docker rmi $ids 2>/dev/null || true
+    ids="$(docker ps -a --format '{{.ID}} {{.Names}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
+    [[ -n "$ids" ]] && echo "$ids" | xargs docker stop 2>/dev/null && echo "$ids" | xargs docker rm 2>/dev/null || true
+    ids="$(docker images --format '{{.ID}} {{.Repository}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
+    [[ -n "$ids" ]] && echo "$ids" | xargs docker rmi 2>/dev/null || true
   fi
 }
 
 # ------------------------------- JS Ecosystem ------------------------------- #
 
 node:works() {
+  # Subshell catches zsh's "killed" message when macOS terminates an invalid binary
   (node --version >/dev/null 2>&1) 2>/dev/null
 }
 
@@ -779,7 +816,7 @@ nvm:heal() {
   # Slow path: clear cache and reinstall from scratch
   node:works && return 0
   log info "Reinstalling $version from scratch..."
-  local os; os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  local os=${(L)$(uname -s)}
   rm -rf "${NVM_DIR}/.cache/bin/node-${version}-${os}-$(uname -m)" 2>/dev/null
   nvm uninstall "$version" 2>/dev/null
   nvm install "$version"
@@ -804,7 +841,7 @@ node:verify() {
     local broken_version
     broken_version=$(nvm current 2>/dev/null)
     local version
-    for version in $(nvm ls --no-colors 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -t. -k1,1rn -k2,2rn -k3,3rn); do
+    for version in ${(f)"$(nvm ls --no-colors 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -t. -k1,1rn -k2,2rn -k3,3rn)"}; do
       [[ "$version" == "$broken_version" ]] && continue
       nvm use "$version" 2>/dev/null
       if node:works; then
@@ -826,7 +863,17 @@ node:verify() {
   mkdir -p "${NPM_GLOBALS_LOCK_DIR}"
   local installed_globals_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
 
-  if [[ ! -f "${installed_globals_file}" ]] || { [[ -f "${HOME}/.npm.globals" ]] && [[ "$(wc -l <"${installed_globals_file}" 2>/dev/null || echo 0)" -lt "$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)" ]]; }; then
+  local needs_install=false
+  if [[ ! -f "${installed_globals_file}" ]]; then
+    needs_install=true
+  elif [[ -f "${HOME}/.npm.globals" ]]; then
+    local installed_count expected_count
+    installed_count="$(wc -l < "${installed_globals_file}" 2>/dev/null || echo 0)"
+    expected_count="$(grep -cvE '^#|^$' "${HOME}/.npm.globals" 2>/dev/null || echo 1)"
+    (( installed_count < expected_count )) && needs_install=true
+  fi
+
+  if $needs_install; then
     globals:install
   fi
 }
@@ -837,7 +884,7 @@ nvmrc:load() {
 
   if [[ -n "${nvmrc_path}" ]]; then
     local nvmrc_node_version
-    nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+    nvmrc_node_version=$(nvm version "$(< "${nvmrc_path}")")
 
     if [[ "${nvmrc_node_version}" == "N/A" ]]; then
       nvm install
@@ -845,7 +892,7 @@ nvmrc:load() {
       nvm use
     fi
   elif [[ -n "$(PWD=${OLDPWD} nvm_find_nvmrc)" ]] && [[ "$(nvm version)" != "$(nvm version default)" ]]; then
-    echo "Reverting to nvm default version"
+    log info "Reverting to nvm default version"
     nvm use default
   fi
 }
@@ -893,6 +940,7 @@ nvm:update() {
 bun:update() {
   local start_time elapsed tmplog
   tmplog=$(mktemp)
+  trap 'rm -f "$tmplog"' EXIT
   start_time=$SECONDS
 
   bun upgrade &>"$tmplog" || true
@@ -901,7 +949,6 @@ bun:update() {
   if (( elapsed >= 5 )); then
     cat "$tmplog"
   fi
-  rm -f "$tmplog"
 }
 
 globals:install() {
@@ -915,9 +962,9 @@ globals:install() {
     local lock_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
     grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
 
-    echo "Global packages installed."
+    log success "Global packages installed."
   else
-    echo ".npm.globals file not found."
+    log warning ".npm.globals file not found."
   fi
 }
 
@@ -930,16 +977,16 @@ ncu:update() {
 
 # ------------------------------------ Git ----------------------------------- #
 
-# Use Git's colored diff when available
-if command -v git &>/dev/null; then
-  diff() {
+# Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)
+if cmd:exists git; then
+  gdiff() {
     git diff --no-index --color-words "$@"
   }
 fi
 
 gdb() {
   if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>"
+    echo "Usage: gdb <branch>" >&2
     return 1
   fi
   git branch -d -- "$1" && git push origin :"$1"
@@ -947,7 +994,7 @@ gdb() {
 
 gas() {
   if [[ -z "$1" ]]; then
-    echo "Usage: gas <stash_index>"
+    echo "Usage: gas <stash_index>" >&2
     return 1
   fi
   git stash apply "stash@{$1}"
@@ -955,13 +1002,18 @@ gas() {
 
 grb() {
   if [[ -z "$1" ]]; then
-    echo "Usage: grb <commit_count>"
+    echo "Usage: grb <commit_count>" >&2
     return 1
   fi
   git rebase -i "HEAD~$1"
 }
 
 git:diff() {
+  if [[ $# -lt 2 ]]; then
+    echo "Usage: git:diff <source_branch> <target_branch> [exclude_pattern]" >&2
+    return 1
+  fi
+
   local source_branch="$1"
   local target_branch="$2"
   local exclude_pattern="$3"
@@ -969,12 +1021,13 @@ git:diff() {
   local diff_args=("$source_branch...$target_branch")
   [[ -n "$exclude_pattern" ]] && diff_args+=(-- ":!$exclude_pattern")
 
+  local file
   git diff --name-only "${diff_args[@]}" | while read -r file; do
-    echo -e "\n$file:\n"
+    printf '\n%s:\n\n' "$file"
     git show "$target_branch:$file"
   done | pbcopy
 
-  echo "Diff output copied to clipboard."
+  log success "Diff output copied to clipboard."
 }
 
 # --------------------------------- Chezmoi ---------------------------------- #
@@ -1008,9 +1061,9 @@ chezmoi:sync() {
   local home_dir="${HOME}"
   local updated=0
   local skipped=0
+  local src tmp rel
 
   while IFS= read -r target; do
-    local src
     src="$(chezmoi source-path "$target" 2>/dev/null)" || continue
 
     [[ "$src" != *.tmpl ]] && continue
@@ -1018,22 +1071,21 @@ chezmoi:sync() {
     [[ ! -f "$target" ]] && continue
 
     # Reverse homeDir substitution on the target
-    local tmp
     tmp="$(mktemp)"
     sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
 
     # Already in sync — skip
-    if diff -q "$src" "$tmp" >/dev/null 2>&1; then
+    if command diff -q "$src" "$tmp" >/dev/null 2>&1; then
       rm -f "$tmp"
       continue
     fi
 
-    local rel="${target#"$home_dir"/}"
+    rel="${target#"$home_dir"/}"
 
     # Check for complex template syntax beyond .chezmoi.homeDir
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
       log warning "${rel} (has secrets/variables — use \`chezmoi merge ${target}\`)"
-      skipped=$((skipped + 1))
+      (( skipped++ ))
       rm -f "$tmp"
       continue
     fi
@@ -1041,7 +1093,7 @@ chezmoi:sync() {
     cp "$tmp" "$src"
     rm -f "$tmp"
     log success "${rel}"
-    updated=$((updated + 1))
+    (( updated++ ))
   done < <(chezmoi managed --include=files --path-style=absolute)
 
   if (( updated + skipped == 0 )); then
