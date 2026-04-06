@@ -77,9 +77,9 @@ Dotfiles/
 │   ├── run_onchange_after_03-*     # Install Brew packages (re-runs on Brewfile change)
 │   ├── run_onchange_after_04-*     # Fix iCloud symlink permissions (re-runs on config change)
 │   ├── run_onchange_after_05-*     # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
-│   ├── run_onchange_after_07-*     # Install global npm packages (re-runs on list change)
-│   ├── run_once_after_08-*         # Fix zsh completion permissions
-│   └── run_after_09-*              # Export keychain to iCloud (every apply)
+│   ├── run_onchange_after_06-*     # Install global npm packages (re-runs on list change)
+│   ├── run_once_after_07-*         # Fix zsh completion permissions
+│   └── run_after_08-*              # Export keychain to iCloud (every apply)
 │
 │  iCloud Drive symlinks (point $HOME dirs to iCloud)
 ├── symlink_dot_ssh.tmpl            # ~/.ssh → iCloud/.ssh
@@ -245,7 +245,7 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 │                                                           │
 └────────────────────────────┬──────────────────────────────┘
                              │
-                             │  script 09: secret:export (auto, every apply)
+                             │  script 08: secret:export (auto, every apply)
                              v
 ┌───────────────────────────────────────────────────────────┐
 │ iCloud Drive (backup updated)                             │
