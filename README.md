@@ -10,6 +10,8 @@
 - **Machine-type aware**: `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
 - **Auto-switching Node**: `.nvmrc` detection on every `cd` via zsh hook
 - **Proxy auto-detection**: event-driven LaunchAgent watches for network changes (Wi-Fi, VPN) and toggles proxy automatically
+- **Fast shell startup**: NVM lazy-loaded on first use, compinit cached for 24h, daily update gating for bun/nvm (~0.3s cold start)
+- **Machine-type-aware /etc/hosts**: chezmoi-rendered hosts template symlinked from `/etc/hosts`; work-only entries gated by machine type
 - **Shell functions**: proxy, VPN, Docker, secrets, Node, Git, system utilities
 - **Aliases**: navigation, git, kubernetes, macOS tweaks, editor shortcuts
 - **Idempotent setup scripts**: Homebrew, keychain import/export, npm globals, permissions
@@ -72,7 +74,7 @@ After updating a secret, run `chezmoi apply` to re-render templates with the new
         │
 ~/.functions ───────── utility functions
         │
-PATH setup ─────────── Homebrew, NVM, pyenv, RVM, Bun, ...
+PATH setup ─────────── Homebrew, pyenv, RVM, Bun, ...; NVM lazy-loaded on first use
         │
 ~/.aliases ─────────── command aliases
         │
@@ -112,6 +114,7 @@ dot_npmrc.tmpl                npm registry tokens (from keychain)
 dot_npm.globals               Global npm packages list
 dot_wakatime.cfg.tmpl         WakaTime API key (from keychain)
 dot_config/zed/               Zed editor settings (from keychain)
+dot_config/hosts.tmpl         Machine-type-aware /etc/hosts (rendered, symlinked from /etc/hosts)
 Library/.../Code/User/        VS Code settings & keybindings
 
 Brewfile.personal             Homebrew packages (personal)

@@ -79,7 +79,8 @@ Dotfiles/
 │   ├── run_onchange_after_05-*     # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
 │   ├── run_onchange_after_06-*     # Install global npm packages (re-runs on list change)
 │   ├── run_once_after_07-*         # Fix zsh completion permissions
-│   └── run_after_08-*              # Export keychain to iCloud (every apply)
+│   ├── run_after_08-*              # Export keychain to iCloud (every apply)
+│   └── run_onchange_after_09-*     # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
 │
 │  iCloud Drive symlinks (point $HOME dirs to iCloud)
 ├── symlink_dot_ssh.tmpl            # ~/.ssh → iCloud/.ssh
@@ -115,6 +116,7 @@ Dotfiles/
 ├── dot_npm.globals                 # Global npm packages list
 ├── dot_wakatime.cfg.tmpl           # WakaTime API key (from keychain)
 ├── dot_config/zed/settings.json.tmpl   # Zed editor + MCP server keys (from keychain)
+├── dot_config/hosts.tmpl               # Machine-type-aware /etc/hosts (rendered, symlinked from /etc/hosts)
 │
 │  IDE settings
 ├── Library/Application Support/Code/User/
@@ -284,6 +286,7 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 | **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud         |
 | **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy                     |
 | **npm registries** | Public only                             | Public + corporate Artifactory                        |
+| **/etc/hosts**     | Standard entries only                   | Work-specific hostnames added via `dot_config/hosts.tmpl` |
 
 ### Shell Loading Order
 
@@ -299,7 +302,7 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
   ~/.functions ───────────────── Utility functions (proxy, VPN, secrets, Node, Git, ...)
           │
           v
-  PATH setup ─────────────────── Homebrew, pyenv, NVM, RVM, Bun, tool-specific paths
+  PATH setup ─────────────────── Homebrew, pyenv, RVM, Bun, tool-specific paths; NVM lazy-loaded on first use
           │
           v
   ~/.aliases ─────────────────── Command aliases
@@ -352,6 +355,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Add a Homebrew package               | `Brewfile.personal` or `Brewfile.swisscom`                                                |
 | Add a global npm package             | `dot_npm.globals`                                                                         |
 | Add a managed secret                 | `secret:set <service> <account>`, then use `includeTemplate "keychain"` in a `.tmpl` file |
+| Manage `/etc/hosts` entries          | `dot_config/hosts.tmpl`                                                                   |
 | Symlink a new dir to iCloud          | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                   |
 | Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                    |
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                         |
@@ -372,3 +376,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                                                                                                   |
 | **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                                                                                                  |
 | **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot. |
+| **NVM lazy-loading**                                          | `nvm.sh` (~550ms) is not sourced at shell startup. Instead, lightweight stubs for `nvm`, `node`, `npm`, and `npx` replace themselves with the real implementations on first invocation. `nvmrc:load` (the `cd` hook) only calls the real loader when a `.nvmrc` or `.node-version` file is present. |
+| **compinit caching**                                          | `compinit -C` skips the full completion rebuild when `~/.zcompdump` is less than 24 hours old (checked via zsh glob qualifier `(N.mh-24)`). A full rebuild runs once per day to pick up newly installed completions. |
+| **`run:daily` update gating**                                 | `bun:update` and `nvm:update` are wrapped with `run:daily`, which gates execution behind a stamp file in `~/.cache/daily/`. The freshness check uses `(N.mh-24)` — zero forks. Prevents slow update commands from running on every shell open. |
+| **`/etc/hosts` symlink**                                      | `dot_config/hosts.tmpl` is rendered by chezmoi into `~/.config/hosts` with machine-type-aware entries (work entries omitted on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes. |
