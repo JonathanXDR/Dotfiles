@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Plist content hash (triggers re-run when plist changes):
+# {{ include "Library/LaunchAgents/local.proxy-watchd.plist.tmpl" | sha256sum }}
+
+PLIST_LABEL="local.proxy-watchd"
+PLIST_PATH="${HOME}/Library/LaunchAgents/${PLIST_LABEL}.plist"
+
+{{ if eq .machine_type "work" -}}
+if [[ ! -f "${PLIST_PATH}" ]]; then
+  _log error "Plist not found at ${PLIST_PATH}. Skipping LaunchAgent bootstrap."
+  exit 0
+fi
+
+mkdir -p "${HOME}/.cache"
+
+launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "${PLIST_PATH}"
+
+_log success "Proxy LaunchAgent (${PLIST_LABEL}) bootstrapped."
+{{ else -}}
+# Not a work machine — ensure agent is not loaded
+launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
+{{ end -}}

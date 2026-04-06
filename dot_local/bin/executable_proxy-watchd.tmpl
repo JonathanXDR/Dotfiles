@@ -1,0 +1,44 @@
+#!/bin/bash
+# proxy-watchd: Event-driven proxy state updater (called by LaunchAgent on network change).
+# Managed by chezmoi — do not edit directly.
+set -euo pipefail
+
+# Proxy configuration (baked in by chezmoi at apply time)
+PROXY_PROTOCOL="{{ .proxy_protocol }}"
+PROXY_HOST="{{ .proxy_host }}"
+PROXY_PORT="{{ .proxy_port }}"
+NO_PROXY="{{ .no_proxy }}"
+
+STATE_FILE="${HOME}/.cache/proxy-state"
+LOG_TAG="proxy-watchd"
+
+mkdir -p "${HOME}/.cache"
+
+# Probe proxy reachability
+if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
+  state="on"
+else
+  state="off"
+fi
+
+# Skip if state unchanged
+current="$(cat "${STATE_FILE}" 2>/dev/null || true)"
+[[ "${state}" == "${current}" ]] && exit 0
+
+# Persist new state
+printf '%s\n' "${state}" > "${STATE_FILE}"
+logger -t "${LOG_TAG}" "Proxy state changed: ${current:-<none>} -> ${state}"
+
+# Update launchctl env vars for GUI apps
+if [[ "${state}" == "on" ]]; then
+  addr="${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}"
+  launchctl setenv HTTP_PROXY "${addr}" 2>/dev/null
+  launchctl setenv HTTPS_PROXY "${addr}" 2>/dev/null
+  launchctl setenv ALL_PROXY "${addr}" 2>/dev/null
+  launchctl setenv NO_PROXY "${NO_PROXY}" 2>/dev/null
+else
+  launchctl unsetenv HTTP_PROXY 2>/dev/null
+  launchctl unsetenv HTTPS_PROXY 2>/dev/null
+  launchctl unsetenv ALL_PROXY 2>/dev/null
+  launchctl unsetenv NO_PROXY 2>/dev/null
+fi
