@@ -10,21 +10,26 @@ if cmd:exists brew; then
   FPATH="${brew_share}/zsh-completions:$FPATH"
 
   autoload -Uz compinit
-  compinit
+  if [[ -n ~/.zcompdump(N.mh-24) ]]; then
+    compinit -C
+  else
+    compinit
+  fi
 fi
 
 # Bun completions
 [[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
-# NVM bash completion
-if [[ -s "$NVM_DIR/bash_completion" ]]; then
-  source "$NVM_DIR/bash_completion"
-elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
-  source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+# Angular CLI autocompletion (cached — regenerated once per day)
+if cmd:exists ng; then
+  local ng_cache="${HOME}/.cache/daily/ng-completions.zsh"
+  local -a fresh=( ${ng_cache}(N.mh-24) )
+  if (( ! ${#fresh} )); then
+    mkdir -p "${ng_cache:h}"
+    ng completion script > "$ng_cache" 2>/dev/null
+  fi
+  [[ -f "$ng_cache" ]] && source "$ng_cache"
 fi
-
-# Angular CLI autocompletion
-cmd:exists ng && source <(ng completion script)
 
 # zsh plugins (guard each in case plugin is uninstalled)
 if [[ -n "$brew_share" ]]; then
