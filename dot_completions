@@ -1,11 +1,9 @@
 # Shell completions and autocompletion setup
 
-# Homebrew prefix (cached for all plugin lookups below)
+# Homebrew prefix (HOMEBREW_PREFIX is already set by `brew shellenv` in .zshrc)
 local brew_share=""
-if cmd:exists brew; then
-  local brew_prefix
-  brew_prefix="$(brew --prefix)"
-  brew_share="${brew_prefix}/share"
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
+  brew_share="${HOMEBREW_PREFIX}/share"
 
   FPATH="${brew_share}/zsh-completions:$FPATH"
 
