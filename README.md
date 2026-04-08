@@ -10,7 +10,7 @@
 - **Machine-type aware**: `personal` vs `work` drives Brewfiles, proxy config, SSL bundles, and npm registries
 - **Auto-switching Node**: `.nvmrc` detection on every `cd` via zsh hook
 - **Proxy auto-detection**: event-driven LaunchAgent watches for network changes (Wi-Fi, VPN) and toggles proxy automatically
-- **Fast shell startup**: NVM lazy-loaded on first use, compinit cached for 24h, daily update gating for bun/nvm (~0.3s cold start)
+- **Fast shell startup**: NVM lazy-loaded on first use, compinit cached for 24h, daily update gating for bun/nvm/pyenv/brew (~0.3s cold start)
 - **Machine-type-aware /etc/hosts**: chezmoi-rendered hosts template symlinked from `/etc/hosts`; work-only entries gated by machine type
 - **Shell functions**: proxy, VPN, Docker, secrets, Node, Git, system utilities
 - **Aliases**: navigation, git, kubernetes, macOS tweaks, editor shortcuts

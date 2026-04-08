@@ -1035,6 +1035,41 @@ ncu:update() {
   ni
 }
 
+# ------------------------------ Version Checks ------------------------------ #
+
+pyenv:update() {
+  local current latest
+  current=$(pyenv version-name 2>/dev/null)
+  latest=$(pyenv install --list 2>/dev/null \
+    | awk '/^[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+$/ { v=$1 } END { if (v) print v }')
+
+  [[ -z "$latest" ]] && { log info "Skipping pyenv update (could not fetch versions)"; return; }
+  [[ "$current" == "$latest" ]] && return 0
+
+  if ! pyenv install -s "$latest" &>/dev/null; then
+    log info "Skipping pyenv update (install failed for ${latest})"
+    return
+  fi
+
+  pyenv global "$latest"
+  log success "Python updated: ${current} -> ${latest}"
+}
+
+brew:check() {
+  local deprecated outdated
+
+  deprecated=$(brew info --installed --json=v2 2>/dev/null \
+    | jq -r '.formulae[] | select(.deprecated or .disabled)
+      | "  \(.name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
+
+  [[ -n "$deprecated" ]] && { log warning "Deprecated Homebrew packages:"; echo "$deprecated"; }
+
+  outdated=$(brew outdated --quiet 2>/dev/null)
+  [[ -n "$outdated" ]] || return 0
+
+  log info "${#${(f)outdated}} outdated Homebrew package(s). Run 'brew upgrade' to update."
+}
+
 # ------------------------------------ Git ----------------------------------- #
 
 # Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)
