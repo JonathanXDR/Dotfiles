@@ -64,6 +64,8 @@ fi
 
 cmd:exists bun && run:daily bun bun:update
 cmd:exists nvm && run:daily nvm nvm:update
+cmd:exists pyenv && run:daily pyenv pyenv:update
+cmd:exists brew && run:daily brew brew:check
 
 nvmrc:load
 conda:load
