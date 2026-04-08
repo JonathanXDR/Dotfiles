@@ -105,6 +105,9 @@ export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
 # Tree view default ignore pattern (used by trec/tre functions)
 export TREE_IGNORE={{ .tree_ignore | quote }}
 
+# Directory basenames that rm() should permanently delete instead of trashing
+export TRASH_SKIP={{ .trash_skip | join "|" | quote }}
+
 # Dock apps for dock:reset (comma-separated)
 export DOCK_APPS={{ .dock_apps | join "," | quote }}
 
