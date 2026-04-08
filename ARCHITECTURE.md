@@ -314,6 +314,9 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
   Runtime hooks ──────────────── nvmrc auto-switch, proxy state load, SSH agent
           │
           v
+  Daily checks ───────────────── bun, nvm, pyenv updates; brew deprecation/outdated (gated to once per 24h)
+          │
+          v
   SDKMAN ─────────────────────── Java SDK manager (must be last)
           │
           v
@@ -378,5 +381,5 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot. |
 | **NVM lazy-loading**                                          | `nvm.sh` (~550ms) is not sourced at shell startup. Instead, lightweight stubs for `nvm`, `node`, `npm`, and `npx` replace themselves with the real implementations on first invocation. `nvmrc:load` (the `cd` hook) only calls the real loader when a `.nvmrc` or `.node-version` file is present. |
 | **compinit caching**                                          | `compinit -C` skips the full completion rebuild when `~/.zcompdump` is less than 24 hours old (checked via zsh glob qualifier `(N.mh-24)`). A full rebuild runs once per day to pick up newly installed completions. |
-| **`run:daily` update gating**                                 | `bun:update` and `nvm:update` are wrapped with `run:daily`, which gates execution behind a stamp file in `~/.cache/daily/`. The freshness check uses `(N.mh-24)` — zero forks. Prevents slow update commands from running on every shell open. |
+| **`run:daily` update gating**                                 | `bun:update`, `nvm:update`, `pyenv:update`, and `brew:check` are wrapped with `run:daily`, which gates execution behind a stamp file in `~/.cache/daily/`. The freshness check uses `(N.mh-24)` — zero forks. Prevents slow update commands from running on every shell open. |
 | **`/etc/hosts` symlink**                                      | `dot_config/hosts.tmpl` is rendered by chezmoi into `~/.config/hosts` with machine-type-aware entries (work entries omitted on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes. |
