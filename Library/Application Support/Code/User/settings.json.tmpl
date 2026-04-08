@@ -208,27 +208,37 @@
   "java.compile.nullAnalysis.mode": "automatic",
   "java.configuration.detectJdksAtStart": false,
   "java.configuration.runtimes": [
+    {{- $runtimes := list }}
+    {{- /* SDKMAN: resolve latest installed Zulu 8 */ -}}
+    {{- range $path := reverse (glob (joinPath .chezmoi.homeDir ".sdkman/candidates/java/8.*-zulu")) }}
+      {{- $runtimes = append $runtimes (dict "name" "JavaSE-1.8" "path" $path) }}
+      {{- break }}
+    {{- end }}
+    {{- /* Homebrew: resolve current openjdk@11 */ -}}
+    {{- range $path := reverse (glob "/opt/homebrew/Cellar/openjdk@11/*/libexec/openjdk.jdk/Contents/Home") }}
+      {{- $runtimes = append $runtimes (dict "name" "JavaSE-11" "path" $path) }}
+      {{- break }}
+    {{- end }}
+    {{- /* VS Code extension: stable paths (no version in dir) */ -}}
+    {{- $ext := joinPath .chezmoi.homeDir "Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java" }}
+    {{- if stat (joinPath $ext "17") }}
+      {{- $runtimes = append $runtimes (dict "name" "JavaSE-17" "path" (joinPath $ext "17")) }}
+    {{- end }}
+    {{- if stat (joinPath $ext "21") }}
+      {{- $runtimes = append $runtimes (dict "name" "JavaSE-21" "path" (joinPath $ext "21")) }}
+    {{- end }}
+    {{- /* System JDK: resolve temurin-25 */ -}}
+    {{- range $path := reverse (glob "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home") }}
+      {{- $runtimes = append $runtimes (dict "name" "JavaSE-25" "path" $path "default" true) }}
+      {{- break }}
+    {{- end }}
+    {{- range $i, $rt := $runtimes }}{{ if $i }},{{ end }}
     {
-      "name": "JavaSE-1.8",
-      "path": "{{ .chezmoi.homeDir }}/.sdkman/candidates/java/8.0.462-zulu"
-    },
-    {
-      "name": "JavaSE-11",
-      "path": "/opt/homebrew/Cellar/openjdk@11/11.0.30/libexec/openjdk.jdk/Contents/Home"
-    },
-    {
-      "name": "JavaSE-17",
-      "path": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17"
-    },
-    {
-      "name": "JavaSE-21",
-      "path": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/21"
-    },
-    {
-      "name": "JavaSE-25",
-      "path": "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home",
-      "default": true
+      "name": {{ get $rt "name" | toJson }},
+      "path": {{ get $rt "path" | toJson }}{{ if hasKey $rt "default" }},
+      "default": true{{ end }}
     }
+    {{- end }}
   ],
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.debug.settings.hotCodeReplace": "auto",

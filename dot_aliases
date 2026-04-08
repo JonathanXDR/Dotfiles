@@ -42,7 +42,27 @@ cmd:exists btop && alias top='btop'
 cmd:exists bat && alias cat='bat --paging=never'
 
 # Safer rm (prefer trash-put if installed)
-cmd:exists trash-put && alias rm="trash-put"
+# Directories matching TRASH_SKIP (set in .exports) bypass trash and are
+# permanently deleted to avoid bloating ~/.local/share/Trash.
+if cmd:exists trash-put; then
+  rm() {
+    local flags=() delete=() trash=()
+    for arg in "$@"; do
+      case "$arg" in
+        -*) flags+=("$arg") ;;
+        *)
+          if [[ -n "${TRASH_SKIP:-}" && "${arg##*/}" == @(${TRASH_SKIP}) ]]; then
+            delete+=("$arg")
+          else
+            trash+=("$arg")
+          fi
+          ;;
+      esac
+    done
+    (( ${#delete[@]} )) && command rm "${flags[@]}" "${delete[@]}"
+    (( ${#trash[@]} ))  && trash-put "${flags[@]}" "${trash[@]}"
+  }
+fi
 
 # For enabling lazy loading of ssh keys
 alias ssh='ssh -o AddKeysToAgent=yes'
