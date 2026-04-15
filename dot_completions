@@ -18,15 +18,14 @@ fi
 # Bun completions
 [[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
-# Angular CLI autocompletion (cached — regenerated once per day)
+# Angular CLI autocompletion (zsh native — no caching needed)
 if cmd:exists ng; then
-  local ng_cache="${HOME}/.cache/daily/ng-completions.zsh"
-  local -a fresh=( ${ng_cache}(N.mh-24) )
-  if (( ! ${#fresh} )); then
-    mkdir -p "${ng_cache:h}"
-    ng completion script > "$ng_cache" 2>/dev/null
-  fi
-  [[ -f "$ng_cache" ]] && source "$ng_cache"
+  _ng_completion() {
+    local -a completions
+    completions=($(ng --get-yargs-completions "${words[@]}" 2>/dev/null))
+    compadd -a completions
+  }
+  compdef _ng_completion ng
 fi
 
 # zsh plugins (guard each in case plugin is uninstalled)
