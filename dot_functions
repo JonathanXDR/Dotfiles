@@ -215,17 +215,16 @@ getcertnames() {
 # Bundle corporate CA certificates into a single PEM file for NODE_EXTRA_CA_CERTS.
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
-  mkdir -p "$(dirname "$output")"
+  mkdir -p "${output:h}"
 
-  local tmp
-  tmp="$(mktemp)"
+  local tmp="$(mktemp)"
   trap 'rm -f "$tmp"' EXIT
   local cert_count=0
 
   IFS=',' read -rA keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
   local cn
   for cn in "${keychain_certs[@]}"; do
-    cn="$(printf '%s' "$cn" | xargs)"
+    cn="${cn## }"; cn="${cn%% }"
     [[ -z "$cn" ]] && continue
     if security find-certificate -c "$cn" -p /Library/Keychains/System.keychain >> "$tmp" 2>/dev/null; then
       ((cert_count++))
@@ -235,21 +234,29 @@ ssl:bundle() {
   done
 
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
-  local url remote_tmp
+  local -a curl_args=(-fsSL)
+  [[ -n "${http_proxy:-}" ]] && curl_args+=(--proxy "$http_proxy")
+
+  local url raw
   for url in "${remote_certs[@]}"; do
-    url="$(printf '%s' "$url" | xargs)"
+    url="${url## }"; url="${url%% }"
     [[ -z "$url" ]] && continue
-    remote_tmp="$(mktemp)"
-    if curl -sf ${http_proxy:+--proxy "$http_proxy"} "$url" -o "$remote_tmp" 2>/dev/null; then
-      if openssl x509 -inform DER -in "$remote_tmp" -outform PEM >> "$tmp" 2>/dev/null; then
-        ((cert_count++))
-      else
-        log warning "Failed to convert $(basename "$url") from DER to PEM"
-      fi
-    else
-      log warning "Failed to download $(basename "$url") from $url"
+    raw="$(mktemp)"
+
+    if ! curl "${curl_args[@]}" -o "$raw" "$url"; then
+      log warning "Failed to download ${url:t}"
+      rm -f "$raw"
+      continue
     fi
-    rm -f "$remote_tmp"
+
+    # Auto-detect PEM vs DER format
+    if openssl x509 -inform PEM -in "$raw" -outform PEM >> "$tmp" 2>/dev/null \
+    || openssl x509 -inform DER -in "$raw" -outform PEM >> "$tmp" 2>/dev/null; then
+      ((cert_count++))
+    else
+      log warning "${url:t} is not a valid PEM or DER certificate"
+    fi
+    rm -f "$raw"
   done
 
   if ((cert_count == 0)); then
@@ -258,7 +265,7 @@ ssl:bundle() {
   fi
 
   mv "$tmp" "$output"
-  log success "Bundled $cert_count certificates into $output"
+  log success "Bundled $cert_count certificate(s) into $output"
 }
 
 dns:change() {
