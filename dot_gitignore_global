@@ -186,14 +186,14 @@ Temporary Items
 .apdisk
 
 # AI Tools
-.claude/*
-.remember/*
-.github/copilot-instructions.md
+**/.claude/*
+**/.remember/*
+**/.github/copilot-instructions.md
 # Skilld references (recreated by `skilld install`)
-.skilld
+**/.skilld
 
-CLAUDE.md
-AGENTS.md
+**/CLAUDE.md
+**/AGENTS.md
 
 # Conda (auto-activate marker)
 environment.yml
