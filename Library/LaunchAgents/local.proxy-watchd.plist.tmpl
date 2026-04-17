@@ -8,7 +8,7 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>{{ joinPath .chezmoi.homeDir ".local/bin/proxy-watchd" }}</string>
+    <string>{{ .chezmoi.homeDir }}/.local/bin/proxy-watchd</string>
   </array>
 
   <key>WatchPaths</key>
@@ -27,6 +27,6 @@
   <string>Background</string>
 
   <key>StandardErrorPath</key>
-  <string>{{ joinPath .chezmoi.homeDir "Library/Logs/proxy-watchd.log" }}</string>
+  <string>{{ .chezmoi.homeDir }}/Library/Logs/proxy-watchd.log</string>
 </dict>
 </plist>
