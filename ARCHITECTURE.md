@@ -1,8 +1,11 @@
 # Architecture
 
-> How this dotfiles system is organized, how data flows through it, and where to start when navigating the codebase.
+How this dotfiles system is organized, how data flows through it, and where to start when navigating the codebase.
 
-## Bird's Eye View
+> [!TIP]
+> New here? Start with [Bird's Eye View](#-birds-eye-view) for the big picture, skim [Key Concepts](#-key-concepts) for the mental model, and jump to [Entry Points](#-entry-points) when you know what you want to change.
+
+## 🦅 Bird's Eye View
 
 This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** running in **symlink mode**. chezmoi renders Go-templated configuration files, symlinks them into `$HOME`, and executes idempotent setup scripts, all while injecting secrets from the macOS Keychain at apply time. Sensitive directories (SSH, GPG, SSL, kube, VPN) are symlinked directly to iCloud Drive, making iCloud the single source of truth for both secrets and keys.
 
@@ -57,82 +60,94 @@ This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** runni
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Source Directory Layout
+## 🌳 Source Directory Layout
 
 ```text
 Dotfiles/
 │
-│  chezmoi configuration
-├── .chezmoi.toml.tmpl              # Config template: reads iCloud config.toml, prompts as fallback
-├── .chezmoidata.toml               # Shared non-secret defaults
-├── .chezmoiignore                  # Files excluded from $HOME
+│   # chezmoi configuration
+│
+├── .chezmoi.toml.tmpl                  # User config (iCloud config.toml or prompts)
+├── .chezmoidata.toml                   # Shared non-secret defaults
+├── .chezmoiignore                      # Files excluded from $HOME
 ├── .chezmoitemplates/
-│   ├── keychain                    # Keychain lookup helper (includeTemplate "keychain" (list "svc" "acct"))
-│   └── shell-helpers               # Reusable bash helpers for run scripts
+│   ├── keychain                        # Keychain lookup helper (includeTemplate "keychain" (list "svc" "acct"))
+│   └── shell-helpers                   # Reusable bash helpers for run scripts
 │
-│  Setup scripts (executed by chezmoi apply, numbered for ordering)
+│   # Setup scripts (executed by chezmoi apply, numbered for ordering)
+│
 ├── .chezmoiscripts/
-│   ├── run_once_before_01-*        # Install Homebrew
-│   ├── run_once_before_02-*        # Import keychain tokens from iCloud
-│   ├── run_onchange_after_03-*     # Install Brew packages (re-runs on Brewfile change)
-│   ├── run_onchange_after_04-*     # Fix iCloud symlink permissions (re-runs on config change)
-│   ├── run_onchange_after_05-*     # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
-│   ├── run_onchange_after_06-*     # Install global npm packages (re-runs on list change)
-│   ├── run_once_after_07-*         # Fix zsh completion permissions
-│   ├── run_after_08-*              # Export keychain to iCloud (every apply)
-│   └── run_onchange_after_09-*     # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
+│   ├── run_once_before_01-*            # Install Homebrew
+│   ├── run_once_before_02-*            # Import keychain tokens from iCloud
+│   ├── run_onchange_after_03-*         # Install Brew packages (re-runs on Brewfile change)
+│   ├── run_onchange_after_04-*         # Fix iCloud symlink permissions (re-runs on config change)
+│   ├── run_onchange_after_05-*         # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
+│   ├── run_onchange_after_06-*         # Install global npm packages (re-runs on list change)
+│   ├── run_once_after_07-*             # Fix zsh completion permissions
+│   ├── run_after_08-*                  # Export keychain to iCloud (every apply)
+│   └── run_onchange_after_09-*         # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
 │
-│  iCloud Drive symlinks (point $HOME dirs to iCloud)
-├── symlink_dot_ssh.tmpl            # ~/.ssh → iCloud/.ssh
-├── symlink_dot_ssl.tmpl            # ~/.ssl → iCloud/.ssl (ignored on personal via .chezmoiignore)
-├── symlink_dot_vpn.tmpl            # ~/.vpn → iCloud/.vpn (ignored on personal via .chezmoiignore)
-├── private_dot_gnupg/              # ~/.gnupg: individual files symlinked to iCloud
+│   # iCloud Drive symlinks (point $HOME dirs to iCloud)
+│
+├── symlink_dot_ssh.tmpl                # ~/.ssh → iCloud
+├── symlink_dot_ssl.tmpl                # ~/.ssl → iCloud (work only)
+├── symlink_dot_vpn.tmpl                # ~/.vpn → iCloud (work only)
+├── private_dot_gnupg/                  # ~/.gnupg/* → iCloud (6 symlinks)
 │   ├── symlink_common.conf.tmpl
 │   ├── symlink_trustdb.gpg.tmpl
 │   ├── symlink_sshcontrol.tmpl
 │   ├── symlink_private-keys-v1.d.tmpl
 │   ├── symlink_public-keys.d.tmpl
 │   └── symlink_openpgp-revocs.d.tmpl
-├── private_dot_kube/               # ~/.kube: kubeconfig symlinked to iCloud
+├── private_dot_kube/                   # ~/.kube/config → iCloud
 │   └── symlink_config.tmpl
 │
-│  Proxy daemon (work only, ignored on personal via .chezmoiignore)
+│   # Proxy daemon (work only, ignored on personal via .chezmoiignore)
+│
 ├── dot_local/bin/
-│   └── executable_proxy-watchd.tmpl   # Event-driven proxy state script (called by LaunchAgent)
+│   └── executable_proxy-watchd.tmpl    # Proxy state script run by LaunchAgent (work only)
 ├── Library/LaunchAgents/
-│   └── local.proxy-watchd.plist.tmpl  # Watches network changes, triggers proxy-watchd
+│   └── local.proxy-watchd.plist.tmpl   # LaunchAgent watching network changes (work only)
 │
-│  Shell configuration (sourced on every terminal open)
-├── dot_zshrc                       # Shell orchestrator: sources everything below
-├── dot_exports.tmpl                # Env vars, history, locale, zsh options (templated)
-├── dot_functions                   # Shell functions
-├── dot_aliases                     # Command aliases
-├── dot_completions                 # Zsh completions, plugins, Kiro CLI compat
+│   # Shell configuration (sourced on every terminal open)
 │
-│  Tool configuration
-├── dot_gitconfig.tmpl              # Git user, GPG signing, LFS, pull strategy
-├── dot_gitignore_global            # Global gitignore (ref'd by dot_gitconfig.tmpl)
-├── dot_npmrc.tmpl                  # npm registry tokens (from keychain)
-├── dot_npm.globals                 # Global npm packages list
-├── dot_wakatime.cfg.tmpl           # WakaTime API key (from keychain)
-├── dot_config/zed/settings.json.tmpl   # Zed editor + MCP server keys (from keychain)
-├── dot_config/hosts.tmpl               # Machine-type-aware /etc/hosts (rendered, symlinked from /etc/hosts)
+├── dot_zshrc                           # Shell orchestrator
+├── dot_exports.tmpl                    # Env vars, history, locale, zsh options
+├── dot_functions                       # Shell functions
+├── dot_aliases                         # Command aliases
+├── dot_completions                     # Zsh completions, plugins, Kiro CLI compat
 │
-│  IDE settings
+│   # Tool configuration
+│
+├── dot_gitconfig.tmpl                  # Git user, GPG signing, LFS, pull strategy
+├── dot_gitignore_global                # Global gitignore (ref'd by dot_gitconfig.tmpl)
+├── dot_npmrc.tmpl                      # npm registry tokens (from keychain)
+├── dot_npm.globals                     # Global npm packages
+├── dot_wakatime.cfg.tmpl               # WakaTime API key (from keychain)
+├── dot_config/
+│   ├── hosts.tmpl                      # /etc/hosts source (machine-type aware)
+│   └── zed/settings.json.tmpl          # Zed editor + MCP server keys (from keychain)
+│
+│   # IDE settings
+│
 ├── Library/Application Support/Code/User/
-│   ├── settings.json.tmpl          # VS Code settings (home dir templated for Java/Gradle paths)
-│   └── keybindings.json            # VS Code keybindings
+│   ├── settings.json.tmpl              # VS Code settings (home dir templated for Java/Gradle paths)
+│   └── keybindings.json                # VS Code keybindings
 │
-│  Package lists (consumed by run scripts, not copied to $HOME)
-├── Brewfile.personal               # Homebrew packages for personal machine
-└── Brewfile.swisscom               # Homebrew packages for work machine
+│   # Package lists (consumed by run scripts, not copied to $HOME)
+│
+├── Brewfile.personal                   # Homebrew packages (personal)
+└── Brewfile.swisscom                   # Homebrew packages (work)
 ```
 
-## Key Concepts
+## 🔑 Key Concepts
 
 ### Symlink Mode
 
-chezmoi runs with `mode = "symlink"`, meaning managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies. This means edits to `~/.zshrc` directly modify the source file, so there's no need to run `chezmoi edit`.
+chezmoi runs with `mode = "symlink"`, meaning managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies.
+
+> [!TIP]
+> Because `$HOME` files are symlinks to the source directory, you can edit them directly. `chezmoi edit` is optional, not required, since editing `~/.zshrc` and editing the source file are the same write.
 
 For sensitive directories (SSH, GPG, SSL, kube, VPN), chezmoi creates symlinks that point to **iCloud Drive** via `symlink_*` templates. This makes iCloud the single source of truth:
 
@@ -143,17 +158,18 @@ $HOME                                    iCloud Drive (.dotfiles/)
 ~/.gnupg/common.conf                →    .gnupg/common.conf
 ~/.gnupg/trustdb.gpg                →    .gnupg/trustdb.gpg
 ~/.gnupg/sshcontrol                 →    .gnupg/sshcontrol
-~/.gnupg/private-keys-v1.d/        →    .gnupg/private-keys-v1.d/
-~/.gnupg/public-keys.d/            →    .gnupg/public-keys.d/
-~/.gnupg/openpgp-revocs.d/         →    .gnupg/openpgp-revocs.d/
+~/.gnupg/private-keys-v1.d/         →    .gnupg/private-keys-v1.d/
+~/.gnupg/public-keys.d/             →    .gnupg/public-keys.d/
+~/.gnupg/openpgp-revocs.d/          →    .gnupg/openpgp-revocs.d/
 ~/.kube/config                      →    .kube/config
-~/.ssl/                             →    .ssl/                      (work only)
-~/.vpn/                             →    .vpn/                      (work only)
+~/.ssl/                             →    .ssl/                     (work only)
+~/.vpn/                             →    .vpn/                     (work only)
 ```
 
 The `run_onchange_after_04-fix-icloud-permissions` script re-runs whenever the iCloud path or machine type changes, ensuring symlink targets have correct permissions (700 for dirs, 600 for private keys, 644 for public keys).
 
-Work-only symlinks (`.ssl`, `.vpn`) are unconditionally defined but excluded on personal machines via a conditional block in `.chezmoiignore`.
+> [!NOTE]
+> The `symlink_dot_ssl.tmpl` and `symlink_dot_vpn.tmpl` files exist in the source tree on every machine but are filtered out on personal machines via a conditional block in `.chezmoiignore`. Their presence in the repo doesn't mean they're applied.
 
 ### File Naming Convention
 
@@ -222,6 +238,9 @@ iCloud Drive stores two categories of data: **secrets** (keychain backup) and **
 
 Secrets are read from the macOS Login Keychain at apply time via the `keychain` template helper and rendered into target files.
 
+> [!IMPORTANT]
+> The macOS Keychain is the source of truth. The iCloud tokens file is a one-way backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add or update. Never edit the iCloud tokens file directly.
+
 ```text
 ┌───────────────────────────────────────────────────────────┐
 │ iCloud Drive                                              │
@@ -260,7 +279,9 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 2. **iCloud Drive is the backup.** Script `02` imports tokens from iCloud into the keychain on a fresh machine. Script `08` exports keychain entries back to iCloud after every apply.
 3. **Shell functions** (`secret:set`, `secret:get`, `secret:remove`, `secret:list`, `secret:export`) manage the keychain/iCloud lifecycle interactively.
 
-> **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?** The `keyring` function panics when a key is missing. The `keychain` helper wraps `security find-generic-password ... || true` via `includeTemplate`, which degrades gracefully to an empty string. Templates can then render a warning comment instead of failing.
+> [!NOTE]
+> **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?**
+> The `keyring` function panics when a key is missing. The `keychain` helper wraps `security find-generic-password ... || true` via `includeTemplate`, which degrades gracefully to an empty string. Templates can then render a warning comment instead of failing.
 
 **All managed secrets:**
 
@@ -278,14 +299,14 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 
 The `machine_type` variable (`personal` or `work`), set once during `chezmoi init`, drives conditional behavior:
 
-| Layer              | `personal`                              | `work`                                                |
-| ------------------ | --------------------------------------- | ----------------------------------------------------- |
-| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                                   |
-| **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback |
-| **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud             |
-| **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud         |
-| **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy                     |
-| **npm registries** | Public only                             | Public + corporate Artifactory                        |
+| Layer              | `personal`                              | `work`                                                    |
+| ------------------ | --------------------------------------- | --------------------------------------------------------- |
+| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                                       |
+| **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback     |
+| **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud                 |
+| **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud             |
+| **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy                         |
+| **npm registries** | Public only                             | Public + corporate Artifactory                            |
 | **/etc/hosts**     | Standard entries only                   | Work-specific hostnames added via `dot_config/hosts.tmpl` |
 
 ### Shell Loading Order
@@ -293,34 +314,34 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
 
 ```text
-  Kiro CLI pre-hook ──────────── (if installed)
+  Kiro CLI pre-hook ────── (if installed)
           │
           v
-  ~/.exports ─────────────────── Env vars, proxy, locale, history, zsh setopt
+  ~/.exports ───────────── Env vars, proxy, locale, history, zsh setopt
           │
           v
-  ~/.functions ───────────────── Utility functions (proxy, VPN, secrets, Node, Git, ...)
+  ~/.functions ─────────── Utility functions (proxy, VPN, secrets, Node, Git, ...)
           │
           v
-  PATH setup ─────────────────── Homebrew, pyenv, RVM, Bun, tool-specific paths; NVM lazy-loaded on first use
+  PATH setup ───────────── Homebrew, pyenv, RVM, Bun, tool-specific paths; NVM lazy-loaded on first use
           │
           v
-  ~/.aliases ─────────────────── Command aliases
+  ~/.aliases ───────────── Command aliases
           │
           v
-  ~/.completions ─────────────── Zsh completions, autosuggestions, syntax highlighting
+  ~/.completions ───────── Zsh completions, autosuggestions, syntax highlighting
           │
           v
-  Runtime hooks ──────────────── nvmrc auto-switch, proxy state load, SSH agent
+  Runtime hooks ────────── nvmrc auto-switch, proxy state load, SSH agent
           │
           v
-  Daily checks ───────────────── bun, nvm, pyenv updates; brew deprecation/outdated (gated to once per 24h)
+  Daily checks ─────────── bun, nvm, pyenv updates; brew deprecation/outdated (gated to once per 24h)
           │
           v
-  SDKMAN ─────────────────────── Java SDK manager (must be last)
+  SDKMAN ───────────────── Java SDK manager (must be last)
           │
           v
-  Kiro CLI post-hook ─────────── (if installed)
+  Kiro CLI post-hook ───── (if installed)
 ```
 
 ### Run Script Execution
@@ -344,7 +365,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | `_ensure_icloud <path>` | Trigger iCloud Drive download for a path        |
 | `_ensure_nvm`           | Load NVM from `$NVM_DIR` or Homebrew fallback   |
 
-## Entry Points
+## 🗺️ Entry Points
 
 | What you want to do                  | Start here                                                                                |
 | ------------------------------------ | ----------------------------------------------------------------------------------------- |
@@ -365,21 +386,21 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Debug proxy daemon                   | `proxyd:status`, `proxyd:log`, or `proxyd:log 1h`                                         |
 | Reload proxy daemon                  | `proxyd:reload`                                                                           |
 
-## Design Decisions
+## 💡 Design Decisions
 
-| Decision                                                      | Rationale                                                                                                                                                                                                                                                         |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                                                                                                      |
-| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                      |
-| **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                                                                                                      |
-| **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo.                                                                              |
-| **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                                                                                                |
-| **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                                                                                                  |
-| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                                                                                                     |
-| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                                                                                                   |
-| **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                                                                                                  |
-| **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot. |
+| Decision                                                      | Rationale                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                                                                                                                                        |
+| **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                                                        |
+| **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                                                                                                                                        |
+| **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo.                                                                                                                |
+| **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                                                                                                                                  |
+| **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                                                                                                                                    |
+| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                                                                                                                                       |
+| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                                                                                                                                     |
+| **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                                                                                                                                    |
+| **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot.                                   |
 | **NVM lazy-loading**                                          | `nvm.sh` (~550ms) is not sourced at shell startup. Instead, lightweight stubs for `nvm`, `node`, `npm`, and `npx` replace themselves with the real implementations on first invocation. `nvmrc:load` (the `cd` hook) only calls the real loader when a `.nvmrc` or `.node-version` file is present. |
-| **compinit caching**                                          | `compinit -C` skips the full completion rebuild when `~/.zcompdump` is less than 24 hours old (checked via zsh glob qualifier `(N.mh-24)`). A full rebuild runs once per day to pick up newly installed completions. |
-| **`run:daily` update gating**                                 | `bun:update`, `nvm:update`, `pyenv:update`, and `brew:check` are wrapped with `run:daily`, which gates execution behind a stamp file in `~/.cache/daily/`. The freshness check uses `(N.mh-24)` — zero forks. Prevents slow update commands from running on every shell open. |
-| **`/etc/hosts` symlink**                                      | `dot_config/hosts.tmpl` is rendered by chezmoi into `~/.config/hosts` with machine-type-aware entries (work entries omitted on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes. |
+| **compinit caching**                                          | `compinit -C` skips the full completion rebuild when `~/.zcompdump` is less than 24 hours old (checked via zsh glob qualifier `(N.mh-24)`). A full rebuild runs once per day to pick up newly installed completions.                                                                                |
+| **`run:daily` update gating**                                 | `bun:update`, `nvm:update`, `pyenv:update`, and `brew:check` are wrapped with `run:daily`, which gates execution behind a stamp file in `~/.cache/daily/`. The freshness check uses `(N.mh-24)` for zero forks. Prevents slow update commands from running on every shell open.                     |
+| **`/etc/hosts` symlink**                                      | `dot_config/hosts.tmpl` is rendered by chezmoi into `~/.config/hosts` with machine-type-aware entries (work entries omitted on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes.                                                    |
