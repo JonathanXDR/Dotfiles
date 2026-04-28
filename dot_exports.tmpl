@@ -19,6 +19,10 @@ export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
 {{ end -}}
 
+# ------------------------------------ AI ------------------------------------ #
+
+export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
+
 # ---------------------------- Proxy configuration --------------------------- #
 
 export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
