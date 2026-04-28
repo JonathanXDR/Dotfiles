@@ -41,6 +41,36 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
+# Define an alias only if no command with that name already exists.
+# Warns when skipped so shadowed commands stay visible.
+# Usage: alias:safe name='value'
+alias:safe() {
+  local name="${1%%=*}"
+  if cmd:exists "$name"; then
+    log warning "Skipping alias '${name}', would shadow existing command"
+  else
+    alias:_set "$1"
+  fi
+}
+
+# Silent counterpart to alias:safe, for polyfills where the absence
+# of the real command is what triggers the alias.
+# Usage: alias:fallback name='value'
+alias:fallback() {
+  cmd:exists "${1%%=*}" || alias:_set "$1"
+}
+
+# Internal: set an alias and warn if its target is unavailable.
+# Resolves the target the way zsh would at expansion time:
+#   (z) tokenize, (Q) dequote escapes, (e) expand parameters.
+alias:_set() {
+  local -a parts=( ${(z)${1#*=}} )
+  local target="${(eQ)parts[1]}"
+  [[ -n "$target" ]] && ! cmd:exists "$target" \
+    && log warning "alias '${1%%=*}' targets '${target}' which is not available"
+  alias "$1"
+}
+
 # Run a command at most once per day (24 h), gated by a stamp file.
 # Usage: run:daily <name> <command...>
 run:daily() {
@@ -552,7 +582,7 @@ ssh:reagent() {
       return 0
     fi
   done
-  log warning "Cannot find ssh agent — maybe you should reconnect and forward it?"
+  log warning "Cannot find ssh agent. Maybe you should reconnect and forward it?"
   return 1
 }
 
@@ -566,13 +596,13 @@ ssh:agent() {
 
 # --------------------------------- Secrets ---------------------------------- #
 
-# Tokens file on iCloud Drive — backup of login keychain secrets.
+# Tokens file on iCloud Drive, backup of login keychain secrets.
 # The keychain is the source of truth; this file mirrors it for new-machine setup.
 _SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE}"
 
 _secrets:write-header() {
   echo "# service:account:password" > "$1"
-  echo "# Managed by secret:set — import into macOS login keychain on new machines" >> "$1"
+  echo "# Managed by secret:set. Import into macOS login keychain on new machines" >> "$1"
 }
 
 # Add or update a secret in the login keychain, then export to iCloud Drive.
@@ -670,7 +700,7 @@ secret:export() {
   fi
 
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "No tokens file yet — creating empty: $_SECRETS_TOKENS_FILE"
+    log warning "No tokens file yet, creating empty: $_SECRETS_TOKENS_FILE"
     _secrets:write-header "$_SECRETS_TOKENS_FILE"
   fi
 
@@ -694,7 +724,7 @@ secret:export() {
     if [[ -n "$password" ]]; then
       echo "$service:$account:$password" >> "$tmpfile"
     else
-      log warning "Skipped (not in keychain): $service/$account"
+      log warning "Skipping (not in keychain): $service/$account"
     fi
   done
 
@@ -715,7 +745,7 @@ sudo:touch-id() {
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
 
   # Only enable restore-on-error after a valid backup exists
-  trap 'trap - ERR; log error "Error detected – restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
+  trap 'trap - ERR; log error "Error detected, restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
     log error "Required marker comment not found in $FILE"
@@ -826,7 +856,7 @@ docker:cleanup() {
 
 # ------------------------------- JS Ecosystem ------------------------------- #
 
-# Source nvm.sh and completions (idempotent — safe to call multiple times).
+# Source nvm.sh and completions (idempotent, safe to call multiple times).
 nvm:init() {
   (( $+functions[nvm_find_nvmrc] )) && return 0
   unfunction nvm node npm npx 2>/dev/null
@@ -858,7 +888,7 @@ node:works() {
 }
 
 # Diagnose and repair a broken node binary (e.g., invalid code signature on macOS).
-# Usage: nvm:heal [version]   — defaults to nvm current
+# Usage: nvm:heal [version]; defaults to nvm current
 nvm:heal() {
   local version="${1:-$(nvm current 2>/dev/null)}"
   [[ -z "$version" || "$version" == "none" || "$version" == "system" ]] && return 1
@@ -868,7 +898,7 @@ nvm:heal() {
 
   # macOS fast path: ad-hoc re-sign (fixes Gatekeeper kills without redownloading)
   if [[ "$(uname)" == "Darwin" ]] && ! codesign -v "$node_bin" 2>/dev/null; then
-    log info "Node $version has invalid code signature — attempting ad-hoc re-sign"
+    log info "Node $version has invalid code signature, attempting ad-hoc re-sign"
     if codesign --force --sign - "$node_bin" 2>/dev/null && node:works; then
       log success "Repaired $version via ad-hoc code signing"
       return 0
@@ -1176,7 +1206,7 @@ chezmoi:sync() {
     tmp="$(mktemp)"
     sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
 
-    # Already in sync — skip
+    # Already in sync, skip
     if command diff -q "$src" "$tmp" >/dev/null 2>&1; then
       rm -f "$tmp"
       continue
@@ -1186,7 +1216,7 @@ chezmoi:sync() {
 
     # Check for complex template syntax beyond .chezmoi.homeDir
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
-      log warning "${rel} (has secrets/variables — use \`chezmoi merge ${target}\`)"
+      log warning "Skipping ${rel} (has secrets/variables; use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
       rm -f "$tmp"
       continue
