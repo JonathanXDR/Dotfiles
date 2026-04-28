@@ -6,6 +6,9 @@ editor = "vi"
 history_size = 32768
 autostart_ssh_agent = false
 
+# Commands whose invocations are filtered from shell history
+history_ignore = ["claude", "codex", "copilot", "gh copilot"]
+
 # Display
 default_hostname = "void(0)"
 tree_ignore = ".git|node_modules|.DS_Store|dist|build|target|__pycache__|.venv|.next|.nuxt|.svelte-kit|.gradle|coverage"
