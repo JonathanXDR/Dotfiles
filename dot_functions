@@ -41,6 +41,36 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
+# Define an alias only if no command with that name already exists.
+# Warns when skipped so shadowed commands stay visible.
+# Usage: alias:safe name='value'
+alias:safe() {
+  local name="${1%%=*}"
+  if cmd:exists "$name"; then
+    log warning "Skipping alias '${name}', would shadow existing command"
+  else
+    alias:_set "$1"
+  fi
+}
+
+# Silent counterpart to alias:safe, for polyfills where the absence
+# of the real command is what triggers the alias.
+# Usage: alias:fallback name='value'
+alias:fallback() {
+  cmd:exists "${1%%=*}" || alias:_set "$1"
+}
+
+# Internal: set an alias and warn if its target is unavailable.
+# Resolves the target the way zsh would at expansion time:
+#   (z) tokenize, (Q) dequote escapes, (e) expand parameters.
+alias:_set() {
+  local -a parts=( ${(z)${1#*=}} )
+  local target="${(eQ)parts[1]}"
+  [[ -n "$target" ]] && ! cmd:exists "$target" \
+    && log warning "alias '${1%%=*}' targets '${target}' which is not available"
+  alias "$1"
+}
+
 # Run a command at most once per day (24 h), gated by a stamp file.
 # Usage: run:daily <name> <command...>
 run:daily() {

@@ -1,17 +1,23 @@
+# Helpers used below (defined in dot_functions):
+#   alias:safe      sets unless command exists; warns on skip (default)
+#   alias:fallback  sets unless command exists; silent on skip (polyfills)
+#   plain `alias`   for deliberate shadows (cat→bat, top→btop, etc.)
+#                   or syntax the helpers can't wrap (`alias -s`, `alias -- -=`)
+
 # -------------------------- Filesystem & Navigation ------------------------- #
 
-# Make the dirs command useful
+# Make the dirs command useful (deliberate shadow of zsh builtin)
 alias dirs='dirs -v'
 
 # Easier navigation: .., ..., ...., ....., ~ and -
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias .....="cd ../../../.."
-alias ~="cd ~"
+alias:safe ..="cd .."
+alias:safe ...="cd ../.."
+alias:safe ....="cd ../../.."
+alias:safe .....="cd ../../../.."
+alias:safe ~="cd ~"
 alias -- -="cd -"
 
-# Prefer lsd if available, otherwise colorize ls
+# Prefer lsd if available, otherwise colorize ls (deliberate shadow of /bin/ls)
 if cmd:exists lsd; then
   alias ls='lsd'
 else
@@ -20,26 +26,24 @@ else
 fi
 
 # List all files colorized in long format
-alias l="ls -lF"
+alias:safe l="ls -lF"
 
 # List all files colorized in long format, excluding . and ..
-alias la="ls -lAF"
+alias:safe la="ls -lAF"
 
-# List only directories
-alias lsd="ls -lF | grep --color=never '^d'"
+# List only directories (renamed from `lsd` to avoid colliding with the
+# brew binary, which `ls` already aliases to)
+alias:safe lsdir="command ls -lF | grep --color=never '^d'"
 
 # Print each PATH entry on a separate line
-alias path='echo -e ${PATH//:/\\n}'
+alias:safe path='echo -e ${PATH//:/\\n}'
 
 # ------------------------------- System Tools ------------------------------- #
 
+# Deliberate shadows: prefer modern replacements when installed
 cmd:exists python3 && alias python=python3
-
-# Don't see any reason why we should not use a better top utility if it exists
-cmd:exists btop && alias top='btop'
-
-# Use cat on steroids if it exists, and don't page, like cat does
-cmd:exists bat && alias cat='bat --paging=never'
+cmd:exists btop    && alias top='btop'
+cmd:exists bat     && alias cat='bat --paging=never'
 
 # Safer rm (prefer trash-put if installed)
 # Directories matching TRASH_SKIP (set in .exports) bypass trash and are
@@ -64,118 +68,205 @@ if cmd:exists trash-put; then
   }
 fi
 
-# For enabling lazy loading of ssh keys
+# Deliberate shadows: lazy-load SSH keys, allow interactive bash
 alias ssh='ssh -o AddKeysToAgent=yes'
-
-# Make using bash interactively possible
 alias bash='PERMIT_BASH=true bash'
 
 # Reload the shell (i.e. invoke as a login shell)
 # shellcheck disable=SC2139
-alias reload="exec ${SHELL} -l"
-
-# Lock the screen (when going AFK)
-alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend"
+alias:safe reload="exec ${SHELL} -l"
 
 # --------------------------------- AI Tools --------------------------------- #
 
+# Deliberate shadows: wrap CLIs with permissive defaults
 alias claude="claude --dangerously-skip-permissions"
 alias codex="codex --yolo"
 alias copilot="copilot --allow-all"
-alias kiro="kiro-cli"
+alias:safe kiro="kiro-cli"
 
 # ------------------------------- macOS Tweaks ------------------------------- #
 
+# Lock the screen (when going AFK), relies on "Require password after sleep"
+alias:safe afk='pmset displaysleepnow'
+
 # Show/hide hidden files in Finder
-alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
-alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
+alias:safe show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
+alias:safe hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
 
 # Hide/show all desktop icons (useful when presenting)
-alias hidedesktop="defaults write com.apple.finder CreateDesktop -bool false && killall Finder"
-alias showdesktop="defaults write com.apple.finder CreateDesktop -bool true && killall Finder"
+alias:safe hidedesktop="defaults write com.apple.finder CreateDesktop -bool false && killall Finder"
+alias:safe showdesktop="defaults write com.apple.finder CreateDesktop -bool true && killall Finder"
 
 # Flush Directory Service cache
-alias flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
+alias:safe flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
 
 # Clean up LaunchServices to remove duplicates in the "Open With" menu
-alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
+alias:safe lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 
-# Disable Spotlight
-alias spotoff="sudo mdutil -a -i off"
-# Enable Spotlight
-alias spoton="sudo mdutil -a -i on"
+# Disable / enable Spotlight
+alias:safe spotoff="sudo mdutil -a -i off"
+alias:safe spoton="sudo mdutil -a -i on"
 
 # Empty the Trash on all mounted volumes, macOS Trash, freedesktop Trash + logs/quarantine
-alias emptytrash="sudo /bin/rm -rfv /Volumes/*/.Trashes; sudo /bin/rm -rfv ~/.Trash; /bin/rm -rfv ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*; sudo /bin/rm -rfv /private/var/log/asl/*.asl; sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
+alias:safe emptytrash="sudo /bin/rm -rfv /Volumes/*/.Trashes; sudo /bin/rm -rfv ~/.Trash; /bin/rm -rfv ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*; sudo /bin/rm -rfv /private/var/log/asl/*.asl; sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
+
+# Recursively delete `.DS_Store` files
+alias:safe cleanup="find . -type f -name '*.DS_Store' -ls -delete"
+
+# Volume controls
+alias:safe stfu="osascript -e 'set volume output muted true'"
+alias:safe pumpitup="osascript -e 'set volume output volume 100'"
 
 # -------------------------------- Networking -------------------------------- #
 
-# IP addresses
-alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
-alias localip="ipconfig getifaddr en0"
-alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
+# Local IP addresses
+alias:safe ip="dig +short myip.opendns.com @resolver1.opendns.com"
+alias:safe localip="ipconfig getifaddr en0"
+alias:safe ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
+
+# Public IP via ifconfig.me
+alias:safe myip='curl -s ifconfig.me'
 
 # Show active network interfaces
-alias ifactive="ifconfig | awk '/^[^ ]/{iface=\$1} /status: active/{print iface}'"
+alias:safe ifactive="ifconfig | awk '/^[^ ]/{iface=\$1} /status: active/{print iface}'"
+
+# Show listening ports
+alias:safe ports='lsof -i -P -n | grep LISTEN'
 
 # ------------------------------- Kubernetes --------------------------------- #
 
-alias k='kubectl'
-cmd:exists kubens && alias kn='kubens'
-cmd:exists kubectx && alias kx='kubectx'
+cmd:exists kubectl && alias:safe k='kubectl'
+cmd:exists kubens  && alias:safe kn='kubens'
+cmd:exists kubectx && alias:safe kx='kubectx'
 
 # --------------------------------- Utilities -------------------------------- #
 
-# Always enable colored `grep` output
+# Always enable colored `grep` output (deliberate self-shadow of /usr/bin/grep)
 alias grep='grep --color=auto'
 
-# Enable aliases to be sudo'ed
+# Enable aliases to be sudo'ed (deliberate shadow with trailing-space trick)
 alias sudo='sudo '
 
-# Get week number
-alias week='date +%V'
-
 # Update macOS, Homebrew, npm globals, and Ruby gems (guards each tool)
-alias update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists npm && npm update -g; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
+alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists npm && npm update -g; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
-# Canonical hex dump
-cmd:exists hd || alias hd="hexdump -C"
-
-# macOS has no `md5sum`, so use `md5` as a fallback
-cmd:exists md5sum || alias md5sum="md5"
-
-# macOS has no `sha1sum`, so use `shasum` as a fallback
-cmd:exists sha1sum || alias sha1sum="shasum"
+# macOS doesn't ship `hd` / `md5sum` / `sha1sum`. alias:fallback sets them
+# silently on systems where the real binary is missing.
+alias:fallback hd="hexdump -C"
+alias:fallback md5sum="md5"
+alias:fallback sha1sum="shasum"
 
 # JavaScriptCore REPL
 if [[ -e "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc" ]]; then
-  alias jsc="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc"
+  alias:safe jsc="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc"
 fi
 
-# Trim new lines and copy to clipboard
-alias c="tr -d '\n' | pbcopy"
+# Disk usage of current dir entries (sorted) and free space
+alias:safe dud='du -sh * | sort -h'
+alias:safe duf='df -h'
 
-# Recursively delete `.DS_Store` files
-alias cleanup="find . -type f -name '*.DS_Store' -ls -delete"
+# Make a file executable
+alias:safe chx='chmod +x'
+
+# Trim new lines and copy to clipboard
+alias:safe c="tr -d '\n' | pbcopy"
 
 # URL-encode strings
-alias urlencode='python3 -c "import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))"'
+alias:safe urlencode='python3 -c "import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))"'
 
-# PlistBuddy alias
-alias plistbuddy="/usr/libexec/PlistBuddy"
+# PlistBuddy
+alias:safe plistbuddy="/usr/libexec/PlistBuddy"
 
 # Intuitive map function
 # For example, to list all directories that contain a certain file:
 # find . -name .gitattributes | map dirname
-alias map="xargs -n1"
+alias:safe map="xargs -n1"
 
-# Volume controls
-alias stfu="osascript -e 'set volume output muted true'"
-alias pumpitup="osascript -e 'set volume output volume 100'"
+# Quick HTTP server in current dir
+alias:safe serve='python3 -m http.server'
+
+# Terminal weather and cheat sheets (e.g. `cheat tar`)
+alias:safe weather='curl wttr.in'
+alias:safe cheat='curl cheat.sh/'
+
+# QR code in terminal (usage: echo "url" | qr)
+cmd:exists qrencode && alias:safe qr='qrencode -t ANSIUTF8'
+
+# Generate a strong random password and a lowercase UUID
+alias:safe genpw='openssl rand -base64 16'
+alias:safe uuid='uuidgen | tr A-Z a-z'
+
+# Top 20 most-used commands from history
+alias:safe myhist='history | awk "{print \$2}" | sort | uniq -c | sort -rn | head -20'
+
+# --------------------------- Time / Productivity ---------------------------- #
+
+# Stopwatch (press enter to stop)
+alias:safe timer='time read -p "Press enter to stop"'
+
+# Get week number
+alias:safe week='date +%V'
+
+# Current date+time, today's date, Unix epoch seconds
+alias:safe now='date +"%Y-%m-%d %H:%M:%S"'
+alias:safe today='date +"%Y-%m-%d"'
+alias:safe epoch='date +%s'
+
+# ------------------------------ JSON / Data --------------------------------- #
+
+cmd:exists jq && alias:safe jqp='jq .'
+alias:safe json='python3 -m json.tool'
+
+# ------------------------------ Docker -------------------------------------- #
+
+cmd:exists docker && {
+  alias:safe d='docker'
+  alias dc='docker compose'         # deliberate shadow of /usr/bin/dc (RPN calculator)
+  alias:safe dps='docker ps'
+  alias:safe dpsa='docker ps -a'
+  alias:safe dimg='docker images'
+  alias:safe dprune='docker system prune -af'
+}
+
+# -------------------------------- Fun & Dumb -------------------------------- #
+
+# Polite / British
+alias:safe please='sudo '
+alias:safe pretty-please='sudo !!'
+alias:safe cheers='exit'
+alias:safe ta='exit'
+alias:safe gtfo='exit'
+alias:safe fucking='sudo '
+
+# Sci-Fi
+alias:safe engage='git push'
+alias:safe make-it-so='git commit -am'
+alias:safe boom='git push --force'
+
+# Onomatopoeia / action verbs
+alias:safe nuke='rm -rf'
+alias:safe yeet='git push'
+alias:safe summon='brew install'
+alias:safe banish='brew uninstall'
+alias:safe fix-everything='brew update && brew upgrade && brew cleanup'
+alias:safe omw='git push origin'
+alias:safe yolo='git push --force'
+alias:safe yolos='git push --force && say That was sneaky!'
+
+# Self-deprecating
+alias:safe oops='git reset --soft HEAD~1'
+alias:safe damnit='git reset --hard HEAD'
+alias:safe ughhh='git stash'
+alias:safe wtf='git status'
+alias:safe panic='git stash && git checkout main && git pull'
+
+# Encouraging
+alias:safe birth='touch'
+alias:safe kill-it='pkill -f'
 
 # ------------------------------ Editor & Config ----------------------------- #
 
-# Prefer neovim where available
+# Prefer neovim where available (deliberate shadows of vi/vim/nvim)
 if [[ ! -L "$(which "${EDITOR}")" ]]; then
   if cmd:exists nvim.appimage; then
     alias vi=nvim.appimage
@@ -190,36 +281,43 @@ if [[ ! -L "$(which "${EDITOR}")" ]]; then
   fi
 fi
 
-# Edit shell config (opens chezmoi source file)
-alias es='chezmoi edit ~/.zshrc'
-
-# Edit variables (opens chezmoi source file)
-alias ev='chezmoi edit ~/.exports'
+# Edit shell config / variables (chezmoi source files)
+alias:safe es='chezmoi edit ~/.zshrc'
+alias:safe ev='chezmoi edit ~/.exports'
 
 # Open editor in current directory
-alias e='$EDITOR .'
+alias:safe e='$EDITOR .'
 
 # ------------------------------------ Git ----------------------------------- #
 
-alias g="git"
-alias gs="git status"
-alias gca="git commit -a -m"
-alias gau="git remote add upstream"
-alias gaa="git add --all"
-alias gpl="git pull"
-alias gpu="git push"
-alias gps="git push && say You are awesome!"
-alias yolos="git push --force && say That was sneaky!"
-alias yolo="git push --force"
-alias gcl="git clone"
-alias glg="git log"
-alias gst="git shortlog -sn"
-alias gch="git checkout"
-alias gba="git branch -av"
-alias gsl="git stash list"
-alias gsc="git stash clear"
+alias:safe g="git"
+alias:safe gs="git status"
+alias:safe gca="git commit -a -m"
+alias:safe gau="git remote add upstream"
+alias:safe gaa="git add --all"
+alias:safe gpl="git pull"
+alias:safe gpu="git push"
+alias:safe gps="git push && say You are awesome!"
+alias:safe gcl="git clone"
+alias:safe glg="git log"
+alias:safe gst="git shortlog -sn"
+alias:safe gch="git checkout"
+alias:safe gba="git branch -av"
+alias:safe gsl="git stash list"
+alias:safe gsc="git stash clear"
+alias:safe gd='git diff'
+alias:safe gds='git diff --staged'
+alias:safe gco='git checkout'
+alias:safe gcb='git checkout -b'
+alias:safe gb='git branch'
+alias:safe gbd='git branch -d'
+alias:safe gun='git reset HEAD~1'
+alias:safe glo='git log --oneline --graph --decorate'
+alias:safe gwip='git add -A && git commit -m "wip"'
+alias:safe gclean='git clean -fd'
 
 # ------------------------------- Suffix alias ------------------------------- #
+# `alias -s` uses different syntax that alias:safe cannot wrap.
 
 alias -s go='$EDITOR'
 alias -s md='$EDITOR'
