@@ -19,6 +19,10 @@ export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
 {{ end -}}
 
+# ------------------------------------ AI ------------------------------------ #
+
+export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
+
 # ---------------------------- Proxy configuration --------------------------- #
 
 export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
@@ -77,7 +81,7 @@ export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 # ---------------------------------- History --------------------------------- #
 
 HISTSIZE={{ .history_size }}
-SAVEHIST={{ .history_size }}
+SAVEHIST=$HISTSIZE
 HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
 
 setopt HIST_IGNORE_DUPS       # skip consecutive duplicates
@@ -85,6 +89,16 @@ setopt HIST_IGNORE_SPACE      # skip commands starting with space
 setopt HIST_REDUCE_BLANKS     # trim superfluous whitespace
 setopt SHARE_HISTORY          # share history across sessions
 setopt APPEND_HISTORY         # append rather than overwrite
+
+# Commands matching this pattern are dropped from both the in-memory list
+# and $HISTFILE. HISTORY_IGNORE alone only filters the file write, leaving
+# entries visible in `history` until shell exit; the zshaddhistory hook
+# rejects them earlier so `history` never shows them.
+HISTORY_IGNORE='({{ .history_ignore | join "*|" }}*)'
+zshaddhistory() {
+  emulate -L zsh -o extended_glob
+  [[ "${1%$'\n'}" != ${~HISTORY_IGNORE} ]]
+}
 
 # ------------------------------ Pager & manuals ----------------------------- #
 
