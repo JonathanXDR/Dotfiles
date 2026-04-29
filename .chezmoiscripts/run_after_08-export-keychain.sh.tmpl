@@ -2,29 +2,35 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Re-export managed secrets from the login keychain to iCloud Drive after every apply.
+# Re-export managed secrets from the dotfiles keychain to iCloud Drive after every apply.
+# Tokens file format (tab-separated): id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 
 TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
+KEYCHAIN_NAME={{ .keychain_name | quote }}
+KEYCHAIN="$HOME/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
 
-[[ -f "$TOKENS_FILE" ]] || exit 0
+[[ -f "$TOKENS_FILE" && -f "$KEYCHAIN" ]] || exit 0
 
 tmpfile="$(mktemp)"
 trap 'rm -f "$tmpfile"' EXIT
 
-# Preserve header comments
 grep '^#' "$TOKENS_FILE" > "$tmpfile" 2>/dev/null || true
 
 changed=false
 
-while IFS=: read -r service account old_password; do
-  [[ -z "$service" || "$service" == \#* ]] && continue
+# Read each managed (id, account) pair, then pull live kind/comment/password
+# from the keychain (the source of truth) for the new tokens-file line.
+while IFS=$'\t' read -r id account _ _ _ old_password; do
+  [[ -z "$id" || "$id" == \#* ]] && continue
 
-  password="$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null)" || true
+  password="$(security find-generic-password -l "$id" -a "$account" -w "$KEYCHAIN" 2>/dev/null)" || true
   if [[ -n "$password" ]]; then
-    echo "$service:$account:$password" >> "$tmpfile"
+    raw="$(security find-generic-password -l "$id" -a "$account" "$KEYCHAIN" 2>&1)"
+    where="$(echo "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')"
+    kind="$(echo "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')"
+    comment="$(echo "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$account" "$where" "$kind" "$comment" "$password" >> "$tmpfile"
     [[ "$password" != "$old_password" ]] && changed=true
-  else
-    echo "$service:$account:$old_password" >> "$tmpfile"
   fi
 done < "$TOKENS_FILE"
 

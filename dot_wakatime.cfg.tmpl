@@ -1,7 +1,5 @@
-{{- $wakatime_key := includeTemplate "keychain" (list "wakatime" "api-key") }}
+{{- $wakatime_key := includeTemplate "keychain" (list "WakaTime" "jonathan" .keychain_name .keychain_lookup_field) }}
 {{- if ne $wakatime_key "" -}}
 [settings]
 api_key = {{ $wakatime_key }}
-{{- else -}}
-# WARNING: WakaTime API key not found in keychain. Run: secret:set wakatime api-key
 {{- end }}

@@ -2,25 +2,49 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Import tokens from iCloud Drive backup into the macOS login keychain.
+# Import tokens from iCloud Drive backup into the dedicated dotfiles keychain.
 # Runs once before templates render, ensuring keyring calls succeed on a fresh machine.
-# Token file format: service:account:password
+# Token file format (tab-separated): id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
+# `id` becomes Label (-l, the configured lookup field by default).
+# `where` becomes Service (-s) — typically the URL of the provider.
+# `-A` lets templates read transparently without per-app keychain confirmation.
 
 TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
+KEYCHAIN_NAME={{ .keychain_name | quote }}
+KEYCHAIN="$HOME/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
+KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+
+# Create the keychain if missing and add it to the user search list.
+# Empty password = inherit login session unlock state. Non-empty = master password.
+if [[ ! -f "$KEYCHAIN" ]]; then
+  security create-keychain -p "$KEYCHAIN_PASSWORD" "${KEYCHAIN%-db}" >/dev/null
+  security set-keychain-settings -lut 0 "$KEYCHAIN"
+  security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+  _log success "Created keychain: $KEYCHAIN"
+fi
+if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
+  current=$(security list-keychains -d user | tr -d '"' | xargs)
+  # shellcheck disable=SC2086  # intentional word splitting
+  security list-keychains -d user -s "$KEYCHAIN" $current
+  _log success "Added keychain to search list"
+fi
 
 if [[ ! -f "$TOKENS_FILE" ]]; then
   _log warning "Keychain tokens file not found: $TOKENS_FILE"
-  _log info "Skipping import — add tokens manually with: secret:set <service> <account>"
+  _log info "Skipping import. Add tokens manually with: secret:set <id> <account> <where> <kind> [comment]"
   exit 0
 fi
 
 _ensure_icloud "$TOKENS_FILE" || true
 
-while IFS=: read -r service account password; do
-  [[ -z "$service" || "$service" == \#* ]] && continue
-  if security add-generic-password -U -s "$service" -a "$account" -w "$password" 2>/dev/null; then
-    _log success "Imported: $service/$account"
+while IFS=$'\t' read -r id account where kind comment password; do
+  [[ -z "$id" || "$id" == \#* ]] && continue
+  flags=(-U -A -s "${where:-$id}" -a "$account" -l "$id" -w "$password")
+  [[ -n "$kind" ]] && flags+=(-D "$kind")
+  [[ -n "$comment" ]] && flags+=(-j "$comment")
+  if security add-generic-password "${flags[@]}" "$KEYCHAIN" 2>/dev/null; then
+    _log success "Imported: $id / $account"
   else
-    _log info "Updated: $service/$account"
+    _log info "Updated: $id / $account"
   fi
 done < "$TOKENS_FILE"

@@ -62,14 +62,30 @@ Shortcut aliases:
 
 ## 🔐 Managing Secrets
 
-Secrets are stored in the macOS login keychain and backed up to iCloud Drive.
+Secrets are stored in a dedicated **`dotfiles` keychain** (separate from `login`, visible as its own entry in Keychain Access) and backed up to iCloud Drive. The keychain is the source of truth; the iCloud tokens file mirrors it for fresh-machine bootstrap. The keychain is created on first `chezmoi apply` and inherits the login session's unlock state, so no extra password prompt.
 
 ```bash
-secret:set <service> <account>    # Add/update (prompts for password)
-secret:get <service> <account>    # Read from keychain
-secret:remove <service> <account> # Remove from keychain + iCloud
-secret:list                       # List all managed secrets
+secret:set <service-url> <account> <name> <kind> [comment]   # Add/update (prompts for password)
+secret:get <service-url> <account>                           # Read raw value to stdout
+secret:copy <service-url> <account>                          # Copy to clipboard, auto-clears in 30s
+secret:rename <old_service> <old_account> <new_service> <new_account> [new_name] [new_kind] [new_comment]
+                                                             # Move/relabel atomically
+secret:remove <service-url> <account>                        # Remove from keychain + iCloud
+secret:list                                                  # Sorted table of managed entries
+secret:check                                                 # Verify keychain matches the tokens file
 ```
+
+Each entry uses five native Keychain Access fields. The `(service-url, account)` pair is the unique lookup key:
+
+| Field        | Holds                                         |
+| ------------ | --------------------------------------------- |
+| **Where**    | URL of the provider (lookup key with Account) |
+| **Account**  | Identity at that provider                     |
+| **Name**     | Friendly brand name                           |
+| **Kind**     | Secret type (e.g. Personal Access Token)      |
+| **Comments** | Consumer (what reads this secret)             |
+
+Run `secret:list` to see the live keychain state; the table is the only place real values appear.
 
 > [!TIP]
 > After updating a secret, run `chezmoi apply` to re-render templates with the new value.
