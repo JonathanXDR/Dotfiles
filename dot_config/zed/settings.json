@@ -7,6 +7,77 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "show_signature_help_after_edits": true,
+  "auto_signature_help": true,
+  "diagnostics": {
+    "inline": {
+      "enabled": true
+    }
+  },
+  "git": {
+    "inline_blame": {
+      "show_commit_summary": true
+    }
+  },
+  "collaboration_panel": {
+    "dock": "left"
+  },
+  "agent": {
+    "dock": "right"
+  },
+  "git_panel": {
+    "show_count_badge": true,
+    "sort_by_path": true,
+    "file_icons": true,
+    "tree_view": true,
+    "collapse_untracked_diff": true
+  },
+  "outline_panel": {
+    "dock": "left"
+  },
+  "terminal": {
+    "toolbar": {
+      "breadcrumbs": true
+    },
+    "show_count_badge": true
+  },
+  "project_panel": {
+    "dock": "left",
+    "diagnostic_badges": true,
+    "git_status_indicator": true,
+    "bold_folder_labels": true
+  },
+  "use_system_window_tabs": true,
+  "tab_bar": {
+    "show_pinned_tabs_in_separate_row": true
+  },
+  "tabs": {
+    "show_close_button": "hover",
+    "close_position": "left",
+    "file_icons": true,
+    "git_status": true
+  },
+  "title_bar": {
+    "show_menus": true,
+    "show_branch_name": true,
+    "show_branch_status_icon": true
+  },
+  "inlay_hints": {
+    "show_background": true,
+    "enabled": true
+  },
+  "show_whitespaces": "all",
+  "indent_guides": {
+    "coloring": "indent_aware"
+  },
+  "tab_size": 2,
+  "toolbar": {
+    "code_actions": true
+  },
+  "diff_view_style": "unified",
+  "cursor_shape": "underline",
+  "restore_on_startup": "launchpad",
+  "cli_default_open_behavior": "new_window",
   "context_servers": {
     "mcp-server-notion": {
       "enabled": true,
@@ -85,10 +156,10 @@
   },
   "base_keymap": "VSCode",
   "ui_font_size": 16,
-  "buffer_font_size": 15,
+  "buffer_font_size": 12.0,
   "theme": {
     "mode": "system",
     "light": "GitHub Light",
-    "dark": "GitHub Dark",
-  },
+    "dark": "GitHub Dark"
+  }
 }
