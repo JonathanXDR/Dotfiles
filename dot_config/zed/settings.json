@@ -1,0 +1,165 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "show_signature_help_after_edits": true,
+  "auto_signature_help": true,
+  "diagnostics": {
+    "inline": {
+      "enabled": true
+    }
+  },
+  "git": {
+    "inline_blame": {
+      "show_commit_summary": true
+    }
+  },
+  "collaboration_panel": {
+    "dock": "left"
+  },
+  "agent": {
+    "dock": "right"
+  },
+  "git_panel": {
+    "show_count_badge": true,
+    "sort_by_path": true,
+    "file_icons": true,
+    "tree_view": true,
+    "collapse_untracked_diff": true
+  },
+  "outline_panel": {
+    "dock": "left"
+  },
+  "terminal": {
+    "toolbar": {
+      "breadcrumbs": true
+    },
+    "show_count_badge": true
+  },
+  "project_panel": {
+    "dock": "left",
+    "diagnostic_badges": true,
+    "git_status_indicator": true,
+    "bold_folder_labels": true
+  },
+  "use_system_window_tabs": true,
+  "tab_bar": {
+    "show_pinned_tabs_in_separate_row": true
+  },
+  "tabs": {
+    "show_close_button": "hover",
+    "close_position": "left",
+    "file_icons": true,
+    "git_status": true
+  },
+  "title_bar": {
+    "show_menus": true,
+    "show_branch_name": true,
+    "show_branch_status_icon": true
+  },
+  "inlay_hints": {
+    "show_background": true,
+    "enabled": true
+  },
+  "show_whitespaces": "all",
+  "indent_guides": {
+    "coloring": "indent_aware"
+  },
+  "tab_size": 2,
+  "toolbar": {
+    "code_actions": true
+  },
+  "diff_view_style": "unified",
+  "cursor_shape": "underline",
+  "restore_on_startup": "launchpad",
+  "cli_default_open_behavior": "new_window",
+  "context_servers": {
+    "mcp-server-notion": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "notion_token": ""
+      }
+    },
+    "mcp-server-firecrawl": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "firecrawl_api_key": ""
+      }
+    },
+    "mcp-server-supabase": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "supabase_access_token": "",
+        "read_only": false
+      }
+    },
+    "mcp-server-gitlab": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "gitlab_personal_access_token": "",
+        "gitlab_api_url": "https://code.swisscom.com/api/v4"
+      }
+    },
+    "mcp-server-figma": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "figma_api_key": ""
+      }
+    },
+    "mcp-server-github": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "github_personal_access_token": ""
+      }
+    },
+    "mcp-server-context7": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "context7_api_key": ""
+      }
+    }
+  },
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  },
+  "session": {
+    "trust_all_worktrees": true
+  },
+  "agent_servers": {
+    "github-copilot-cli": {
+      "type": "registry"
+    },
+    "codex-acp": {
+      "type": "registry"
+    },
+    "claude-acp": {
+      "type": "registry"
+    }
+  },
+  "icon_theme": {
+    "mode": "system",
+    "light": "Material Icon Theme",
+    "dark": "Material Icon Theme"
+  },
+  "base_keymap": "VSCode",
+  "ui_font_size": 16,
+  "buffer_font_size": 12.0,
+  "theme": {
+    "mode": "system",
+    "light": "GitHub Light",
+    "dark": "GitHub Dark"
+  }
+}
