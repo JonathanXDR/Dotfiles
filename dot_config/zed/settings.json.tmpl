@@ -83,21 +83,21 @@
       "enabled": true,
       "remote": false,
       "settings": {
-        "notion_token": ""
+        "notion_token": {{ includeTemplate "keychain" (list "Notion" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
       }
     },
     "mcp-server-firecrawl": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "firecrawl_api_key": ""
+        "firecrawl_api_key": {{ includeTemplate "keychain" (list "Firecrawl" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
       }
     },
     "mcp-server-supabase": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "supabase_access_token": "",
+        "supabase_access_token": {{ includeTemplate "keychain" (list "Supabase" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
         "read_only": false
       }
     },
@@ -105,7 +105,7 @@
       "enabled": true,
       "remote": false,
       "settings": {
-        "gitlab_personal_access_token": "",
+        "gitlab_personal_access_token": {{ includeTemplate "keychain" (list "GitLab" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
         "gitlab_api_url": "https://code.swisscom.com/api/v4"
       }
     },
@@ -113,21 +113,21 @@
       "enabled": true,
       "remote": false,
       "settings": {
-        "figma_api_key": ""
+        "figma_api_key": {{ includeTemplate "keychain" (list "Figma" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
       }
     },
     "mcp-server-github": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "github_personal_access_token": ""
+        "github_personal_access_token": {{ includeTemplate "keychain" (list "GitHub" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
       }
     },
     "mcp-server-context7": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "context7_api_key": ""
+        "context7_api_key": {{ includeTemplate "keychain" (list "Context7" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
       }
     }
   },
