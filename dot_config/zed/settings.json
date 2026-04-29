@@ -7,6 +7,59 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "context_servers": {
+    "mcp-server-notion": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "notion_token": ""
+      }
+    },
+    "mcp-server-firecrawl": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "firecrawl_api_key": ""
+      }
+    },
+    "mcp-server-supabase": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "supabase_access_token": "",
+        "read_only": false
+      }
+    },
+    "mcp-server-gitlab": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "gitlab_personal_access_token": "",
+        "gitlab_api_url": "https://code.swisscom.com/api/v4"
+      }
+    },
+    "mcp-server-figma": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "figma_api_key": ""
+      }
+    },
+    "mcp-server-github": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "github_personal_access_token": ""
+      }
+    },
+    "mcp-server-context7": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "context7_api_key": ""
+      }
+    }
+  },
   "telemetry": {
     "diagnostics": false,
     "metrics": false
@@ -27,15 +80,15 @@
   },
   "icon_theme": {
     "mode": "system",
-    "light": "Zed (Default)",
-    "dark": "Zed (Default)"
+    "light": "Material Icon Theme",
+    "dark": "Material Icon Theme"
   },
   "base_keymap": "VSCode",
   "ui_font_size": 16,
   "buffer_font_size": 15,
   "theme": {
     "mode": "system",
-    "light": "Ayu Light",
-    "dark": "Ayu Dark",
+    "light": "GitHub Light",
+    "dark": "GitHub Dark",
   },
 }
