@@ -595,141 +595,292 @@ ssh:agent() {
 }
 
 # --------------------------------- Secrets ---------------------------------- #
+#
+# The macOS login keychain is the source of truth for all managed secrets.
+# The tokens file on iCloud Drive (`$SECRETS_TOKENS_FILE`) mirrors the keychain
+# in plain text so a fresh machine can re-import everything in one shot.
+# Format: service:account:password (one per line, # comments allowed)
+#
+# Conventions for new entries:
+#   service = the "Where" field (provider brand, e.g. GitHub, WakaTime)
+#   account = the consumer (e.g. Zed) or the user identity (e.g. $USER)
+#   label   = the secret type (e.g. personal_access_token, api_key)
+#
+# ---------------------------------------------------------------------------- #
 
-# Tokens file on iCloud Drive, backup of login keychain secrets.
-# The keychain is the source of truth; this file mirrors it for new-machine setup.
 _SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE}"
+_SECRETS_KEYCHAIN="$HOME/Library/Keychains/${SECRETS_KEYCHAIN_NAME:-dotfiles}.keychain-db"
 
-_secrets:write-header() {
-  echo "# service:account:password" > "$1"
-  echo "# Managed by secret:set. Import into macOS login keychain on new machines" >> "$1"
+# Map the configured lookup field to the matching `security` flag.
+typeset -gA _SECRETS_FLAG_MAP=(name -l where -s kind -D comment -j)
+_SECRETS_LOOKUP_FLAG="${_SECRETS_FLAG_MAP[${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}]:--l}"
+
+# Create the managed keychain if missing and add it to the user search list.
+# Empty SECRETS_KEYCHAIN_PASSWORD means the keychain inherits the login session
+# unlock state — no extra prompt during use. A non-empty value sets a master
+# password that must be supplied to unlock.
+_secrets:ensure-keychain() {
+  if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
+    local pw="${SECRETS_KEYCHAIN_PASSWORD:-}"
+    security create-keychain -p "$pw" "${_SECRETS_KEYCHAIN%-db}" >/dev/null
+    security set-keychain-settings -lut 0 "$_SECRETS_KEYCHAIN"
+    security unlock-keychain -p "$pw" "$_SECRETS_KEYCHAIN"
+  fi
+  if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$_SECRETS_KEYCHAIN"; then
+    local -a paths=( ${(@f)"$(security list-keychains -d user | tr -d '"' | xargs -n1)"} )
+    security list-keychains -d user -s "$_SECRETS_KEYCHAIN" "${paths[@]}"
+  fi
 }
 
-# Add or update a secret in the login keychain, then export to iCloud Drive.
-# Usage: secret:set <service> <account>
-# The password is read interactively (never in shell history).
-secret:set() {
-  if [[ $# -ne 2 ]]; then
-    echo "Usage: secret:set <service> <account>" >&2
-    return 1
-  fi
-  local service="$1" account="$2" password
+_secrets:write-header() {
+  printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secret:set. Import into the dotfiles keychain on new machines\n' > "$1"
+}
 
-  printf "Password for %s/%s: " "$service" "$account"
-  read -rs password
-  echo
+# Ensure the tokens file exists with a header. Idempotent.
+_secrets:ensure-tokens-file() {
+  [[ -d "${_SECRETS_TOKENS_FILE:h}" ]] || mkdir -p "${_SECRETS_TOKENS_FILE:h}"
+  [[ -f "$_SECRETS_TOKENS_FILE" ]] || _secrets:write-header "$_SECRETS_TOKENS_FILE"
+}
 
-  if [[ -z "$password" ]]; then
-    log error "Password cannot be empty."
-    return 1
-  fi
+# Stream "service<TAB>account" lines for each managed entry (skips # and blanks).
+_secrets:each() {
+  [[ -f "$_SECRETS_TOKENS_FILE" ]] || return 0
+  awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$_SECRETS_TOKENS_FILE"
+}
 
-  if security add-generic-password -U -s "$service" -a "$account" -w "$password"; then
-    log success "Keychain updated: $service/$account"
-  else
+# Print the keychain "Name" attribute (the macOS Label / -l field).
+_secrets:name() {
+  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
+    | sed -nE 's/^[[:space:]]*0x00000007 <blob>="([^"]*)".*$/\1/p'
+}
+
+# Print the keychain "Where" attribute (the macOS Service / -s field).
+_secrets:where() {
+  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
+    | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p'
+}
+
+# Print the keychain "Kind" attribute (the macOS "desc" / -D field).
+_secrets:kind() {
+  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
+    | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p'
+}
+
+# Print the keychain "Comments" attribute (the macOS "icmt" / -j field).
+_secrets:comment() {
+  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
+    | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p'
+}
+
+# Print the password of a managed secret. Empty stdout + non-zero on miss.
+_secrets:password() {
+  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" -w "$_SECRETS_KEYCHAIN" 2>/dev/null
+}
+
+# Write a secret to the dotfiles keychain and register it in the tokens file.
+# `id` populates the Label (-l, lookup key in default mode); `where` populates
+# the Service (-s, the URL or other "where" metadata). The -A flag allows
+# transparent reads from any application — required for chezmoi templates
+# during apply, which would otherwise prompt for keychain confirmation.
+# Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
+_secrets:install() {
+  local id="$1" acct="$2" where="$3" kind="$4" password="$5" comment="${6:-}"
+  _secrets:ensure-keychain
+  local -a flags=(-U -A -s "$where" -a "$acct" -l "$id" -D "$kind" -w "$password" "$_SECRETS_KEYCHAIN")
+  [[ -n "$comment" ]] && flags=( -j "$comment" "${flags[@]}" )
+  if ! security add-generic-password "${flags[@]}"; then
     log error "Failed to update keychain."
     return 1
   fi
+  _secrets:ensure-tokens-file
+  grep -qF -- "${id}"$'\t'"${acct}"$'\t' "$_SECRETS_TOKENS_FILE" 2>/dev/null \
+    || print -r -- "${id}"$'\t'"${acct}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"placeholder" >> "$_SECRETS_TOKENS_FILE"
+}
 
-  # Ensure the entry exists in the tokens file so secret:export picks it up
-  local tokens_dir
-  tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
-  [[ -d "$tokens_dir" ]] || mkdir -p "$tokens_dir"
-  if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    _secrets:write-header "$_SECRETS_TOKENS_FILE"
-  fi
-  if ! grep -qF "${service}:${account}:" "$_SECRETS_TOKENS_FILE" 2>/dev/null; then
-    echo "$service:$account:placeholder" >> "$_SECRETS_TOKENS_FILE"
+# Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
+# Password is read interactively; never echoed or stored in shell history.
+# Refuses to create a duplicate (id, account) pair — uniqueness is enforced
+# manually on the Label field since macOS only enforces it on Service.
+# Usage: secret:set <id> <account> <where> <kind> [comment]
+secret:set() {
+  (( $# >= 4 && $# <= 5 )) || { echo "Usage: secret:set <id> <account> <where> <kind> [comment]" >&2; return 1; }
+  local id="$1" account="$2" where="$3" kind="$4" comment="${5:-}" password
+
+  if _secrets:password "$id" "$account" >/dev/null 2>&1; then
+    log error "Already exists: $id / $account (use secret:rename to update)"
+    return 1
   fi
 
+  printf "Password for %s/%s: " "$id" "$account"
+  read -rs password
+  echo
+  [[ -n "$password" ]] || { log error "Password cannot be empty."; return 1; }
+
+  _secrets:install "$id" "$account" "$where" "$kind" "$password" "$comment" || return 1
+  log success "Keychain updated: $id / $account ($kind)"
   secret:export
 }
 
 # Read a secret from the login keychain.
 # Usage: secret:get <service> <account>
 secret:get() {
-  if [[ $# -ne 2 ]]; then
-    echo "Usage: secret:get <service> <account>" >&2
-    return 1
-  fi
-  security find-generic-password -s "$1" -a "$2" -w 2>/dev/null \
-    || { log error "Not found: $1/$2"; return 1; }
+  (( $# == 2 )) || { echo "Usage: secret:get <service> <account>" >&2; return 1; }
+  _secrets:password "$1" "$2" || { log error "Not found: $1 / $2"; return 1; }
 }
 
-# Remove a secret from the login keychain, then export to iCloud Drive.
+# Copy a secret to the macOS clipboard with auto-clear after TTL (default 30s).
+# The clipboard is only cleared if it still holds the same value, so anything
+# the user copies in the meantime is preserved. Override via SECRETS_CLIPBOARD_TTL.
+# Usage: secret:copy <service> <account>
+secret:copy() {
+  (( $# == 2 )) || { echo "Usage: secret:copy <service> <account>" >&2; return 1; }
+  local password snapshot ttl="${SECRETS_CLIPBOARD_TTL:-30}"
+
+  password="$(_secrets:password "$1" "$2")" \
+    || { log error "Not found: $1 / $2"; return 1; }
+
+  printf '%s' "$password" | pbcopy
+  snapshot=$(printf '%s' "$password" | shasum -a 256 | awk '{print $1}')
+  unset password
+
+  ( sleep "$ttl"
+    [[ "$(pbpaste 2>/dev/null | shasum -a 256 | awk '{print $1}')" == "$snapshot" ]] \
+      && printf '' | pbcopy
+  ) &!
+
+  log success "Copied $1 / $2 to clipboard. Auto-clears in ${ttl}s."
+}
+
+# Remove a secret from the login keychain, then sync to iCloud Drive.
 # Usage: secret:remove <service> <account>
 secret:remove() {
-  if [[ $# -ne 2 ]]; then
-    echo "Usage: secret:remove <service> <account>" >&2
-    return 1
-  fi
-  local service="$1" account="$2"
-
-  if security delete-generic-password -s "$service" -a "$account" 2>/dev/null; then
-    log success "Removed from keychain: $service/$account"
+  (( $# == 2 )) || { echo "Usage: secret:remove <service> <account>" >&2; return 1; }
+  if security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log success "Removed from keychain: $1 / $2"
   else
-    log warning "Not found in keychain: $service/$account"
+    log warning "Not found in keychain: $1 / $2"
   fi
-
   secret:export
 }
 
-# List all managed secrets (service/account pairs, no passwords).
+# Move and/or update a managed secret. Source must exist; target (when
+# different) must not, to prevent silent overwrites. Omit any of where/kind/
+# comment to preserve current values.
+# Usage: secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
+secret:rename() {
+  (( $# >= 4 && $# <= 7 )) || {
+    echo "Usage: secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]" >&2
+    return 1
+  }
+  local old_id="$1" old_acct="$2" new_id="$3" new_acct="$4" password new_where new_kind new_comment
+  local same_pair=0
+  [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_pair=1
+
+  password="$(_secrets:password "$old_id" "$old_acct")" \
+    || { log error "Not found: $old_id / $old_acct"; return 1; }
+
+  if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
+    log error "Target already exists: $new_id / $new_acct"
+    return 1
+  fi
+
+  new_where="${5:-$(_secrets:where "$old_id" "$old_acct")}"
+  new_kind="${6:-$(_secrets:kind "$old_id" "$old_acct")}"
+  [[ -n "$new_kind" ]] || new_kind="$new_id"
+  new_comment="${7:-$(_secrets:comment "$old_id" "$old_acct")}"
+
+  _secrets:install "$new_id" "$new_acct" "$new_where" "$new_kind" "$password" "$new_comment" || return 1
+  (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
+
+  log success "Renamed: $old_id / $old_acct -> $new_id / $new_acct ($new_kind)"
+  secret:export
+}
+
+# List managed secrets as a sorted table (Name / Account / Kind / Used by / Where).
+# Reads (service, account) pairs from the tokens file and queries the keychain
+# for live Name/Kind/Comments, so output reflects live keychain state.
 secret:list() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
     log warning "Tokens file not found: $_SECRETS_TOKENS_FILE"
     return 1
   fi
-  echo "Managed secrets (from tokens file):"
-  local service account
-  while IFS=: read -r service account _; do
-    [[ -z "$service" || "$service" == \#* ]] && continue
-    echo "  $service / $account"
-  done < "$_SECRETS_TOKENS_FILE"
+
+  {
+    print -r -- $'ID\tACCOUNT\tKIND\tUSED BY\tWHERE'
+    local id account where kind comment
+    while IFS=$'\t' read -r id account; do
+      where="$(_secrets:where "$id" "$account")"
+      kind="$(_secrets:kind "$id" "$account")"
+      comment="$(_secrets:comment "$id" "$account")"
+      print -r -- "$id"$'\t'"$account"$'\t'"${kind:-(none)}"$'\t'"${comment:-(none)}"$'\t'"${where:-(none)}"
+    done < <(_secrets:each) | sort -f
+  } | column -t -s $'\t'
 }
 
-# Export all managed secrets from the login keychain to the iCloud Drive tokens file.
-# Reads the current tokens file for the list of service:account pairs,
-# fetches fresh passwords from the keychain, and rewrites the file.
-secret:export() {
-  local tokens_dir
-  tokens_dir="$(dirname "$_SECRETS_TOKENS_FILE")"
-
-  if [[ ! -d "$tokens_dir" ]]; then
-    mkdir -p "$tokens_dir" || { log error "Cannot create: $tokens_dir"; return 1; }
-  fi
-
+# Compare tokens-file passwords vs the live keychain. Reports drift, missing,
+# and placeholder entries as a sorted table. Exits non-zero if any drift exists.
+secret:check() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "No tokens file yet, creating empty: $_SECRETS_TOKENS_FILE"
-    _secrets:write-header "$_SECRETS_TOKENS_FILE"
+    log warning "Tokens file not found: $_SECRETS_TOKENS_FILE"
+    return 1
   fi
 
-  local tmpfile entries=()
-  local service account password entry
+  local id acct where kind comment file_pw kc_pw state total=0 drift=0
+  local -a rows
 
-  # Collect existing service:account pairs
-  while IFS=: read -r service account _; do
-    [[ -z "$service" || "$service" == \#* ]] && continue
-    entries+=("$service:$account")
+  while IFS=$'\t' read -r id acct where kind comment file_pw; do
+    [[ -z "$id" || "$id" == \#* ]] && continue
+    (( ++total ))
+    kc_pw="$(_secrets:password "$id" "$acct")" || kc_pw=""
+    if [[ -z "$kc_pw" ]]; then
+      state="missing";     (( ++drift ))
+    elif [[ "$file_pw" == placeholder ]]; then
+      state="placeholder"; (( ++drift ))
+    elif [[ "$file_pw" != "$kc_pw" ]]; then
+      state="drift";       (( ++drift ))
+    else
+      state="ok"
+    fi
+    rows+=("$state"$'\t'"$id"$'\t'"$acct")
   done < "$_SECRETS_TOKENS_FILE"
 
-  # Rewrite the file with fresh passwords from the keychain
-  tmpfile="$(mktemp)"
-  trap 'rm -f "$tmpfile"' EXIT
-  _secrets:write-header "$tmpfile"
-  for entry in "${entries[@]}"; do
-    service="${entry%%:*}"
-    account="${entry#*:}"
-    password="$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null)" || true
-    if [[ -n "$password" ]]; then
-      echo "$service:$account:$password" >> "$tmpfile"
-    else
-      log warning "Skipping (not in keychain): $service/$account"
-    fi
-  done
+  {
+    print -r -- $'STATUS\tID\tACCOUNT'
+    print -lr -- "${rows[@]}" | LC_ALL=C sort
+  } | column -t -s $'\t'
 
-  mv "$tmpfile" "$_SECRETS_TOKENS_FILE"
-  log success "Exported ${#entries[@]} secret(s) to iCloud Drive."
+  if (( drift > 0 )); then
+    log warning "$drift / $total entries need attention. Run secret:export to sync."
+    return 1
+  fi
+  log success "$total / $total entries in sync."
+}
+
+# Atomically rewrite the iCloud tokens file from current keychain values.
+secret:export() {
+  _secrets:ensure-tokens-file
+
+  local tmp id account where kind comment password count=0
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+
+  _secrets:write-header "$tmp"
+  while IFS=$'\t' read -r id account; do
+    password="$(_secrets:password "$id" "$account")" || true
+    if [[ -n "$password" ]]; then
+      where="$(_secrets:where "$id" "$account")"
+      kind="$(_secrets:kind "$id" "$account")"
+      comment="$(_secrets:comment "$id" "$account")"
+      print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
+      (( ++count ))
+    else
+      log warning "Skipping (not in keychain): $id / $account"
+    fi
+  done < <(_secrets:each)
+
+  mv "$tmp" "$_SECRETS_TOKENS_FILE"
+  trap - EXIT
+  log success "Exported $count secret(s) to iCloud Drive."
 }
 
 # ----------------------- macOS System Tweaks & Utilities -------------------- #
