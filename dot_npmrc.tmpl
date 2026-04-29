@@ -1,16 +1,14 @@
 registry=https://registry.npmjs.org/
-{{- $npm_token := includeTemplate "keychain" (list "registry.npmjs.org" "npm") }}
+{{- $npm_token := includeTemplate "keychain" (list "npm" "jonathan" .keychain_name .keychain_lookup_field) }}
 {{- if ne $npm_token "" }}
 //registry.npmjs.org/:_authToken={{ $npm_token }}
-{{- else }}
-# WARNING: npm token not found in keychain. Run: secret:set registry.npmjs.org npm
 {{- end }}
 {{- if eq .machine_type "work" }}
-{{- $swisscom := includeTemplate "keychain" (list "bin.swisscom.com" "swisscom-npm") }}
+{{- $swisscom := includeTemplate "keychain" (list "JFrog Artifactory (General)" "taarujo6" .keychain_name .keychain_lookup_field) }}
 {{- if ne $swisscom "" }}
 //bin.swisscom.com/artifactory/api/npm/:_authToken={{ $swisscom }}
 {{- end }}
-{{- $apps := includeTemplate "keychain" (list "bin.swisscom.com" "apps-team-npm") }}
+{{- $apps := includeTemplate "keychain" (list "JFrog Artifactory (Apps Team)" "taarujo6" .keychain_name .keychain_lookup_field) }}
 {{- if ne $apps "" }}
 //bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ $apps }}
 {{- end }}

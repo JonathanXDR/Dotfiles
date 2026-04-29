@@ -36,7 +36,7 @@ export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
 # ----------------------------------- Auth ----------------------------------- #
 
 {{ if eq .machine_type "work" -}}
-{{- $ntlm := includeTemplate "keychain" (list "ntlm" "credentials") }}
+{{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) }}
 export NTLM_CREDENTIALS={{ $ntlm | quote }}
 {{ else -}}
 export NTLM_CREDENTIALS=""
@@ -115,6 +115,11 @@ export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
 
 # Secrets tokens file path (used by secret:* functions)
 export SECRETS_TOKENS_FILE={{ joinPath .icloud_secrets ".keychain/tokens" | quote }}
+
+# Dedicated keychain for managed secrets (configured via .chezmoidata.toml).
+export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
+export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
+export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
 
 # Cisco VPN binary (used by vpn:* functions)
 export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}

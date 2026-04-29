@@ -19,3 +19,12 @@ trash_skip = ["node_modules"]
 
 # Cisco VPN binary (used by vpn:* functions)
 cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
+
+# Dedicated keychain for managed secrets (separate from the user's login keychain).
+# `keychain_name` becomes ~/Library/Keychains/<name>.keychain-db.
+# `keychain_lookup_field` is which keychain attribute the template helper queries
+# by; one of: name (Label / -l), where (Service / -s), kind (Description / -D),
+# comment (Comments / -j). The user-facing identifier passed to secret:* functions
+# and to `includeTemplate "keychain"` is interpreted as this field.
+keychain_name = "dotfiles"
+keychain_lookup_field = "name"

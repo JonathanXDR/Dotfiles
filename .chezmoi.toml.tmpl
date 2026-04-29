@@ -69,6 +69,12 @@
 {{-   end -}}
 {{- end -}}
 
+{{- /* Master password for the dotfiles keychain. Empty = no password (keychain
+       inherits the login session's unlock state, no extra prompt during use).
+       Non-empty = keychain is locked by default; user must enter this password
+       to unlock for each session. Cached in chezmoi.toml after first init. */ -}}
+{{- $keychain_password := promptStringOnce $ "keychain_password" "Master password for the dotfiles keychain (leave empty for no password)" "" -}}
+
 sourceDir = {{ .chezmoi.sourceDir | quote }}
 mode = "symlink"
 
@@ -93,6 +99,9 @@ mode = "symlink"
   ssl_bundle_remote_certs = {{ index $config "ssl_bundle_remote_certs" | quote }}
   enterprise_domain = {{ index $config "enterprise_domain" | quote }}
   forgeops_path = {{ index $config "forgeops_path" | quote }}
+
+  # Master password for the dotfiles keychain (empty = no password / login session unlock).
+  keychain_password = {{ $keychain_password | quote }}
 
 [scriptEnv]
   HOMEBREW_NO_AUTO_UPDATE = "1"

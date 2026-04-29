@@ -236,10 +236,10 @@ The `.chezmoi.toml.tmpl` also configures chezmoi behavior beyond template data:
 
 iCloud Drive stores two categories of data: **secrets** (keychain backup) and **non-secret config** (`config.toml`).
 
-Secrets are read from the macOS Login Keychain at apply time via the `keychain` template helper and rendered into target files.
+Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.keychain-db`), separate from the user's `login` keychain so dotfile-managed entries don't clutter Wi-Fi/Safari/AirDrop entries. The dotfiles keychain is created on first apply with an empty unlock password, so it inherits the login session's unlock state — no extra prompt. Templates read from this keychain at apply time via the `keychain` template helper.
 
 > [!IMPORTANT]
-> The macOS Keychain is the source of truth. The iCloud tokens file is a one-way backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add or update. Never edit the iCloud tokens file directly.
+> The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add or update. Never edit the iCloud tokens file directly.
 
 ```text
 ┌───────────────────────────────────────────────────────────┐
@@ -251,8 +251,8 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
                              │  script 02 (import on fresh mac)
                              v
 ┌───────────────────────────────────────────────────────────┐
-│ macOS Login Keychain                                      │
-│ (source of truth)                                         │
+│ macOS dotfiles keychain                                   │
+│ (source of truth, separate from login keychain)           │
 │                                                           │
 └────────────────────────────┬──────────────────────────────┘
                              │
@@ -275,25 +275,42 @@ Secrets are read from the macOS Login Keychain at apply time via the `keychain` 
 
 **How it works:**
 
-1. **Keychain is the source of truth for secrets.** Templates read secrets via `includeTemplate "keychain" (list "<service>" "<account>")`, which wraps `security find-generic-password` with graceful fallback to empty string.
-2. **iCloud Drive is the backup.** Script `02` imports tokens from iCloud into the keychain on a fresh machine. Script `08` exports keychain entries back to iCloud after every apply.
-3. **Shell functions** (`secret:set`, `secret:get`, `secret:remove`, `secret:list`, `secret:export`) manage the keychain/iCloud lifecycle interactively.
+1. **The dotfiles keychain is the source of truth for secrets.** Templates read secrets via `includeTemplate "keychain" (list "<service-url>" "<account>")`, which wraps `security find-generic-password ... ~/Library/Keychains/dotfiles.keychain-db` with graceful fallback to empty string.
+2. **iCloud Drive is the backup.** Script `02` creates the dotfiles keychain on a fresh machine and imports tokens from iCloud into it. Script `08` re-exports keychain entries back to iCloud after every apply.
+3. **Shell functions** in `dot_functions` cover the full lifecycle:
+   - `secret:set <service-url> <account> <name> <kind> [comment]` to add or update (prompts for password)
+   - `secret:get`, `secret:copy` to read (stdout / clipboard with auto-clear)
+   - `secret:rename` to move or change name/kind/comment atomically
+   - `secret:remove` to delete (and re-sync iCloud)
+   - `secret:list` for the sorted Name / Account / Kind / Used by / Where table
+   - `secret:check` to verify keychain matches the tokens file
+   - `secret:export` rebuilds the tokens file (auto-runs via script `08`)
 
 > [!NOTE]
 > **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?**
 > The `keyring` function panics when a key is missing. The `keychain` helper wraps `security find-generic-password ... || true` via `includeTemplate`, which degrades gracefully to an empty string. Templates can then render a warning comment instead of failing.
 
-**All managed secrets:**
+**Naming convention.** Each managed entry uses five native macOS keychain fields:
 
-| Template                            | Keychain service     | Keychain account | Condition |
-| ----------------------------------- | -------------------- | ---------------- | --------- |
-| `dot_npmrc.tmpl`                    | `registry.npmjs.org` | `npm`            | Always    |
-| `dot_npmrc.tmpl`                    | `bin.swisscom.com`   | `swisscom-npm`   | Work only |
-| `dot_npmrc.tmpl`                    | `bin.swisscom.com`   | `apps-team-npm`  | Work only |
-| `dot_exports.tmpl`                  | `ntlm`               | `credentials`    | Work only |
-| `dot_wakatime.cfg.tmpl`             | `wakatime`           | `api-key`        | Always    |
-| `dot_config/zed/settings.json.tmpl` | `context7`           | `api-key`        | Always    |
-| `dot_config/zed/settings.json.tmpl` | `github.com`         | `zed-pat`        | Always    |
+- **Where** (`-s` / Service) — the URL of the provider; primary lookup key together with Account.
+- **Account** (`-a`) — the identity at that provider.
+- **Name** (`-l` / Label) — the friendly brand name (what Keychain Access shows as the entry title).
+- **Kind** (`-D` / `desc` attribute) — the secret type, in Apple-style title case.
+- **Comments** (`-j` / `icmt` attribute) — the consumer (what reads this secret).
+
+The iCloud tokens file mirrors all five fields plus the password as tab-separated columns: `service<TAB>account<TAB>name<TAB>kind<TAB>comment<TAB>password`. Tabs are used (not colons) because Where values contain `://`.
+
+**Templates that read secrets:**
+
+| Template                            | What it reads                           | Condition |
+| ----------------------------------- | --------------------------------------- | --------- |
+| `dot_npmrc.tmpl`                    | npm registry token                      | Always    |
+| `dot_npmrc.tmpl`                    | corporate Artifactory tokens            | Work only |
+| `dot_exports.tmpl`                  | NTLM proxy credentials                  | Work only |
+| `dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
+| `dot_config/zed/settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
+
+For the live values (Where / Account / Name / Kind / Used by), run `secret:list`.
 
 ### Machine-Type Branching
 
@@ -367,24 +384,26 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 
 ## 🗺️ Entry Points
 
-| What you want to do                  | Start here                                                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| Understand shell startup             | `dot_zshrc`                                                                               |
-| Add an environment variable          | `dot_exports.tmpl`                                                                        |
-| Add a shell function                 | `dot_functions`                                                                           |
-| Add a command shortcut               | `dot_aliases`                                                                             |
-| Change a shared default              | `.chezmoidata.toml`                                                                       |
-| Add a user-prompted value            | `.chezmoi.toml.tmpl`                                                                      |
-| Add machine-type config (non-secret) | `config.toml` on iCloud Drive                                                             |
-| Add a Homebrew package               | `Brewfile.personal` or `Brewfile.swisscom`                                                |
-| Add a global npm package             | `dot_npm.globals`                                                                         |
-| Add a managed secret                 | `secret:set <service> <account>`, then use `includeTemplate "keychain"` in a `.tmpl` file |
-| Manage `/etc/hosts` entries          | `dot_config/hosts.tmpl`                                                                   |
-| Symlink a new dir to iCloud          | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                   |
-| Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                    |
-| Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                         |
-| Debug proxy daemon                   | `proxyd:status`, `proxyd:log`, or `proxyd:log 1h`                                         |
-| Reload proxy daemon                  | `proxyd:reload`                                                                           |
+| What you want to do                  | Start here                                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Understand shell startup             | `dot_zshrc`                                                                             |
+| Add an environment variable          | `dot_exports.tmpl`                                                                      |
+| Add a shell function                 | `dot_functions`                                                                         |
+| Add a command shortcut               | `dot_aliases`                                                                           |
+| Change a shared default              | `.chezmoidata.toml`                                                                     |
+| Add a user-prompted value            | `.chezmoi.toml.tmpl`                                                                    |
+| Add machine-type config (non-secret) | `config.toml` on iCloud Drive                                                           |
+| Add a Homebrew package               | `Brewfile.personal` or `Brewfile.swisscom`                                              |
+| Add a global npm package             | `dot_npm.globals`                                                                       |
+| Add a managed secret                 | `secret:set <url> <account> <name> <kind> [comment]` then `includeTemplate "keychain"`  |
+| Rename or update a secret            | `secret:rename <old_url> <old_a> <new_url> <new_a> [name] [kind] [comment]`             |
+| Inspect or audit secrets             | `secret:list` (table view), `secret:check` (drift detection), `secret:copy` (clipboard) |
+| Manage `/etc/hosts` entries          | `dot_config/hosts.tmpl`                                                                 |
+| Symlink a new dir to iCloud          | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                 |
+| Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                  |
+| Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                       |
+| Debug proxy daemon                   | `proxyd:status`, `proxyd:log`, or `proxyd:log 1h`                                       |
+| Reload proxy daemon                  | `proxyd:reload`                                                                         |
 
 ## 💡 Design Decisions
 
@@ -392,7 +411,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                                                                                                                                        |
 | **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                                                        |
-| **macOS Keychain over `.env` files**                          | Secrets never exist in plaintext inside the repo. FileVault protects rendered files at rest.                                                                                                                                                                                                        |
+| **Dedicated dotfiles keychain over login keychain**           | Visual isolation in Keychain Access (own sidebar entry), so managed entries don't mix with Safari/Wi-Fi. Empty unlock password ties it to the login session for identical UX. Secrets never exist in plaintext in the repo; FileVault covers rendered files at rest.                                |
 | **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo.                                                                                                                |
 | **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                                                                                                                                  |
 | **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                                                                                                                                    |
