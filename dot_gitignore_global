@@ -156,6 +156,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# ---- Zed ----
+.zed/*
+!.zed/settings.json
+!.zed/tasks.json
+!.zed/debug.json
+
 # ---- macOS ----
 # General
 .DS_Store
