@@ -655,10 +655,12 @@ _secrets:write-header() {
   printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secret:set. Import into the dotfiles keychain on new machines\n' > "$1"
 }
 
-# Ensure the tokens file exists with a header. Idempotent.
+# Ensure the tokens file exists with a header and user-only permissions.
+# Idempotent: re-running fixes drift in either step without clobbering content.
 _secrets:ensure-tokens-file() {
   [[ -d "${_SECRETS_TOKENS_FILE:h}" ]] || mkdir -p "${_SECRETS_TOKENS_FILE:h}"
   [[ -f "$_SECRETS_TOKENS_FILE" ]] || _secrets:write-header "$_SECRETS_TOKENS_FILE"
+  chmod 600 "$_SECRETS_TOKENS_FILE"
 }
 
 # Stream "service<TAB>account" lines for each managed entry (skips # and blanks).
