@@ -36,5 +36,5 @@ done < "$TOKENS_FILE"
 
 if [[ "$changed" == true ]]; then
   mv "$tmpfile" "$TOKENS_FILE"
-  _log success "Keychain -> iCloud Drive: tokens file updated."
+  _log success "Updated tokens file (keychain → iCloud Drive)"
 fi

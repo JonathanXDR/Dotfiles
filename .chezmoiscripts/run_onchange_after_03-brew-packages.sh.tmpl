@@ -15,12 +15,12 @@ _ensure_brew
 BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
 
 if [[ -f "$BREWFILE" ]]; then
-  _log info "Installing Homebrew packages from $BREWFILE..."
+  _log info "Installing Homebrew packages from $BREWFILE…"
   if brew bundle --file="$BREWFILE"; then
-    _log success "Homebrew packages installed."
+    _log success "Installed Homebrew packages"
   else
-    _log warning "Some Homebrew packages failed to install (see above)."
+    _log warning "Failed to install some Homebrew packages (see above)"
   fi
 else
-  _log error "Brewfile not found: $BREWFILE"
+  _log error "Missing Brewfile ($BREWFILE)"
 fi
