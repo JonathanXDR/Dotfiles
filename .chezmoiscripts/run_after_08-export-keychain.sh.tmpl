@@ -24,14 +24,14 @@ while IFS=$'\t' read -r id account _ _ _ old_password; do
   [[ -z "$id" || "$id" == \#* ]] && continue
 
   password="$(security find-generic-password -l "$id" -a "$account" -w "$KEYCHAIN" 2>/dev/null)" || true
-  if [[ -n "$password" ]]; then
-    raw="$(security find-generic-password -l "$id" -a "$account" "$KEYCHAIN" 2>&1)"
-    where="$(echo "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')"
-    kind="$(echo "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')"
-    comment="$(echo "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')"
-    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$account" "$where" "$kind" "$comment" "$password" >> "$tmpfile"
-    [[ "$password" != "$old_password" ]] && changed=true
-  fi
+  [[ -z "$password" ]] && continue
+
+  raw="$(security find-generic-password -l "$id" -a "$account" "$KEYCHAIN" 2>&1)"
+  where=$(  printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')
+  kind=$(   printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')
+  comment=$(printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$account" "$where" "$kind" "$comment" "$password" >> "$tmpfile"
+  [[ "$password" != "$old_password" ]] && changed=true
 done < "$TOKENS_FILE"
 
 if [[ "$changed" == true ]]; then

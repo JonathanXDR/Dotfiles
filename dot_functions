@@ -667,28 +667,16 @@ _secrets:each() {
   awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$_SECRETS_TOKENS_FILE"
 }
 
-# Print the keychain "Name" attribute (the macOS Label / -l field).
-_secrets:name() {
-  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
-    | sed -nE 's/^[[:space:]]*0x00000007 <blob>="([^"]*)".*$/\1/p'
-}
-
-# Print the keychain "Where" attribute (the macOS Service / -s field).
-_secrets:where() {
-  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
-    | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p'
-}
-
-# Print the keychain "Kind" attribute (the macOS "desc" / -D field).
-_secrets:kind() {
-  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
-    | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p'
-}
-
-# Print the keychain "Comments" attribute (the macOS "icmt" / -j field).
-_secrets:comment() {
-  security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1 \
-    | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p'
+# Read the keychain attrs (Where, Kind, Comments) for a managed secret with one
+# `security` call. Emits a single tab-separated line "<where>\t<kind>\t<comment>".
+# Missing fields render empty; non-zero exit if the entry is absent.
+_secrets:attrs() {
+  local raw where kind comment
+  raw="$(security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1)" || return 1
+  where=$(  print -r -- "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')
+  kind=$(   print -r -- "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')
+  comment=$(print -r -- "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')
+  print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
 }
 
 # Print the password of a managed secret. Empty stdout + non-zero on miss.
@@ -803,10 +791,12 @@ secret:rename() {
     return 1
   fi
 
-  new_where="${5:-$(_secrets:where "$old_id" "$old_acct")}"
-  new_kind="${6:-$(_secrets:kind "$old_id" "$old_acct")}"
+  local cur_where cur_kind cur_comment
+  IFS=$'\t' read -r cur_where cur_kind cur_comment < <(_secrets:attrs "$old_id" "$old_acct")
+  new_where="${5:-$cur_where}"
+  new_kind="${6:-$cur_kind}"
   [[ -n "$new_kind" ]] || new_kind="$new_id"
-  new_comment="${7:-$(_secrets:comment "$old_id" "$old_acct")}"
+  new_comment="${7:-$cur_comment}"
 
   _secrets:install "$new_id" "$new_acct" "$new_where" "$new_kind" "$password" "$new_comment" || return 1
   (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
@@ -828,9 +818,7 @@ secret:list() {
     print -r -- $'ID\tACCOUNT\tKIND\tUSED BY\tWHERE'
     local id account where kind comment
     while IFS=$'\t' read -r id account; do
-      where="$(_secrets:where "$id" "$account")"
-      kind="$(_secrets:kind "$id" "$account")"
-      comment="$(_secrets:comment "$id" "$account")"
+      IFS=$'\t' read -r where kind comment < <(_secrets:attrs "$id" "$account")
       print -r -- "$id"$'\t'"$account"$'\t'"${kind:-(none)}"$'\t'"${comment:-(none)}"$'\t'"${where:-(none)}"
     done < <(_secrets:each) | sort -f
   } | column -t -s $'\t'
@@ -887,9 +875,7 @@ secret:export() {
   while IFS=$'\t' read -r id account; do
     password="$(_secrets:password "$id" "$account")" || true
     if [[ -n "$password" ]]; then
-      where="$(_secrets:where "$id" "$account")"
-      kind="$(_secrets:kind "$id" "$account")"
-      comment="$(_secrets:comment "$id" "$account")"
+      IFS=$'\t' read -r where kind comment < <(_secrets:attrs "$id" "$account")
       print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
       (( ++count ))
     else
