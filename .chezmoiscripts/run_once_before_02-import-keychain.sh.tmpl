@@ -6,7 +6,7 @@ set -euo pipefail
 # Runs once before templates render, ensuring keyring calls succeed on a fresh machine.
 # Token file format (tab-separated): id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 # `id` becomes Label (-l, the configured lookup field by default).
-# `where` becomes Service (-s) — typically the URL of the provider.
+# `where` becomes Service (-s), typically the URL of the provider.
 # `-A` lets templates read transparently without per-app keychain confirmation.
 
 TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
@@ -46,6 +46,5 @@ while IFS=$'\t' read -r id account where kind comment password; do
     _log success "Imported $id / $account"
   else
     _log info "Updated $id / $account"
-  fi
   fi
 done < "$TOKENS_FILE"

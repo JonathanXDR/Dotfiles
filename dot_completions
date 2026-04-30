@@ -18,7 +18,7 @@ fi
 # Bun completions
 [[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
-# Angular CLI autocompletion (zsh native — no caching needed)
+# Angular CLI autocompletion (zsh native, no caching needed)
 if cmd:exists ng; then
   _ng_completion() {
     local -a completions
