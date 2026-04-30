@@ -62,7 +62,7 @@ Shortcut aliases:
 
 ## 🔐 Managing Secrets
 
-Secrets are stored in a dedicated **`dotfiles` keychain** (separate from `login`, its own sidebar entry in Keychain Access) and backed up to iCloud Drive. The keychain is the source of truth; the iCloud tokens file mirrors it for fresh-machine bootstrap. It's created on first `chezmoi apply` and, by default, inherits the login session's unlock state, so no extra password prompt.
+Secrets are stored in a dedicated **`dotfiles` keychain** (separate from `login`, its own sidebar entry in Keychain Access) and backed up to iCloud Drive. The keychain is the source of truth, the iCloud tokens file mirrors it for fresh-machine bootstrap. It is created on first `chezmoi apply` and unlocked once per apply by `run_before_00-unlock-keychain`, so the templates that read secrets all render in a single pass without per-call prompts. The keychain itself locks on system sleep with no idle timeout (`security set-keychain-settings -l`).
 
 ```bash
 secret:set <id> <account> <where> <kind> [comment]   # Add/update (prompts for password)
@@ -125,7 +125,7 @@ Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SD
 ├── .chezmoidata.toml                        # Shared non-secret defaults
 ├── .chezmoiignore                           # Files excluded from $HOME
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
-├── .chezmoiscripts/                         # Numbered setup scripts (run_once_*, run_onchange_*, run_after_*)
+├── .chezmoiscripts/                         # Numbered setup scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
 ├── symlink_dot_ssh.tmpl                     # ~/.ssh → iCloud
 ├── symlink_dot_ssl.tmpl                     # ~/.ssl → iCloud (work only)
