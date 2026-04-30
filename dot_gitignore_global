@@ -201,8 +201,11 @@ Temporary Items
 **/CLAUDE.md
 **/AGENTS.md
 
-# Conda (auto-activate marker)
+# Conda
 environment.yml
+
+# sdkman
+.sdkmanrc
 
 # ForgeOps
 forgeops
