@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Unlock the dotfiles keychain once per `chezmoi apply` so subsequent template
+# renders (which call `security find-generic-password`) read managed secrets
+# without prompting. Without this, every template render would trigger its own
+# unlock prompt, since custom keychains are not auto-managed by securityd.
+#
+# Also re-applies the lock policy on every run (idempotent) so existing
+# machines with a misconfigured keychain are healed without manual steps.
+# Policy: lock on system sleep, no idle timeout (`-l` only).
+
+KEYCHAIN_NAME={{ .keychain_name | quote }}
+KEYCHAIN="${HOME}/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
+KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+
+# Skipped on first-ever apply: bootstrap (run_once_before_02) creates the keychain.
+[[ -f "$KEYCHAIN" ]] || exit 0
+
+security set-keychain-settings -l "$KEYCHAIN"
+security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"

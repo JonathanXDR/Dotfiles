@@ -642,7 +642,8 @@ _secrets:ensure-keychain() {
   if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
     local pw="${SECRETS_KEYCHAIN_PASSWORD:-}"
     security create-keychain -p "$pw" "${_SECRETS_KEYCHAIN%-db}" >/dev/null
-    security set-keychain-settings -lut 0 "$_SECRETS_KEYCHAIN"
+    # Lock on system sleep, no idle timeout, see run_before_00-unlock-keychain.
+    security set-keychain-settings -l "$_SECRETS_KEYCHAIN"
     security unlock-keychain -p "$pw" "$_SECRETS_KEYCHAIN"
   fi
   if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$_SECRETS_KEYCHAIN"; then
