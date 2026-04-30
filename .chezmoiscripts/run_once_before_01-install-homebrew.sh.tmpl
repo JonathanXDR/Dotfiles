@@ -3,11 +3,11 @@ set -euo pipefail
 {{ template "shell-helpers" . }}
 
 if _cmd_exists brew; then
-  _log info "Homebrew already installed."
+  _log info "Skipped Homebrew (already installed)"
   exit 0
 fi
 
-_log info "Installing Homebrew..."
+_log info "Installing Homebrew…"
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 _ensure_brew

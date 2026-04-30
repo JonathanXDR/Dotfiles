@@ -20,7 +20,7 @@ if [[ ! -f "$KEYCHAIN" ]]; then
   security create-keychain -p "$KEYCHAIN_PASSWORD" "${KEYCHAIN%-db}" >/dev/null
   security set-keychain-settings -lut 0 "$KEYCHAIN"
   security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-  _log success "Created keychain: $KEYCHAIN"
+  _log success "Created keychain ($KEYCHAIN)"
 fi
 if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
   current=$(security list-keychains -d user | tr -d '"' | xargs)
@@ -30,8 +30,8 @@ if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
 fi
 
 if [[ ! -f "$TOKENS_FILE" ]]; then
-  _log warning "Keychain tokens file not found: $TOKENS_FILE"
-  _log info "Skipping import. Add tokens manually with: secret:set <id> <account> <where> <kind> [comment]"
+  _log warning "Missing keychain tokens file ($TOKENS_FILE)"
+  _log info "Skipped import (add tokens manually via 'secret:set <id> <account> <where> <kind> [comment]')"
   exit 0
 fi
 
@@ -43,8 +43,9 @@ while IFS=$'\t' read -r id account where kind comment password; do
   [[ -n "$kind" ]] && flags+=(-D "$kind")
   [[ -n "$comment" ]] && flags+=(-j "$comment")
   if security add-generic-password "${flags[@]}" "$KEYCHAIN" 2>/dev/null; then
-    _log success "Imported: $id / $account"
+    _log success "Imported $id / $account"
   else
-    _log info "Updated: $id / $account"
+    _log info "Updated $id / $account"
+  fi
   fi
 done < "$TOKENS_FILE"
