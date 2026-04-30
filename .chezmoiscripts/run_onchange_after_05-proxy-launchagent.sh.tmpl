@@ -21,6 +21,6 @@ launchctl bootstrap "gui/$(id -u)" "${PLIST_PATH}"
 
 _log success "Bootstrapped proxy LaunchAgent (${PLIST_LABEL})"
 {{ else -}}
-# Not a work machine — ensure agent is not loaded
+# Not a work machine, so ensure agent is not loaded.
 launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
 {{ end -}}

@@ -4,13 +4,13 @@
 # Convention:
 #   1. Messages always start with a verb (Imported / Failed / Skipped /
 #      Installing… / Reading… / Verified / Renamed / etc.).
-#   2. The message body MUST NOT contain a formatting colon — the only colon
-#      in the rendered line is the one in the "<Level>:" prefix.
+#   2. The message body MUST NOT contain a formatting colon, since the only
+#      colon in the rendered line is the one in the "<Level>:" prefix.
 #      ✓ "Success: Imported 12 secrets"
 #      ✗ "Success: Imported: 12 secrets"      (two colons)
 #      ✗ "Warning: Detected packages:"        (trailing list-colon)
 #   Colons inside data values (URLs, function names like `secret:rename`,
-#   port numbers like `:8080`) are fine — those aren't formatting.
+#   port numbers like `:8080`) are fine, since those aren't formatting.
 log() {
   local level="$1"; shift
   local red green yellow blue gray reset
@@ -607,15 +607,23 @@ ssh:agent() {
 
 # --------------------------------- Secrets ---------------------------------- #
 #
-# The macOS login keychain is the source of truth for all managed secrets.
-# The tokens file on iCloud Drive (`$SECRETS_TOKENS_FILE`) mirrors the keychain
-# in plain text so a fresh machine can re-import everything in one shot.
-# Format: service:account:password (one per line, # comments allowed)
+# A dedicated `dotfiles` keychain (separate from `login`) is the source of
+# truth for all managed secrets. The tokens file on iCloud Drive
+# (`$SECRETS_TOKENS_FILE`) mirrors it as a tab-separated backup so a fresh
+# machine can re-import everything in one shot.
+# Tokens-file format: id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 #
-# Conventions for new entries:
-#   service = the "Where" field (provider brand, e.g. GitHub, WakaTime)
-#   account = the consumer (e.g. Zed) or the user identity (e.g. $USER)
-#   label   = the secret type (e.g. personal_access_token, api_key)
+# Five fields per entry, mapped to native macOS keychain attributes:
+#   id      = friendly identifier, populates the Label (-l), the lookup key
+#             when SECRETS_KEYCHAIN_LOOKUP_FIELD = "name" (default)
+#   account = identity (-a)
+#   where   = URL of the provider, populates the Service (-s); macOS enforces
+#             (Service, Account) uniqueness at the storage layer
+#   kind    = secret type, populates the "desc" attribute (-D)
+#   comment = consumer / what reads this secret, populates "icmt" (-j)
+#
+# All entries are created with `-A` so chezmoi templates can read them at
+# apply time without per-app keychain confirmation prompts.
 #
 # ---------------------------------------------------------------------------- #
 
@@ -628,7 +636,7 @@ _SECRETS_LOOKUP_FLAG="${_SECRETS_FLAG_MAP[${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}
 
 # Create the managed keychain if missing and add it to the user search list.
 # Empty SECRETS_KEYCHAIN_PASSWORD means the keychain inherits the login session
-# unlock state — no extra prompt during use. A non-empty value sets a master
+# unlock state, with no extra prompt during use. A non-empty value sets a master
 # password that must be supplied to unlock.
 _secrets:ensure-keychain() {
   if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
@@ -691,7 +699,7 @@ _secrets:password() {
 # Write a secret to the dotfiles keychain and register it in the tokens file.
 # `id` populates the Label (-l, lookup key in default mode); `where` populates
 # the Service (-s, the URL or other "where" metadata). The -A flag allows
-# transparent reads from any application — required for chezmoi templates
+# transparent reads from any application, which is required for chezmoi templates
 # during apply, which would otherwise prompt for keychain confirmation.
 # Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
 _secrets:install() {
@@ -710,7 +718,7 @@ _secrets:install() {
 
 # Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
 # Password is read interactively; never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair — uniqueness is enforced
+# Refuses to create a duplicate (id, account) pair; uniqueness is enforced
 # manually on the Label field since macOS only enforces it on Service.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {
@@ -732,19 +740,19 @@ secret:set() {
   secret:export
 }
 
-# Read a secret from the login keychain.
-# Usage: secret:get <service> <account>
+# Read a secret from the dotfiles keychain.
+# Usage: secret:get <id> <account>
 secret:get() {
-  (( $# == 2 )) || { echo "Usage: secret:get <service> <account>" >&2; return 1; }
+  (( $# == 2 )) || { echo "Usage: secret:get <id> <account>" >&2; return 1; }
   _secrets:password "$1" "$2" || { log error "Missing $1 / $2"; return 1; }
 }
 
 # Copy a secret to the macOS clipboard with auto-clear after TTL (default 30s).
 # The clipboard is only cleared if it still holds the same value, so anything
 # the user copies in the meantime is preserved. Override via SECRETS_CLIPBOARD_TTL.
-# Usage: secret:copy <service> <account>
+# Usage: secret:copy <id> <account>
 secret:copy() {
-  (( $# == 2 )) || { echo "Usage: secret:copy <service> <account>" >&2; return 1; }
+  (( $# == 2 )) || { echo "Usage: secret:copy <id> <account>" >&2; return 1; }
   local password snapshot ttl="${SECRETS_CLIPBOARD_TTL:-30}"
 
   password="$(_secrets:password "$1" "$2")" \
@@ -762,10 +770,10 @@ secret:copy() {
   log success "Copied $1 / $2 to clipboard (auto-clears in ${ttl}s)"
 }
 
-# Remove a secret from the login keychain, then sync to iCloud Drive.
-# Usage: secret:remove <service> <account>
+# Remove a secret from the dotfiles keychain, then sync to iCloud Drive.
+# Usage: secret:remove <id> <account>
 secret:remove() {
-  (( $# == 2 )) || { echo "Usage: secret:remove <service> <account>" >&2; return 1; }
+  (( $# == 2 )) || { echo "Usage: secret:remove <id> <account>" >&2; return 1; }
   if security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
     log success "Removed $1 / $2"
   else
