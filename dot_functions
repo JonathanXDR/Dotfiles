@@ -911,7 +911,7 @@ sudo:touch-id() {
 
   trap 'rm -f "$BACKUP"' EXIT
 
-  log info "Backing up $FILE → $BACKUP…"
+  log info "Backing up ${FILE} → ${BACKUP}…"
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
 
   # Only enable restore-on-error after a valid backup exists
@@ -923,7 +923,7 @@ sudo:touch-id() {
   fi
 
   if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
-    log info "Inserting pam_tid line into $FILE…"
+    log info "Inserting pam_tid line into ${FILE}…"
     sudo sed -i '' '/^# sudo: auth account password session/a\
 auth       sufficient     pam_tid.so
 ' "$FILE"
@@ -1195,7 +1195,7 @@ nvm:update() {
     if nvm:heal; then
       nvm alias default 'lts/*'
     elif [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
-      log info "Falling back to previous version $previous_version…"
+      log info "Falling back to previous version ${previous_version}…"
       nvm use "$previous_version"
       nvm alias default "$previous_version"
     fi
