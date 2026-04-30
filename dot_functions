@@ -1008,20 +1008,27 @@ system:sleep() {
 
 # ---------------------------------- Docker ---------------------------------- #
 
+# Best-effort bulk docker subcommand. Empty input is a no-op; failures are
+# swallowed (intentional, since stop/rm/rmi often race against each other).
+_docker:bulk() {
+  local cmd="$1" ids="$2"
+  [[ -n "$ids" ]] || return 0
+  print -r -- "$ids" | xargs docker "$cmd" 2>/dev/null || true
+}
+
 docker:cleanup() {
-  local ids
-  if [[ $# -eq 0 ]]; then
-    ids="$(docker ps -aq 2>/dev/null)" || true
-    [[ -n "$ids" ]] && echo "$ids" | xargs docker stop 2>/dev/null && echo "$ids" | xargs docker rm 2>/dev/null || true
-    ids="$(docker images -q 2>/dev/null)" || true
-    [[ -n "$ids" ]] && echo "$ids" | xargs docker rmi 2>/dev/null || true
+  local containers images
+  if (( $# == 0 )); then
+    containers="$(docker ps -aq 2>/dev/null)"   || true
+    images="$(docker images -q 2>/dev/null)"    || true
   else
     local exclude="$*"
-    ids="$(docker ps -a --format '{{.ID}} {{.Names}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
-    [[ -n "$ids" ]] && echo "$ids" | xargs docker stop 2>/dev/null && echo "$ids" | xargs docker rm 2>/dev/null || true
-    ids="$(docker images --format '{{.ID}} {{.Repository}}' 2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
-    [[ -n "$ids" ]] && echo "$ids" | xargs docker rmi 2>/dev/null || true
+    containers="$(docker ps -a --format '{{.ID}} {{.Names}}'      2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
+    images="$(docker images   --format '{{.ID}} {{.Repository}}'  2>/dev/null | grep -vE "($exclude)" | awk '{print $1}')" || true
   fi
+  _docker:bulk stop "$containers"
+  _docker:bulk rm   "$containers"
+  _docker:bulk rmi  "$images"
 }
 
 # ------------------------------- JS Ecosystem ------------------------------- #
