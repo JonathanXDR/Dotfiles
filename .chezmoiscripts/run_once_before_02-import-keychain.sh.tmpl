@@ -16,10 +16,9 @@ KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | q
 
 # Create the keychain if missing and add it to the user search list.
 # Empty password = inherit login session unlock state. Non-empty = master password.
+# Lock policy and ongoing unlocks are owned by run_before_00-unlock-keychain.
 if [[ ! -f "$KEYCHAIN" ]]; then
   security create-keychain -p "$KEYCHAIN_PASSWORD" "${KEYCHAIN%-db}" >/dev/null
-  security set-keychain-settings -lut 0 "$KEYCHAIN"
-  security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
   _log success "Created keychain ($KEYCHAIN)"
 fi
 if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
