@@ -35,7 +35,7 @@ nvm:lazy
 # RVM
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
-# Conda (miniconda via Homebrew — auto_activate_base is off, use `conda activate` per-project)
+# Conda (miniconda via Homebrew, auto_activate_base is off, use `conda activate` per-project)
 [[ -f "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]] \
   && source "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
 

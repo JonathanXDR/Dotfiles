@@ -4,13 +4,13 @@
 # Convention:
 #   1. Messages always start with a verb (Imported / Failed / Skipped /
 #      Installing… / Reading… / Verified / Renamed / etc.).
-#   2. The message body MUST NOT contain a formatting colon — the only colon
-#      in the rendered line is the one in the "<Level>:" prefix.
+#   2. The message body MUST NOT contain a formatting colon, since the only
+#      colon in the rendered line is the one in the "<Level>:" prefix.
 #      ✓ "Success: Imported 12 secrets"
 #      ✗ "Success: Imported: 12 secrets"      (two colons)
 #      ✗ "Warning: Detected packages:"        (trailing list-colon)
 #   Colons inside data values (URLs, function names like `secret:rename`,
-#   port numbers like `:8080`) are fine — those aren't formatting.
+#   port numbers like `:8080`) are fine, since those aren't formatting.
 log() {
   local level="$1"; shift
   local red green yellow blue gray reset
@@ -636,7 +636,7 @@ _SECRETS_LOOKUP_FLAG="${_SECRETS_FLAG_MAP[${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}
 
 # Create the managed keychain if missing and add it to the user search list.
 # Empty SECRETS_KEYCHAIN_PASSWORD means the keychain inherits the login session
-# unlock state — no extra prompt during use. A non-empty value sets a master
+# unlock state, with no extra prompt during use. A non-empty value sets a master
 # password that must be supplied to unlock.
 _secrets:ensure-keychain() {
   if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
@@ -699,7 +699,7 @@ _secrets:password() {
 # Write a secret to the dotfiles keychain and register it in the tokens file.
 # `id` populates the Label (-l, lookup key in default mode); `where` populates
 # the Service (-s, the URL or other "where" metadata). The -A flag allows
-# transparent reads from any application — required for chezmoi templates
+# transparent reads from any application, which is required for chezmoi templates
 # during apply, which would otherwise prompt for keychain confirmation.
 # Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
 _secrets:install() {
@@ -718,7 +718,7 @@ _secrets:install() {
 
 # Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
 # Password is read interactively; never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair — uniqueness is enforced
+# Refuses to create a duplicate (id, account) pair; uniqueness is enforced
 # manually on the Label field since macOS only enforces it on Service.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {

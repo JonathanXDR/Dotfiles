@@ -236,7 +236,7 @@ The `.chezmoi.toml.tmpl` also configures chezmoi behavior beyond template data:
 
 iCloud Drive stores two categories of data: **secrets** (keychain backup) and **non-secret config** (`config.toml`).
 
-Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.keychain-db`), separate from the user's `login` keychain so dotfile-managed entries don't clutter Wi-Fi/Safari/AirDrop entries. The dotfiles keychain is created on first apply with an empty unlock password, so it inherits the login session's unlock state — no extra prompt. Templates read from this keychain at apply time via the `keychain` template helper.
+Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.keychain-db`), separate from the user's `login` keychain so dotfile-managed entries don't clutter Wi-Fi/Safari/AirDrop entries. The dotfiles keychain is created on first apply with an empty unlock password, so it inherits the login session's unlock state, with no extra prompt. Templates read from this keychain at apply time via the `keychain` template helper.
 
 > [!IMPORTANT]
 > The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add or update. Never edit the iCloud tokens file directly.

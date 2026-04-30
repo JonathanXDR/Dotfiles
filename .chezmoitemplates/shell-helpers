@@ -4,13 +4,13 @@
 # Convention:
 #   1. Messages always start with a verb (Imported / Failed / Skipped /
 #      Installing… / Reading… / Verified / Renamed / etc.).
-#   2. The message body MUST NOT contain a formatting colon — the only colon
-#      in the rendered line is the one in the "<Level>:" prefix.
+#   2. The message body MUST NOT contain a formatting colon, since the only
+#      colon in the rendered line is the one in the "<Level>:" prefix.
 #      ✓ "Success: Imported 12 secrets"
 #      ✗ "Success: Imported: 12 secrets"      (two colons)
 #      ✗ "Warning: Detected packages:"        (trailing list-colon)
 #   Colons inside data values (URLs, function names like `secret:rename`,
-#   port numbers like `:8080`) are fine — those aren't formatting.
+#   port numbers like `:8080`) are fine, since those aren't formatting.
 _log() {
   local level="$1"; shift
   local red green yellow blue gray reset
