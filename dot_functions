@@ -1,5 +1,16 @@
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
+# Logger with a coloured "<Level>:" prefix followed by an action-first message.
+# Convention:
+#   1. Messages always start with a verb (Imported / Failed / Skipped /
+#      Installing… / Reading… / Verified / Renamed / etc.).
+#   2. The message body MUST NOT contain a formatting colon — the only colon
+#      in the rendered line is the one in the "<Level>:" prefix.
+#      ✓ "Success: Imported 12 secrets"
+#      ✗ "Success: Imported: 12 secrets"      (two colons)
+#      ✗ "Warning: Detected packages:"        (trailing list-colon)
+#   Colons inside data values (URLs, function names like `secret:rename`,
+#   port numbers like `:8080`) are fine — those aren't formatting.
 log() {
   local level="$1"; shift
   local red green yellow blue gray reset
@@ -47,7 +58,7 @@ cmd:exists() {
 alias:safe() {
   local name="${1%%=*}"
   if cmd:exists "$name"; then
-    log warning "Skipping alias '${name}', would shadow existing command"
+    log warning "Skipped alias '${name}' (would shadow existing command)"
   else
     alias:_set "$1"
   fi
@@ -67,7 +78,7 @@ alias:_set() {
   local -a parts=( ${(z)${1#*=}} )
   local target="${(eQ)parts[1]}"
   [[ -n "$target" ]] && ! cmd:exists "$target" \
-    && log warning "alias '${1%%=*}' targets '${target}' which is not available"
+    && log warning "Skipped alias '${1%%=*}' (target '${target}' is not available)"
   alias "$1"
 }
 
@@ -141,7 +152,7 @@ targz() {
   local zippedSize
   zippedSize=$(stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
 
-  log success "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
+  log success "Created ${tmpFile}.gz ($((zippedSize / 1000)) kB)"
 }
 
 # Determine size of a file or total size of a directory
@@ -155,7 +166,7 @@ fs() {
 
 # Create a data URL from a file
 dataurl() {
-  [[ -f "${1:-}" ]] || { log error "Usage: dataurl <file>"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Missing file argument (run 'dataurl <file>')"; return 1; }
   local mimeType
   mimeType=$(file -b --mime-type "$1")
   if [[ $mimeType == text/* ]]; then
@@ -173,7 +184,7 @@ server() {
 
 # Compare original and gzipped file size
 gz() {
-  [[ -f "${1:-}" ]] || { log error "Usage: gz <file>"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Missing file argument (run 'gz <file>')"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
   local gzipsize
@@ -211,7 +222,7 @@ digga() {
 # Show all the names (CNs and SANs) listed in the SSL certificate for a given domain
 getcertnames() {
   if [[ -z "${1}" ]]; then
-    log error "No domain specified."
+    log error "Missing domain (specify as first argument)"
     return 1
   fi
 
@@ -237,7 +248,7 @@ getcertnames() {
       | sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2
     return 0
   else
-    log error "Certificate not found."
+    log error "Missing certificate"
     return 1
   fi
 }
@@ -259,7 +270,7 @@ ssl:bundle() {
     if security find-certificate -c "$cn" -p /Library/Keychains/System.keychain >> "$tmp" 2>/dev/null; then
       ((cert_count++))
     else
-      log warning "$cn not found in system keychain"
+      log warning "Skipped $cn (not in system keychain)"
     fi
   done
 
@@ -284,13 +295,13 @@ ssl:bundle() {
     || openssl x509 -inform DER -in "$raw" -outform PEM >> "$tmp" 2>/dev/null; then
       ((cert_count++))
     else
-      log warning "${url:t} is not a valid PEM or DER certificate"
+      log warning "Skipped ${url:t} (not a valid PEM or DER certificate)"
     fi
     rm -f "$raw"
   done
 
   if ((cert_count == 0)); then
-    log error "No certificates were bundled"
+    log error "Failed to bundle any certificates"
     return 1
   fi
 
@@ -315,7 +326,7 @@ _CISCO_VPN_BIN="${CISCO_VPN_BIN}"
 
 _vpn:require-cli() {
   [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Cisco VPN CLI not found at $_CISCO_VPN_BIN"
+    log warning "Missing Cisco VPN CLI ($_CISCO_VPN_BIN)"
     return 1
   }
 }
@@ -351,59 +362,59 @@ vpn:google-broken() {
 vpn:refresh() {
   _vpn:require-cli || return 1
 
-  log info "Cisco state before refresh:"
+  log info "Reading Cisco state before refresh"
   vpn:state || true
 
-  log info "Disconnecting Cisco VPN..."
+  log info "Disconnecting Cisco VPN…"
   "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
-  log info "Cisco state after disconnect:"
+  log info "Reading Cisco state after disconnect"
   vpn:state || true
 
   if ! vpn:google-broken; then
-    log success "Broken TLS state appears cleared after disconnect."
+    log success "Cleared broken TLS state (after disconnect)"
     return 0
   fi
 
-  log info "Attempting reconnect. MFA may be required..."
+  log info "Reconnecting Cisco VPN (MFA may be required)…"
   "$_CISCO_VPN_BIN" connect
   local rc=$?
 
-  log info "Cisco state after connect attempt:"
+  log info "Reading Cisco state after connect attempt"
   vpn:state || true
 
   if [[ $rc -ne 0 ]]; then
-    log warning "Connect command returned non-zero ($rc). Likely cancelled, MFA pending, or blocked."
+    log warning "Failed to connect (returned $rc, likely cancelled, MFA pending, or blocked)"
   fi
 
   if vpn:google-broken; then
-    log error "Drive is still broken after refresh."
+    log error "Failed to refresh drive (still broken)"
     return 1
   fi
 
-  log success "Drive works after refresh."
+  log success "Verified drive works after refresh"
 }
 
 vpn:soft-refresh() {
   _vpn:require-cli || return 1
 
-  log info "Cisco state before soft refresh:"
+  log info "Reading Cisco state before soft refresh"
   vpn:state || true
 
-  log info "Soft-refresh: disconnecting Cisco VPN..."
+  log info "Disconnecting Cisco VPN (soft refresh)…"
   "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
-  log info "Cisco state after soft refresh:"
+  log info "Reading Cisco state after soft refresh"
   vpn:state || true
 
   if vpn:google-broken; then
-    log warning "Drive still broken after disconnect-only soft refresh."
+    log warning "Failed to soft-refresh drive (still broken)"
     return 1
   fi
 
-  log success "Drive works again after disconnect-only soft refresh."
+  log success "Verified drive works after disconnect-only soft refresh"
 }
 
 vpn:full-refresh() {
@@ -411,17 +422,17 @@ vpn:full-refresh() {
   _vpn:require-cli || return 1
 
   if [[ -z "$vpn_host" ]]; then
-    log warning "No VPN host specified. Pass one explicitly or set VPN_DEFAULT_HOST."
+    log warning "Missing VPN host (pass explicitly or set VPN_DEFAULT_HOST)"
     return 1
   fi
 
   vpn:soft-refresh || true
-  log info "Starting full reconnect to \"$vpn_host\". MFA may be required."
+  log info "Reconnecting to \"$vpn_host\" (MFA may be required)…"
   "$_CISCO_VPN_BIN" connect "$vpn_host"
 }
 
 vpn:reset-filter() {
-  log info "Restarting Cisco Secure Client UI to try resetting socket filter..."
+  log info "Restarting Cisco Secure Client UI (resetting socket filter)…"
   killall "Cisco Secure Client" 2>/dev/null || true
   sleep 2
   open -a "Cisco Secure Client"
@@ -483,25 +494,25 @@ proxy:probe() {
   local with_dns="${1:-}"
 
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
-    log info "Detected corporate network or reachable proxy, turning proxy on."
+    log info "Enabling proxy (corporate network detected)"
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
 
     if [[ "${with_dns}" == "dns" ]]; then
       if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${PROXY_DNS}" ]]; then
         dns:change "${PROXY_NETWORK_SERVICE}" "${PROXY_DNS}"
       else
-        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or PROXY_DNS is not set."
+        log warning "Skipped DNS change (PROXY_NETWORK_SERVICE or PROXY_DNS not set)"
       fi
     fi
   else
-    log info "Detected normal network, turning proxy off."
+    log info "Disabling proxy (normal network detected)"
     proxy:unset
 
     if [[ "${with_dns}" == "dns" ]]; then
       if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${NO_PROXY_DNS}" ]]; then
         dns:change "${PROXY_NETWORK_SERVICE}" "${NO_PROXY_DNS}"
       else
-        log warning "Skipping DNS change because PROXY_NETWORK_SERVICE or NO_PROXY_DNS is not set."
+        log warning "Skipped DNS change (PROXY_NETWORK_SERVICE or NO_PROXY_DNS not set)"
       fi
     fi
   fi
@@ -511,7 +522,7 @@ proxyd:reload() {
   local label="local.proxy-watchd"
   local plist="${HOME}/Library/LaunchAgents/${label}.plist"
 
-  [[ -f "${plist}" ]] || { log error "Plist not found: ${plist}"; return 1; }
+  [[ -f "${plist}" ]] || { log error "Missing plist (${plist})"; return 1; }
 
   launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "${plist}"
@@ -525,13 +536,13 @@ proxyd:status() {
   if launchctl print "gui/$(id -u)/${label}" &>/dev/null; then
     echo "Agent:  loaded (trigger-based, runs on network change)"
   else
-    log warning "Agent not loaded"
+    log warning "Skipped agent not loaded"
   fi
 
   if [[ -f "${state_file}" ]]; then
     echo "Proxy:  $(< "${state_file}") (since $(stat -f '%Sm' "${state_file}"))"
   else
-    log warning "State file not found"
+    log warning "Missing state file"
   fi
 
   local _v
@@ -554,18 +565,18 @@ proxyd:log() {
 
 network:heal() {
   if vpn:google-broken; then
-    log warning "Detected broken Drive TLS state. Trying soft Cisco refresh..."
+    log warning "Detected broken Drive TLS state, trying soft Cisco refresh…"
     vpn:soft-refresh || {
-      log warning "Soft refresh did not fix it. Trying Cisco UI restart..."
+      log warning "Failed soft refresh, trying Cisco UI restart…"
       vpn:reset-filter
       sleep 3
 
       if vpn:google-broken; then
-        log warning "Drive still appears broken after UI restart. Run vpn:refresh manually if needed."
+        log warning "Failed to recover drive (still broken after UI restart, run 'vpn:refresh' manually)"
         return 1
       fi
 
-      log success "Drive works again after Cisco UI restart."
+      log success "Verified drive works after Cisco UI restart"
     }
   fi
 }
@@ -577,12 +588,12 @@ ssh:reagent() {
   for agent in /tmp/ssh-*/agent.*; do
     export SSH_AUTH_SOCK="${agent}"
     if ssh-add -l &>/dev/null; then
-      log success "Found working SSH Agent:"
+      log success "Found working SSH agent"
       ssh-add -l
       return 0
     fi
   done
-  log warning "Cannot find ssh agent. Maybe you should reconnect and forward it?"
+  log warning "Missing ssh agent (reconnect with forwarding)"
   return 1
 }
 
@@ -689,7 +700,7 @@ _secrets:install() {
   local -a flags=(-U -A -s "$where" -a "$acct" -l "$id" -D "$kind" -w "$password" "$_SECRETS_KEYCHAIN")
   [[ -n "$comment" ]] && flags=( -j "$comment" "${flags[@]}" )
   if ! security add-generic-password "${flags[@]}"; then
-    log error "Failed to update keychain."
+    log error "Failed to update keychain"
     return 1
   fi
   _secrets:ensure-tokens-file
@@ -707,17 +718,17 @@ secret:set() {
   local id="$1" account="$2" where="$3" kind="$4" comment="${5:-}" password
 
   if _secrets:password "$id" "$account" >/dev/null 2>&1; then
-    log error "Already exists: $id / $account (use secret:rename to update)"
+    log error "Rejected $id / $account already exists (use secret:rename to update)"
     return 1
   fi
 
   printf "Password for %s/%s: " "$id" "$account"
   read -rs password
   echo
-  [[ -n "$password" ]] || { log error "Password cannot be empty."; return 1; }
+  [[ -n "$password" ]] || { log error "Cancelled password cannot be empty"; return 1; }
 
   _secrets:install "$id" "$account" "$where" "$kind" "$password" "$comment" || return 1
-  log success "Keychain updated: $id / $account ($kind)"
+  log success "Updated $id / $account ($kind)"
   secret:export
 }
 
@@ -725,7 +736,7 @@ secret:set() {
 # Usage: secret:get <service> <account>
 secret:get() {
   (( $# == 2 )) || { echo "Usage: secret:get <service> <account>" >&2; return 1; }
-  _secrets:password "$1" "$2" || { log error "Not found: $1 / $2"; return 1; }
+  _secrets:password "$1" "$2" || { log error "Missing $1 / $2"; return 1; }
 }
 
 # Copy a secret to the macOS clipboard with auto-clear after TTL (default 30s).
@@ -737,7 +748,7 @@ secret:copy() {
   local password snapshot ttl="${SECRETS_CLIPBOARD_TTL:-30}"
 
   password="$(_secrets:password "$1" "$2")" \
-    || { log error "Not found: $1 / $2"; return 1; }
+    || { log error "Missing $1 / $2"; return 1; }
 
   printf '%s' "$password" | pbcopy
   snapshot=$(printf '%s' "$password" | shasum -a 256 | awk '{print $1}')
@@ -748,7 +759,7 @@ secret:copy() {
       && printf '' | pbcopy
   ) &!
 
-  log success "Copied $1 / $2 to clipboard. Auto-clears in ${ttl}s."
+  log success "Copied $1 / $2 to clipboard (auto-clears in ${ttl}s)"
 }
 
 # Remove a secret from the login keychain, then sync to iCloud Drive.
@@ -756,9 +767,9 @@ secret:copy() {
 secret:remove() {
   (( $# == 2 )) || { echo "Usage: secret:remove <service> <account>" >&2; return 1; }
   if security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
-    log success "Removed from keychain: $1 / $2"
+    log success "Removed $1 / $2"
   else
-    log warning "Not found in keychain: $1 / $2"
+    log warning "Missing $1 / $2 (not in keychain)"
   fi
   secret:export
 }
@@ -777,10 +788,10 @@ secret:rename() {
   [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_pair=1
 
   password="$(_secrets:password "$old_id" "$old_acct")" \
-    || { log error "Not found: $old_id / $old_acct"; return 1; }
+    || { log error "Missing $old_id / $old_acct"; return 1; }
 
   if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
-    log error "Target already exists: $new_id / $new_acct"
+    log error "Rejected target $new_id / $new_acct already exists"
     return 1
   fi
 
@@ -792,7 +803,7 @@ secret:rename() {
   _secrets:install "$new_id" "$new_acct" "$new_where" "$new_kind" "$password" "$new_comment" || return 1
   (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
 
-  log success "Renamed: $old_id / $old_acct -> $new_id / $new_acct ($new_kind)"
+  log success "Renamed $old_id / $old_acct → $new_id / $new_acct ($new_kind)"
   secret:export
 }
 
@@ -801,7 +812,7 @@ secret:rename() {
 # for live Name/Kind/Comments, so output reflects live keychain state.
 secret:list() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "Tokens file not found: $_SECRETS_TOKENS_FILE"
+    log warning "Missing tokens file ($_SECRETS_TOKENS_FILE)"
     return 1
   fi
 
@@ -821,7 +832,7 @@ secret:list() {
 # and placeholder entries as a sorted table. Exits non-zero if any drift exists.
 secret:check() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "Tokens file not found: $_SECRETS_TOKENS_FILE"
+    log warning "Missing tokens file ($_SECRETS_TOKENS_FILE)"
     return 1
   fi
 
@@ -850,10 +861,10 @@ secret:check() {
   } | column -t -s $'\t'
 
   if (( drift > 0 )); then
-    log warning "$drift / $total entries need attention. Run secret:export to sync."
+    log warning "Drifted $drift / $total entries need attention (run secret:export to sync)"
     return 1
   fi
-  log success "$total / $total entries in sync."
+  log success "Synced $total / $total entries"
 }
 
 # Atomically rewrite the iCloud tokens file from current keychain values.
@@ -874,13 +885,13 @@ secret:export() {
       print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
       (( ++count ))
     else
-      log warning "Skipping (not in keychain): $id / $account"
+      log warning "Skipped $id / $account (not in keychain)"
     fi
   done < <(_secrets:each)
 
   mv "$tmp" "$_SECRETS_TOKENS_FILE"
   trap - EXIT
-  log success "Exported $count secret(s) to iCloud Drive."
+  log success "Exported $count secret(s) to iCloud Drive"
 }
 
 # ----------------------- macOS System Tweaks & Utilities -------------------- #
@@ -892,28 +903,28 @@ sudo:touch-id() {
 
   trap 'rm -f "$BACKUP"' EXIT
 
-  log info "Backing up $FILE to $BACKUP…"
+  log info "Backing up $FILE → $BACKUP…"
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
 
   # Only enable restore-on-error after a valid backup exists
-  trap 'trap - ERR; log error "Error detected, restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
+  trap 'trap - ERR; log error "Detected error, restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
-    log error "Required marker comment not found in $FILE"
+    log error "Missing required marker comment in $FILE"
     return 1
   fi
 
   if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
-    log info "Inserting pam_tid line…"
+    log info "Inserting pam_tid line into $FILE…"
     sudo sed -i '' '/^# sudo: auth account password session/a\
 auth       sufficient     pam_tid.so
 ' "$FILE"
   else
-    log info "pam_tid line already present, skipping insertion."
+    log info "Skipped pam_tid line (already present)"
   fi
 
   trap - ERR
-  log success "$FILE has been updated successfully."
+  log success "Updated $FILE"
 }
 
 gatekeeper:disable() {
@@ -940,7 +951,7 @@ hostname:set() {
   sudo scutil --set HostName "$new_hostname"
   sudo scutil --set LocalHostName "$new_hostname"
 
-  log success "Hostname set to \"$new_hostname\". A restart may be required for all changes to take effect."
+  log success "Set hostname \"$new_hostname\" (restart may be required)"
 }
 
 hostname:reset() {
@@ -1049,7 +1060,7 @@ nvm:heal() {
 
   # macOS fast path: ad-hoc re-sign (fixes Gatekeeper kills without redownloading)
   if [[ "$(uname)" == "Darwin" ]] && ! codesign -v "$node_bin" 2>/dev/null; then
-    log info "Node $version has invalid code signature, attempting ad-hoc re-sign"
+    log info "Repairing Node $version (invalid code signature, attempting ad-hoc re-sign)…"
     if codesign --force --sign - "$node_bin" 2>/dev/null && node:works; then
       log success "Repaired $version via ad-hoc code signing"
       return 0
@@ -1058,13 +1069,13 @@ nvm:heal() {
 
   # Slow path: clear cache and reinstall from scratch
   node:works && return 0
-  log info "Reinstalling $version from scratch..."
+  log info "Reinstalling $version from scratch…"
   local os=${(L)$(uname -s)}
   rm -rf "${NVM_DIR}/.cache/bin/node-${version}-${os}-$(uname -m)" 2>/dev/null
   nvm uninstall "$version" 2>/dev/null
   nvm install "$version"
   node:works && { log success "Repaired $version via clean reinstall"; return 0; }
-  log error "Could not repair $version"
+  log error "Failed to repair $version"
   return 1
 }
 
@@ -1072,7 +1083,7 @@ node:verify() {
   if ! node:works; then
     # Try healing the broken binary first (e.g., invalid code signature on macOS)
     nvm:heal 2>/dev/null || {
-      log warning "node command failed, reinstalling LTS..."
+      log warning "Failed to run node command, reinstalling LTS…"
       nvm install --lts --latest-npm
       nvm alias default 'lts/*'
       nvm use --lts
@@ -1080,7 +1091,7 @@ node:verify() {
   fi
 
   if ! node:works; then
-    log warning "LTS node still broken, trying other installed versions..."
+    log warning "Failed to fix LTS node (still broken, trying other installed versions)…"
     local broken_version
     broken_version=$(nvm current 2>/dev/null)
     local version
@@ -1088,7 +1099,7 @@ node:verify() {
       [[ "$version" == "$broken_version" ]] && continue
       nvm use "$version" 2>/dev/null
       if node:works; then
-        log success "Fell back to working version: $version"
+        log success "Restored working version $version (fallback)"
         nvm alias default "$version"
         break
       fi
@@ -1096,7 +1107,7 @@ node:verify() {
   fi
 
   if ! node:works; then
-    log error "No working node version found"
+    log error "Missing working node version"
     return 1
   fi
 
@@ -1140,7 +1151,7 @@ nvmrc:load() {
       nvm use
     fi
   elif [[ -n "$(PWD=${OLDPWD} nvm_find_nvmrc)" ]] && [[ "$(nvm version)" != "$(nvm version default)" ]]; then
-    log info "Reverting to nvm default version"
+    log info "Reverting to nvm default version…"
     nvm use default
   fi
 }
@@ -1164,7 +1175,7 @@ nvm:update() {
   previous_version=$(nvm current 2>/dev/null)
 
   if ! nvm install --lts --latest-npm &>/dev/null </dev/null; then
-    log info "Skipping nvm update (could not reach remote)"
+    log info "Skipped nvm update (could not reach remote)"
     return
   fi
 
@@ -1172,11 +1183,11 @@ nvm:update() {
   nvm use --lts &>/dev/null
 
   if ! node:works; then
-    log warning "Newly installed LTS node is broken (binary killed or crashed)"
+    log warning "Failed to install LTS node properly (binary killed or crashed)"
     if nvm:heal; then
       nvm alias default 'lts/*'
     elif [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
-      log info "Falling back to previous version: $previous_version"
+      log info "Falling back to previous version $previous_version…"
       nvm use "$previous_version"
       nvm alias default "$previous_version"
     fi
@@ -1210,9 +1221,9 @@ globals:install() {
     local lock_file="${NPM_GLOBALS_LOCK_DIR}/.npm.globals.${node_version}.lock"
     grep -vE '^#|^$' "$NPM_GLOBALS" >"${lock_file}"
 
-    log success "Global packages installed."
+    log success "Installed global packages"
   else
-    log warning ".npm.globals file not found."
+    log warning "Missing .npm.globals file"
   fi
 }
 
@@ -1231,16 +1242,16 @@ pyenv:update() {
   latest=$(pyenv install --list 2>/dev/null \
     | awk '/^[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+$/ { v=$1 } END { if (v) print v }')
 
-  [[ -z "$latest" ]] && { log info "Skipping pyenv update (could not fetch versions)"; return; }
+  [[ -z "$latest" ]] && { log info "Skipped pyenv update (could not fetch versions)"; return; }
   [[ "$current" == "$latest" ]] && return 0
 
   if ! pyenv install -s "$latest" &>/dev/null; then
-    log info "Skipping pyenv update (install failed for ${latest})"
+    log info "Skipped pyenv update (install failed for ${latest})"
     return
   fi
 
   pyenv global "$latest"
-  log success "Python updated: ${current} -> ${latest}"
+  log success "Updated Python ${current} → ${latest}"
 }
 
 brew:check() {
@@ -1250,12 +1261,12 @@ brew:check() {
     | jq -r '.formulae[] | select(.deprecated or .disabled)
       | "  \(.name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
 
-  [[ -n "$deprecated" ]] && { log warning "Deprecated Homebrew packages:"; echo "$deprecated"; }
+  [[ -n "$deprecated" ]] && { log warning "Detected deprecated Homebrew packages"; echo "$deprecated"; }
 
   outdated=$(brew outdated --quiet 2>/dev/null)
   [[ -n "$outdated" ]] || return 0
 
-  log info "${#${(f)outdated}} outdated Homebrew package(s). Run 'brew upgrade' to update."
+  log info "Detected ${#${(f)outdated}} outdated Homebrew package(s) (run 'brew upgrade' to update)"
 }
 
 # ------------------------------------ Git ----------------------------------- #
@@ -1310,7 +1321,7 @@ git:diff() {
     git show "$target_branch:$file"
   done | pbcopy
 
-  log success "Diff output copied to clipboard."
+  log success "Copied diff output to clipboard"
 }
 
 # --------------------------------- Chezmoi ---------------------------------- #
@@ -1339,7 +1350,7 @@ chezmoi:sync() {
   # Sync template-managed files back to chezmoi source.
   # Files that only use {{ .chezmoi.homeDir }} are auto-synced (reverse substitution).
   # Files with secrets or other template vars are flagged for manual merge.
-  cmd:exists chezmoi || { log error "chezmoi not found"; return 1; }
+  cmd:exists chezmoi || { log error "Missing chezmoi"; return 1; }
 
   local home_dir="${HOME}"
   local updated=0
@@ -1367,7 +1378,7 @@ chezmoi:sync() {
 
     # Check for complex template syntax beyond .chezmoi.homeDir
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
-      log warning "Skipping ${rel} (has secrets/variables; use \`chezmoi merge ${target}\`)"
+      log warning "Skipped ${rel} (has secrets/variables; use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
       rm -f "$tmp"
       continue
@@ -1375,15 +1386,15 @@ chezmoi:sync() {
 
     cp "$tmp" "$src"
     rm -f "$tmp"
-    log success "${rel}"
+    log success "Synced ${rel}"
     (( updated++ ))
   done < <(chezmoi managed --include=files --path-style=absolute)
 
   if (( updated + skipped == 0 )); then
-    log info "All template-managed files are in sync."
+    log info "Synced all template-managed files"
   else
-    (( updated > 0 )) && log info "Synced ${updated} file(s) back to source."
-    (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates."
+    (( updated > 0 )) && log info "Synced ${updated} file(s) back to source"
+    (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates"
   fi
 }
 

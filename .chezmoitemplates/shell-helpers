@@ -1,19 +1,32 @@
 # Shared helper functions for chezmoi run scripts (bash-compatible).
 
+# Logger with a coloured "<Level>:" prefix followed by an action-first message.
+# Convention:
+#   1. Messages always start with a verb (Imported / Failed / Skipped /
+#      Installing… / Reading… / Verified / Renamed / etc.).
+#   2. The message body MUST NOT contain a formatting colon — the only colon
+#      in the rendered line is the one in the "<Level>:" prefix.
+#      ✓ "Success: Imported 12 secrets"
+#      ✗ "Success: Imported: 12 secrets"      (two colons)
+#      ✗ "Warning: Detected packages:"        (trailing list-colon)
+#   Colons inside data values (URLs, function names like `secret:rename`,
+#   port numbers like `:8080`) are fine — those aren't formatting.
 _log() {
   local level="$1"; shift
   local red green yellow blue gray reset
-  if [ -t 2 ]; then
+
+  if [[ -t 2 ]]; then
     red='\033[0;31m' green='\033[0;32m' yellow='\033[0;33m'
     blue='\033[0;34m' gray='\033[0;90m' reset='\033[0m'
   fi
+
   case "$level" in
-    error)   printf "${red}Error:${reset}   %s\n" "$*" >&2 ;;
-    success) printf "${green}OK:${reset}      %s\n" "$*" ;;
-    warning) printf "${yellow}Warning:${reset} %s\n" "$*" >&2 ;;
-    info)    printf "${blue}Info:${reset}    %s\n" "$*" ;;
-    debug)   [ -n "${DEBUG:-}" ] && printf "${gray}Debug:${reset}   %s\n" "$*" >&2 ;;
-    *)       echo "$level" "$@" ;;
+    error|red)      printf "${red}Error:${reset}   %s\n" "$*" >&2 ;;
+    success|green)  printf "${green}Success:${reset} %s\n" "$*" ;;
+    warning|yellow) printf "${yellow}Warning:${reset} %s\n" "$*" >&2 ;;
+    info|blue)      printf "${blue}Info:${reset}    %s\n" "$*" ;;
+    debug)          [[ -n "${DEBUG:-}" ]] && printf "${gray}Debug:${reset}   %s\n" "$*" >&2 ;;
+    *)              echo "$level" "$@" ;;
   esac
 }
 
