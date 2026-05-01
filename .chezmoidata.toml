@@ -12,7 +12,15 @@ history_ignore = ["claude", "codex", "copilot", "gh copilot"]
 # Display
 default_hostname = "void(0)"
 tree_ignore = ".git|node_modules|.DS_Store|dist|build|target|__pycache__|.venv|.next|.nuxt|.svelte-kit|.gradle|coverage"
-dock_apps = ["Zen", "Notion", "Visual Studio Code", "Microsoft Teams", "Discord", "GitKraken"]
+dock_apps = [
+  "Zen",
+  "Zed",
+  "Notion",
+  "Visual Studio Code",
+  "Microsoft Teams",
+  "Discord",
+  "GitKraken",
+]
 
 # Directory basenames that `rm` should permanently delete instead of trashing
 trash_skip = ["node_modules"]
