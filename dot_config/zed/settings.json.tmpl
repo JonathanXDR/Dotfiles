@@ -101,12 +101,21 @@
         "read_only": false
       }
     },
-    "mcp-server-gitlab": {
-      "enabled": true,
-      "remote": false,
-      "settings": {
-        "gitlab_personal_access_token": {{ includeTemplate "keychain" (list "GitLab" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
-        "gitlab_api_url": "https://code.swisscom.com/api/v4"
+    "GitLab (Swisscom)": {
+      "command": "node",
+      "args": [
+        {{ printf "%s/Developer/Git/Swisscom/red-gitlab-mcp/build/index.js" .chezmoi.homeDir | quote }}
+      ],
+      "env": {
+        "GITLAB_API_URL": "https://code.swisscom.com/api/v4",
+        "GITLAB_USE_OAUTH": "true",
+        "GITLAB_OAUTH_CLIENT_ID": {{ includeTemplate "keychain" (list "GitLab MCP Client ID" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
+        "GITLAB_OAUTH_CLIENT_SECRET": {{ includeTemplate "keychain" (list "GitLab MCP Client Secret" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
+        "GITLAB_OAUTH_REDIRECT_URI": "http://127.0.0.1:8888/callback",
+        "GITLAB_READ_ONLY_MODE": "true",
+        "USE_PIPELINE": "true",
+        "USE_MILESTONE": "true",
+        "USE_GITLAB_WIKI": "true"
       }
     },
     "mcp-server-figma": {
