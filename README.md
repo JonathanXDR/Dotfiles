@@ -152,6 +152,7 @@ Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SD
 ├── dot_config/
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
 │   └── zed/settings.json.tmpl               # Zed editor settings (from keychain)
+├── dot_sdkman/etc/config                    # SDKMAN runtime flags (auto_env, native, ...)
 ├── private_dot_claude/                      # ~/.claude/* (0700)
 │   └── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
