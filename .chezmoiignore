@@ -4,7 +4,6 @@ LICENSE
 Brewfile.*
 .gitignore
 .git
-.claude
 
 {{ if ne .machine_type "work" }}
 .ssl
