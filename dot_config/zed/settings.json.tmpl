@@ -166,10 +166,8 @@
       }
     },
     "GitLab (Swisscom)": {
-      "command": "node",
-      "args": [
-        {{ printf "%s/Developer/Git/Swisscom/red-gitlab-mcp/build/index.js" .chezmoi.homeDir | quote }}
-      ],
+      "command": "bunx",
+      "args": ["@swisscom/red-gitlab-mcp@latest"],
       "env": {
         "GITLAB_API_URL": "https://code.swisscom.com/api/v4",
         "GITLAB_USE_OAUTH": "true",
