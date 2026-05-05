@@ -14,13 +14,22 @@ _ensure_brew
 
 BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
 
-if [[ -f "$BREWFILE" ]]; then
-  _log info "Installing Homebrew packages from ${BREWFILE}…"
-  if brew bundle --file="$BREWFILE"; then
-    _log success "Installed Homebrew packages"
-  else
-    _log warning "Failed to install some Homebrew packages (see above)"
-  fi
+if [[ ! -f "$BREWFILE" ]]; then
+  _log error "Failed to find Brewfile ($BREWFILE)"
+  exit 1
+fi
+
+_log info "Installing Homebrew packages from ${BREWFILE}…"
+if brew bundle --file="$BREWFILE"; then
+  _log success "Installed Homebrew packages"
 else
-  _log error "Missing Brewfile ($BREWFILE)"
+  _log warning "Failed to install some Homebrew packages (see above)"
+fi
+
+_log info "Checking for packages not in ${BREWFILE}…"
+if brew bundle cleanup --file="$BREWFILE"; then
+  _log success "Verified no unused Homebrew packages"
+else
+  _log warning "Detected packages not in Brewfile (listed above)"
+  _log info "Run 'brew bundle cleanup --file=\"$BREWFILE\" --force' to remove them"
 fi
