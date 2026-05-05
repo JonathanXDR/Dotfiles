@@ -1,4 +1,3 @@
-// Geben Sie Ihre Tastenzuordnungen in dieser Datei ein, um die Standardwerte außer Kraft zu setzen.
 [
   {
     "command": "-aws.amazonq.inline.invokeChat",
