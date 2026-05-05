@@ -8,8 +8,4 @@ registry=https://registry.npmjs.org/
 {{- if ne $swisscom "" }}
 //bin.swisscom.com/artifactory/api/npm/:_authToken={{ $swisscom }}
 {{- end }}
-{{- $apps := includeTemplate "keychain" (list "JFrog Artifactory (Apps Team)" "taarujo6" .keychain_name .keychain_lookup_field) }}
-{{- if ne $apps "" }}
-//bin.swisscom.com/artifactory/api/npm/apps-team-npm-virtual/:_authToken={{ $apps }}
-{{- end }}
 {{- end }}
