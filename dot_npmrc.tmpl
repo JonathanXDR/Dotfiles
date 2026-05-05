@@ -4,8 +4,20 @@ registry=https://registry.npmjs.org/
 //registry.npmjs.org/:_authToken={{ $npm_token }}
 {{- end }}
 {{- if eq .machine_type "work" }}
-{{- $swisscom := includeTemplate "keychain" (list "JFrog Artifactory (General)" "taarujo6" .keychain_name .keychain_lookup_field) }}
-{{- if ne $swisscom "" }}
-//bin.swisscom.com/artifactory/api/npm/:_authToken={{ $swisscom }}
+{{- $swisscom_artifactory := includeTemplate "keychain" (list "JFrog Artifactory" "taarujo6" .keychain_name .keychain_lookup_field) }}
+{{- $swisscom_bin := includeTemplate "keychain" (list "JFrog Artifactory (Bin)" "taarujo6" .keychain_name .keychain_lookup_field) }}
+{{- if ne $swisscom_artifactory "" }}
+//artifactory.swisscom.com/artifactory/api/npm/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
+{{- end }}
+{{- if ne $swisscom_bin "" }}
+//bin.swisscom.com/artifactory/api/npm/:_auth={{ printf "taarujo6:%s" $swisscom_bin | b64enc }}
+{{- end }}
+@swisscom:registry=https://artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/
+@swisscom:registry=https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/
+{{- if ne $swisscom_artifactory "" }}
+//artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
+{{- end }}
+{{- if ne $swisscom_bin "" }}
+//bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_bin | b64enc }}
 {{- end }}
 {{- end }}
