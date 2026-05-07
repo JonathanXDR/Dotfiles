@@ -10,6 +10,7 @@ source "${HOME}/.functions"
 
 # Development tool paths
 path:add "$HOME/.local/bin"
+path:add "$HOME/.cargo/bin"
 path:add "$HOME/.rd/bin"
 path:add "$BUN_INSTALL/bin"
 path:add "$HOME/.rvm/bin"
