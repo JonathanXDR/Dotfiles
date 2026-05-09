@@ -19,6 +19,9 @@ Keychain-backed, iCloud-synced and profile-aware macOS dotfiles.
 
 ## 📋 Prerequisites
 
+> [!WARNING]
+> Enable [Advanced Data Protection](https://support.apple.com/en-us/108756) before bootstrapping. Without it, the iCloud-synced SSH, GPG, SSL, kube, VPN, token backup, and `config.toml` are encrypted under keys Apple retains rather than keys only your trusted devices hold.
+
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
 - iCloud Drive signed in (for keys, config, and token backup)
@@ -49,7 +52,7 @@ chezmoi diff           # Preview what would change
 chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly: symlink mode)
 ```
 
-> [!NOTE]
+> [!TIP]
 > Because of symlink mode, you can edit `$HOME` files like `~/.zshrc` directly. `chezmoi edit` is offered for habit's sake, not because it's required.
 
 Shortcut aliases:
@@ -96,11 +99,8 @@ Run `secret:list` to see the live keychain state; the table is the only place re
 
 A **master password** for the keychain can also be set during `chezmoi init` (cached in machine-local `~/.config/chezmoi/chezmoi.toml`, never committed). Leaving it empty (the default) ties the keychain to the login session's unlock state.
 
-> [!TIP]
-> After updating a secret, run `chezmoi apply` to re-render templates with the new value.
-
-> [!IMPORTANT]
-> Managed entries are created with the `-A` flag, meaning any process running as your user can read them without a confirmation prompt. This is required for chezmoi templates to render at apply time. Standard mitigations: FileVault, screen lock, strong account password, 2FA on Apple ID.
+> [!CAUTION]
+> Managed entries are created with the `-A` flag, meaning any process running as your user can read them without a confirmation prompt. This is required for chezmoi templates to render at apply time. Standard mitigations: FileVault, screen auto-lock, strong account password, and 2FA on Apple ID.
 
 ## 🐚 Shell Loading Order
 
