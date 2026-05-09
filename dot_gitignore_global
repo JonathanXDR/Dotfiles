@@ -423,6 +423,17 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Re-include frontend framework source `lib/` folders that the Python `lib/` rule above
+# would otherwise swallow (gitignore matches `lib/` at any depth without a leading slash).
+# SvelteKit (mandatory `$lib` alias), Astro, Vue/Vite, Nuxt (with srcDir), Next.js (src dir):
+!src/lib/
+!src/lib/**
+# Remix (app/ is the source root):
+!app/lib/
+!app/lib/**
+# Angular workspace libraries:
+!projects/*/src/lib/
+!projects/*/src/lib/**
 parts/
 sdist/
 var/
