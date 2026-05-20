@@ -7,69 +7,76 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "completion_menu_item_kind": "symbol",
   "show_signature_help_after_edits": true,
   "auto_signature_help": true,
   "diagnostics": {
     "inline": {
-      "enabled": true
-    }
+      "enabled": true,
+    },
   },
   "git": {
     "inline_blame": {
-      "show_commit_summary": true
-    }
+      "show_commit_summary": true,
+    },
   },
   "collaboration_panel": {
-    "dock": "left"
+    "dock": "left",
   },
   "agent": {
+    "default_model": {
+      "provider": "openai-subscribed",
+      "model": "gpt-5.5",
+      "enable_thinking": true,
+      "effort": "medium"
+    },
     "sidebar_side": "right",
-    "dock": "right"
+    "dock": "right",
   },
   "git_panel": {
     "show_count_badge": true,
     "sort_by_path": true,
     "file_icons": true,
     "tree_view": true,
-    "collapse_untracked_diff": true
+    "collapse_untracked_diff": true,
   },
   "outline_panel": {
-    "dock": "left"
+    "dock": "left",
   },
   "terminal": {
     "toolbar": {
-      "breadcrumbs": true
+      "breadcrumbs": true,
     },
-    "show_count_badge": true
+    "show_count_badge": true,
   },
   "project_panel": {
     "dock": "left",
     "diagnostic_badges": true,
     "git_status_indicator": true,
-    "bold_folder_labels": true
+    "bold_folder_labels": true,
   },
   "use_system_window_tabs": true,
   "tab_bar": {
-    "show_pinned_tabs_in_separate_row": true
+    "show_pinned_tabs_in_separate_row": true,
   },
   "tabs": {
     "show_close_button": "hover",
     "close_position": "left",
     "file_icons": true,
-    "git_status": true
+    "git_status": true,
   },
   "title_bar": {
     "show_menus": true,
     "show_branch_name": true,
-    "show_branch_status_icon": true
+    "show_branch_status_icon": true,
   },
   "inlay_hints": {
     "show_background": true,
-    "enabled": true
+    "enabled": true,
   },
   "show_whitespaces": "all",
   "indent_guides": {
-    "coloring": "indent_aware"
+    "coloring": "indent_aware",
   },
   "tab_size": 2,
   "languages": {
@@ -133,10 +140,10 @@
     "CMake": { "tab_size": 2 },
     "Nix": { "tab_size": 2 },
     "Protocol Buffers": { "tab_size": 2 },
-    "Solidity": { "tab_size": 4 }
+    "Solidity": { "tab_size": 4 },
   },
   "toolbar": {
-    "code_actions": true
+    "code_actions": true,
   },
   "diff_view_style": "unified",
   "cursor_shape": "underline",
@@ -147,23 +154,22 @@
       "enabled": true,
       "remote": false,
       "settings": {
-        "notion_token": {{ includeTemplate "keychain" (list "Notion" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
-      }
+        "notion_token": {{ includeTemplate "keychain" (list "Notion" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+      },
     },
     "mcp-server-firecrawl": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "firecrawl_api_key": {{ includeTemplate "keychain" (list "Firecrawl" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
-      }
+        "firecrawl_api_key": {{ includeTemplate "keychain" (list "Firecrawl" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+      },
     },
     "mcp-server-supabase": {
       "enabled": true,
       "remote": false,
       "settings": {
         "supabase_access_token": {{ includeTemplate "keychain" (list "Supabase" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
-        "read_only": false
-      }
+      },
     },
     "GitLab (Swisscom)": {
       "command": "bunx",
@@ -177,53 +183,58 @@
         "GITLAB_READ_ONLY_MODE": "true",
         "USE_PIPELINE": "true",
         "USE_MILESTONE": "true",
-        "USE_GITLAB_WIKI": "true"
-      }
+        "USE_GITLAB_WIKI": "true",
+      },
     },
     "mcp-server-figma": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "figma_api_key": {{ includeTemplate "keychain" (list "Figma" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
-      }
+        "figma_api_key": {{ includeTemplate "keychain" (list "Figma" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+      },
     },
     "mcp-server-github": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "github_personal_access_token": {{ includeTemplate "keychain" (list "GitHub" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
-      }
+        "github_personal_access_token": {{ includeTemplate "keychain" (list "GitHub" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+      },
     },
     "mcp-server-context7": {
       "enabled": true,
       "remote": false,
       "settings": {
-        "context7_api_key": {{ includeTemplate "keychain" (list "Context7" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
-      }
-    }
+        "context7_api_key": {{ includeTemplate "keychain" (list "Context7" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+      },
+    },
   },
   "telemetry": {
     "diagnostics": false,
-    "metrics": false
+    "metrics": false,
   },
   "session": {
-    "trust_all_worktrees": true
+    "trust_all_worktrees": true,
   },
   "agent_servers": {
     "github-copilot-cli": {
-      "type": "registry"
+      "type": "registry",
     },
     "codex-acp": {
-      "type": "registry"
+      "default_config_options": {
+        "mode": "full-access",
+        "model": "gpt-5.5",
+        "reasoning_effort": "high",
+      },
+      "type": "registry",
     },
     "claude-acp": {
-      "type": "registry"
-    }
+      "type": "registry",
+    },
   },
   "icon_theme": {
     "mode": "system",
     "light": "Material Icon Theme",
-    "dark": "Material Icon Theme"
+    "dark": "Material Icon Theme",
   },
   "base_keymap": "VSCode",
   "ui_font_size": 16,
@@ -231,6 +242,6 @@
   "theme": {
     "mode": "system",
     "light": "GitHub Light",
-    "dark": "GitHub Dark"
-  }
+    "dark": "GitHub Dark",
+  },
 }
