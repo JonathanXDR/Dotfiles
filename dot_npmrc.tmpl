@@ -3,6 +3,11 @@ registry=https://registry.npmjs.org/
 {{- if ne $npm_token "" }}
 //registry.npmjs.org/:_authToken={{ $npm_token }}
 {{- end }}
+@shift-media:registry=https://npm.pkg.github.com/
+{{- $github_packages_token := includeTemplate "keychain" (list "GitHub Packages" "jonathan" .keychain_name .keychain_lookup_field) }}
+{{- if ne $github_packages_token "" }}
+//npm.pkg.github.com/:_authToken={{ $github_packages_token }}
+{{- end }}
 {{- if eq .machine_type "work" }}
 {{- $swisscom_artifactory := includeTemplate "keychain" (list "JFrog Artifactory" "taarujo6" .keychain_name .keychain_lookup_field) }}
 {{- $swisscom_bin := includeTemplate "keychain" (list "JFrog Artifactory (Bin)" "taarujo6" .keychain_name .keychain_lookup_field) }}
