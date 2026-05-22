@@ -1240,7 +1240,20 @@ ncu:update() {
 
 # ------------------------------ Version Checks ------------------------------ #
 
+# Remove stale pyenv-rehash lock files left behind when a previous rehash was
+# killed mid-flight. Without cleanup, every new shell waits 60s for a lock
+# that will never be released. Skipped while another rehash is in progress.
+pyenv:heal() {
+  local shims="${PYENV_ROOT:-$HOME/.pyenv}/shims"
+  local -a stale=( "$shims/.pyenv-shim"(N) "$shims/.pyenv-source-shim"(N) )
+  (( ${#stale} )) || return 0
+  pgrep -fq pyenv-rehash && return 0
+  rm -f -- "${stale[@]}" && log success "Removed ${#stale} stale pyenv lock file(s)"
+}
+
 pyenv:update() {
+  pyenv:heal
+
   local current latest
   current=$(pyenv version-name 2>/dev/null)
   latest=$(pyenv install --list 2>/dev/null \
