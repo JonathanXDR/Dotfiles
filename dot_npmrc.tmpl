@@ -3,6 +3,7 @@ registry=https://registry.npmjs.org/
 {{- if ne $npm_token "" }}
 //registry.npmjs.org/:_authToken={{ $npm_token }}
 {{- end }}
+@jonathanxdr:registry=https://npm.pkg.github.com/
 @shift-media:registry=https://npm.pkg.github.com/
 {{- $github_packages_token := includeTemplate "keychain" (list "GitHub Packages" "jonathan" .keychain_name .keychain_lookup_field) }}
 {{- if ne $github_packages_token "" }}
