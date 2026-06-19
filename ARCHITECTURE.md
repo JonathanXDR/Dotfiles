@@ -131,7 +131,10 @@ Dotfiles/
 ├── dot_sdkman/
 │   └── etc/config                      # SDKMAN runtime flags (auto_env, native, ...)
 ├── private_dot_claude/                 # ~/.claude/* (0700)
-│   └── private_settings.json.tmpl      # Claude Code user settings (plugins, hooks, home dir templated)
+│   ├── private_settings.json.tmpl      # Claude Code user settings (plugins, marketplaces)
+│   └── private_plugins/                # ~/.claude/plugins/ (0700)
+│       ├── installed_plugins.json.tmpl   # Claude Code plugin install state
+│       └── known_marketplaces.json.tmpl  # Claude Code marketplace registry
 │
 │   # IDE settings
 │
@@ -149,10 +152,10 @@ Dotfiles/
 
 ### Symlink Mode
 
-chezmoi runs with `mode = "symlink"`, meaning managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies.
+chezmoi runs with `mode = "symlink"`, meaning plain managed files in `$HOME` are symlinks to the chezmoi source directory rather than independent copies. chezmoi falls back to writing an independent **copy** for entries it cannot symlink, namely templates (`.tmpl` files, which must be rendered first) and files with a restrictive mode (the `private_`/`0600` attribute). To make such a file a true symlink, it must be a plain file with no `.tmpl` suffix and no `private_` prefix, and the parent `private_dot_*/` directory still keeps the folder at `0700`.
 
 > [!TIP]
-> Because `$HOME` files are symlinks to the source directory, you can edit them directly. `chezmoi edit` is optional, not required, since editing `~/.zshrc` and editing the source file are the same write.
+> Because symlinked `$HOME` files point at the source directory, you can edit them directly. `chezmoi edit` is optional, not required, since editing `~/.zshrc` and editing the source file are the same write. Note this does **not** apply to templates (e.g. `~/.claude/settings.json`), which are rendered copies, so a tool that rewrites the target (like Claude Code) does not write back to source. Run `chezmoi add` to capture those changes, or `chezmoi apply` to restore the tracked version.
 
 For sensitive directories (SSH, GPG, SSL, kube, VPN), chezmoi creates symlinks that point to **iCloud Drive** via `symlink_*` templates. This makes iCloud the single source of truth:
 
@@ -183,7 +186,9 @@ chezmoi maps source filenames to target paths by replacing prefixes and strippin
 | Source                            | Target                              | Notes                             |
 | --------------------------------- | ----------------------------------- | --------------------------------- |
 | `dot_zshrc`                       | `~/.zshrc`                          | `dot_` becomes `.`, symlinked     |
-| `dot_exports.tmpl`                | `~/.exports`                        | `.tmpl` rendered then symlinked   |
+| `dot_exports.tmpl`                | `~/.exports`                        | `.tmpl` rendered to a real copy (templates can't be symlinked) |
+| `private_dot_claude/private_settings.json.tmpl` | `~/.claude/settings.json` | template rendered to a real file, because both `.tmpl` and `private_` prevent symlinking |
+| `private_dot_claude/private_plugins/*.json.tmpl` | `~/.claude/plugins/*.json` | Claude Code runtime state, home dir templated, rendered copies |
 | `symlink_dot_ssh.tmpl`            | `~/.ssh`                            | Symlink to rendered path (iCloud) |
 | `private_dot_gnupg/`              | `~/.gnupg/`                         | `private_` sets 0700 permissions  |
 | `Library/Application Support/...` | `~/Library/Application Support/...` | Literal path                      |
@@ -431,7 +436,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 
 | Decision                                                      | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Symlink mode**                                              | Edits to `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates still render before symlinking.                                                                                                                                                                                                                                                                                                                                            |
+| **Symlink mode**                                              | Edits to symlinked `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates and `private_` files are the exception. chezmoi writes them as real copies, because rendered output and restrictive modes cannot be represented by a symlink.                                                                                                                                                                                                                                                                                                                                            |
 | **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                                                                                                                                                                                                                            |
 | **Dedicated dotfiles keychain over login keychain**           | Visual isolation in Keychain Access (own sidebar entry), so managed entries don't mix with Safari/Wi-Fi. Empty unlock password ties it to the login session for identical UX. Secrets never exist in plaintext in the repo; FileVault covers rendered files at rest.                                                                                                                                                                                                    |
 | **`-A` flag on every managed entry**                          | Allows any user-process to read without a confirmation prompt, which is required for chezmoi templates to render at apply time without UI. Trade-off: malware running as the user can silently read these credentials, vs. login-keychain's per-app prompt model. Acceptable for personal dev secrets behind FileVault, screen lock, and a strong Apple ID with 2FA.                                                                                                    |
