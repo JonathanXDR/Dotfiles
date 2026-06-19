@@ -84,6 +84,13 @@ alias codex="codex --yolo"
 alias copilot="copilot --allow-all"
 alias:safe kiro="kiro-cli"
 
+# Short 3-letter aliases (chain to the wrappers above, inheriting their flags)
+alias:safe cld="claude"
+alias:safe cdx="codex"
+alias:safe cpl="copilot"
+alias:safe gmi="gemini"
+alias:safe kro="kiro"
+
 # ------------------------------- macOS Tweaks ------------------------------- #
 
 # Lock the screen (when going AFK), relies on "Require password after sleep"
