@@ -37,7 +37,7 @@ if [[ -n "$brew_share" ]]; then
     && source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
 fi
 
-# Kiro CLI compatibility:
+# Kiro CLI compatibility
 # Kiro renders inline suggestions via figterm (terminal-level overlay), which
 # gets wiped whenever zsh-autocomplete redraws the screen. Disable the
 # as-you-type completion menu to prevent it from overwriting Kiro's suggestions.
@@ -58,7 +58,7 @@ if (( $+widgets[menu-select] )); then
   bindkey '\e[Z' _zsh_autocomplete_fallback
 fi
 
-# Syntax highlighting (must be sourced near end of .zshrc / completions)
+# Syntax highlighting (must be sourced after all ZLE widget setup)
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
     && source "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"

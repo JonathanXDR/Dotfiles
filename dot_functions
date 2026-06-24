@@ -166,7 +166,7 @@ fs() {
 
 # Create a data URL from a file
 dataurl() {
-  [[ -f "${1:-}" ]] || { log error "Missing file argument (run 'dataurl <file>')"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Require a file argument (run 'dataurl <file>')"; return 1; }
   local mimeType
   mimeType=$(file -b --mime-type "$1")
   if [[ $mimeType == text/* ]]; then
@@ -184,7 +184,7 @@ server() {
 
 # Compare original and gzipped file size
 gz() {
-  [[ -f "${1:-}" ]] || { log error "Missing file argument (run 'gz <file>')"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Require a file argument (run 'gz <file>')"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
   local gzipsize
@@ -222,7 +222,7 @@ digga() {
 # Show all the names (CNs and SANs) listed in the SSL certificate for a given domain
 getcertnames() {
   if [[ -z "${1}" ]]; then
-    log error "Missing domain (specify as first argument)"
+    log error "Require a domain as the first argument"
     return 1
   fi
 
@@ -248,7 +248,7 @@ getcertnames() {
       | sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2
     return 0
   else
-    log error "Missing certificate"
+    log error "Failed to find a certificate for the domain"
     return 1
   fi
 }
@@ -326,7 +326,7 @@ _CISCO_VPN_BIN="${CISCO_VPN_BIN}"
 
 _vpn:require-cli() {
   [[ -x "$_CISCO_VPN_BIN" ]] || {
-    log warning "Missing Cisco VPN CLI ($_CISCO_VPN_BIN)"
+    log warning "Skipped operation (Cisco VPN CLI not found at $_CISCO_VPN_BIN)"
     return 1
   }
 }
@@ -422,7 +422,7 @@ vpn:full-refresh() {
   _vpn:require-cli || return 1
 
   if [[ -z "$vpn_host" ]]; then
-    log warning "Missing VPN host (pass explicitly or set VPN_DEFAULT_HOST)"
+    log warning "Require a VPN host (pass explicitly or set VPN_DEFAULT_HOST)"
     return 1
   fi
 
@@ -522,7 +522,7 @@ proxyd:reload() {
   local label="local.proxy-watchd"
   local plist="${HOME}/Library/LaunchAgents/${label}.plist"
 
-  [[ -f "${plist}" ]] || { log error "Missing plist (${plist})"; return 1; }
+  [[ -f "${plist}" ]] || { log error "Failed to find plist (${plist})"; return 1; }
 
   launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "${plist}"
@@ -536,13 +536,13 @@ proxyd:status() {
   if launchctl print "gui/$(id -u)/${label}" &>/dev/null; then
     echo "Agent:  loaded (trigger-based, runs on network change)"
   else
-    log warning "Skipped agent not loaded"
+    log warning "Detected no loaded agent"
   fi
 
   if [[ -f "${state_file}" ]]; then
     echo "Proxy:  $(< "${state_file}") (since $(stat -f '%Sm' "${state_file}"))"
   else
-    log warning "Missing state file"
+    log warning "Detected no state file"
   fi
 
   local _v
@@ -567,7 +567,7 @@ network:heal() {
   if vpn:google-broken; then
     log warning "Detected broken Drive TLS state, trying soft Cisco refresh…"
     vpn:soft-refresh || {
-      log warning "Failed soft refresh, trying Cisco UI restart…"
+      log warning "Failed to soft-refresh drive, trying Cisco UI restart…"
       vpn:reset-filter
       sleep 3
 
@@ -593,7 +593,7 @@ ssh:reagent() {
       return 0
     fi
   done
-  log warning "Missing ssh agent (reconnect with forwarding)"
+  log warning "Found no working SSH agent (reconnect with forwarding)"
   return 1
 }
 
@@ -613,11 +613,12 @@ ssh:agent() {
 # machine can re-import everything in one shot.
 # Tokens-file format: id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 #
-# Five fields per entry, mapped to native macOS keychain attributes:
+# Five metadata fields map to native macOS keychain attributes (password is the
+# stored value, not an attribute):
 #   id      = friendly identifier, populates the Label (-l), the lookup key
 #             when SECRETS_KEYCHAIN_LOOKUP_FIELD = "name" (default)
 #   account = identity (-a)
-#   where   = URL of the provider, populates the Service (-s); macOS enforces
+#   where   = URL of the provider, populates the Service (-s). macOS enforces
 #             (Service, Account) uniqueness at the storage layer
 #   kind    = secret type, populates the "desc" attribute (-D)
 #   comment = consumer / what reads this secret, populates "icmt" (-j)
@@ -672,7 +673,7 @@ _secrets:each() {
 
 # Read the keychain attrs (Where, Kind, Comments) for a managed secret with one
 # `security` call. Emits a single tab-separated line "<where>\t<kind>\t<comment>".
-# Missing fields render empty; non-zero exit if the entry is absent.
+# Missing fields render empty. Exits non-zero if the entry is absent.
 _secrets:attrs() {
   local raw where kind comment
   raw="$(security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1)" || return 1
@@ -688,10 +689,10 @@ _secrets:password() {
 }
 
 # Write a secret to the dotfiles keychain and register it in the tokens file.
-# `id` populates the Label (-l, lookup key in default mode); `where` populates
+# `id` populates the Label (-l, lookup key in default mode). `where` populates
 # the Service (-s, the URL or other "where" metadata). The -A flag allows
-# transparent reads from any application, which is required for chezmoi templates
-# during apply, which would otherwise prompt for keychain confirmation.
+# transparent reads from any application, so chezmoi templates can read secrets
+# during apply without a keychain confirmation prompt.
 # Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
 _secrets:install() {
   local id="$1" acct="$2" where="$3" kind="$4" password="$5" comment="${6:-}"
@@ -708,8 +709,8 @@ _secrets:install() {
 }
 
 # Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
-# Password is read interactively; never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair; uniqueness is enforced
+# Password is read interactively and never echoed or stored in shell history.
+# Refuses to create a duplicate (id, account) pair. Uniqueness is enforced
 # manually on the Label field since macOS only enforces it on Service.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {
@@ -724,10 +725,10 @@ secret:set() {
   printf "Password for %s/%s: " "$id" "$account"
   read -rs password
   echo
-  [[ -n "$password" ]] || { log error "Cancelled password cannot be empty"; return 1; }
+  [[ -n "$password" ]] || { log error "Cancelled (password cannot be empty)"; return 1; }
 
   _secrets:install "$id" "$account" "$where" "$kind" "$password" "$comment" || return 1
-  log success "Updated $id / $account ($kind)"
+  log success "Added $id / $account ($kind)"
   secret:export
 }
 
@@ -735,7 +736,7 @@ secret:set() {
 # Usage: secret:get <id> <account>
 secret:get() {
   (( $# == 2 )) || { echo "Usage: secret:get <id> <account>" >&2; return 1; }
-  _secrets:password "$1" "$2" || { log error "Missing $1 / $2"; return 1; }
+  _secrets:password "$1" "$2" || { log error "Failed to find $1 / $2"; return 1; }
 }
 
 # Copy a secret to the macOS clipboard with auto-clear after TTL (default 30s).
@@ -747,7 +748,7 @@ secret:copy() {
   local password snapshot ttl="${SECRETS_CLIPBOARD_TTL:-30}"
 
   password="$(_secrets:password "$1" "$2")" \
-    || { log error "Missing $1 / $2"; return 1; }
+    || { log error "Failed to find $1 / $2"; return 1; }
 
   printf '%s' "$password" | pbcopy
   snapshot=$(printf '%s' "$password" | shasum -a 256 | awk '{print $1}')
@@ -768,12 +769,12 @@ secret:remove() {
   if security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
     log success "Removed $1 / $2"
   else
-    log warning "Missing $1 / $2 (not in keychain)"
+    log warning "Skipped $1 / $2 (not in keychain)"
   fi
   secret:export
 }
 
-# Move and/or update a managed secret. Source must exist; target (when
+# Move and/or update a managed secret. Source must exist, and the target (when
 # different) must not, to prevent silent overwrites. Omit any of where/kind/
 # comment to preserve current values.
 # Usage: secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
@@ -787,7 +788,7 @@ secret:rename() {
   [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_pair=1
 
   password="$(_secrets:password "$old_id" "$old_acct")" \
-    || { log error "Missing $old_id / $old_acct"; return 1; }
+    || { log error "Failed to find $old_id / $old_acct"; return 1; }
 
   if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
     log error "Rejected target $new_id / $new_acct already exists"
@@ -813,7 +814,7 @@ secret:rename() {
 # for live Name/Kind/Comments, so output reflects live keychain state.
 secret:list() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "Missing tokens file ($_SECRETS_TOKENS_FILE)"
+    log warning "Failed to find tokens file ($_SECRETS_TOKENS_FILE)"
     return 1
   fi
 
@@ -831,7 +832,7 @@ secret:list() {
 # and placeholder entries as a sorted table. Exits non-zero if any drift exists.
 secret:check() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "Missing tokens file ($_SECRETS_TOKENS_FILE)"
+    log warning "Failed to find tokens file ($_SECRETS_TOKENS_FILE)"
     return 1
   fi
 
@@ -860,7 +861,7 @@ secret:check() {
   } | column -t -s $'\t'
 
   if (( drift > 0 )); then
-    log warning "Drifted $drift / $total entries need attention (run secret:export to sync)"
+    log warning "Detected drift in $drift / $total entries (run secret:export to sync)"
     return 1
   fi
   log success "Synced $total / $total entries"
@@ -907,7 +908,7 @@ sudo:touch-id() {
   trap 'trap - ERR; log error "Detected error, restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
-    log error "Missing required marker comment in $FILE"
+    log error "Failed to find required marker comment in $FILE"
     return 1
   fi
 
@@ -997,7 +998,7 @@ system:sleep() {
 
 # ---------------------------------- Docker ---------------------------------- #
 
-# Best-effort bulk docker subcommand. Empty input is a no-op; failures are
+# Best-effort bulk docker subcommand. Empty input is a no-op. Failures are
 # swallowed (intentional, since stop/rm/rmi often race against each other).
 _docker:bulk() {
   local cmd="$1" ids="$2"
@@ -1054,7 +1055,7 @@ node:works() {
 }
 
 # Diagnose and repair a broken node binary (e.g., invalid code signature on macOS).
-# Usage: nvm:heal [version]; defaults to nvm current
+# Usage: nvm:heal [version] (defaults to nvm current)
 nvm:heal() {
   local version="${1:-$(nvm current 2>/dev/null)}"
   [[ -z "$version" || "$version" == "none" || "$version" == "system" ]] && return 1
@@ -1111,7 +1112,7 @@ node:verify() {
   fi
 
   if ! node:works; then
-    log error "Missing working node version"
+    log error "Failed to find a working node version"
     return 1
   fi
 }
@@ -1197,15 +1198,15 @@ bun:update() {
 # Guard: bun present and the globals list exists with at least one package.
 globals:_ready() {
   if ! cmd:exists bun; then
-    log warning "Missing bun"
+    log warning "Skipped globals (bun not installed)"
     return 1
   fi
   if [[ ! -f "$BUN_GLOBALS" ]]; then
-    log warning "Missing .bun.globals file"
+    log warning "Skipped globals (.bun.globals file not found)"
     return 1
   fi
   if ! grep -qvE '^#|^$' "$BUN_GLOBALS"; then
-    log warning "No packages listed in .bun.globals"
+    log warning "Skipped globals (.bun.globals lists no packages)"
     return 1
   fi
 }
@@ -1372,7 +1373,7 @@ chezmoi:sync() {
   # Sync template-managed files back to chezmoi source.
   # Files that only use {{ .chezmoi.homeDir }} are auto-synced (reverse substitution).
   # Files with secrets or other template vars are flagged for manual merge.
-  cmd:exists chezmoi || { log error "Missing chezmoi"; return 1; }
+  cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
 
   local home_dir="${HOME}"
   local updated=0
@@ -1400,7 +1401,7 @@ chezmoi:sync() {
 
     # Check for complex template syntax beyond .chezmoi.homeDir
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
-      log warning "Skipped ${rel} (has secrets/variables; use \`chezmoi merge ${target}\`)"
+      log warning "Skipped ${rel} (has secrets/variables, use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
       rm -f "$tmp"
       continue
