@@ -15,7 +15,7 @@ Keychain-backed, iCloud-synced and profile-aware macOS dotfiles.
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Lazy-loaded NVM, 24h-cached compinit, daily-gated bun/nvm/pyenv/brew checks
 - 🛠️ **Shell toolkit:** 75+ functions for proxy, VPN, Docker, secrets, Node, Git, plus curated aliases
-- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, npm globals, permission fixups
+- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, bun globals, permission fixups
 
 ## 📋 Prerequisites
 
@@ -41,7 +41,7 @@ After init, chezmoi automatically:
 1. Imports tokens from iCloud Drive into the macOS Keychain
 2. Installs Homebrew and all packages from the appropriate Brewfile
 3. Symlinks SSH, GPG, SSL, kube, and VPN directories to iCloud Drive
-4. Installs global npm packages
+4. Installs global CLI packages with bun
 5. Symlinks all shell config files into `$HOME`
 
 ## 🧪 Usage
@@ -147,7 +147,7 @@ Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SD
 ├── dot_gitconfig.tmpl                       # Git user, GPG signing, LFS
 ├── dot_gitignore_global                     # Global gitignore
 ├── dot_npmrc.tmpl                           # npm registry tokens (from keychain)
-├── dot_npm.globals                          # Global npm packages
+├── dot_bun.globals                          # Global CLI packages (bun)
 ├── dot_wakatime.cfg.tmpl                    # WakaTime API key (from keychain)
 ├── dot_config/
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)

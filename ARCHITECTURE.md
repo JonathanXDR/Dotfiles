@@ -43,7 +43,7 @@ This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** runni
 │                     v                                    v                                 v                    │
 │     ┌──────────────────────────────┐     ┌──────────────────────────────┐     ┌────────────────────────┐        │
 │     │ ~/.zshrc                     │     │ ~/.ssh    → iCloud           │     │ Homebrew               │        │
-│     │ ~/.exports                   │     │ ~/.gnupg  → iCloud           │     │ npm globals            │        │
+│     │ ~/.exports                   │     │ ~/.gnupg  → iCloud           │     │ bun globals            │        │
 │     │ ~/.npmrc                     │     │ ~/.kube   → iCloud           │     │ permissions            │        │
 │     │ ~/.gitconfig                 │     │ ~/.ssl    → iCloud           │     │ keychain sync          │        │
 │     │ ...                          │     │ ~/.vpn    → iCloud           │     └────────────────────────┘        │
@@ -83,7 +83,7 @@ Dotfiles/
 │   ├── run_onchange_after_03-*         # Install Brew packages (re-runs on Brewfile change)
 │   ├── run_onchange_after_04-*         # Fix iCloud symlink permissions (re-runs on config change)
 │   ├── run_onchange_after_05-*         # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
-│   ├── run_onchange_after_06-*         # Install global npm packages (re-runs on list change)
+│   ├── run_onchange_after_06-*         # Install global CLI packages with bun (re-runs on list change)
 │   ├── run_once_after_07-*             # Fix zsh completion permissions
 │   ├── run_after_08-*                  # Export keychain to iCloud (every apply)
 │   └── run_onchange_after_09-*         # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
@@ -123,7 +123,7 @@ Dotfiles/
 ├── dot_gitconfig.tmpl                  # Git user, GPG signing, LFS, pull strategy
 ├── dot_gitignore_global                # Global gitignore (ref'd by dot_gitconfig.tmpl)
 ├── dot_npmrc.tmpl                      # npm registry tokens (from keychain)
-├── dot_npm.globals                     # Global npm packages
+├── dot_bun.globals                     # Global CLI packages (bun)
 ├── dot_wakatime.cfg.tmpl               # WakaTime API key (from keychain)
 ├── dot_config/
 │   ├── hosts.tmpl                      # /etc/hosts source (machine-type aware)
@@ -419,7 +419,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Add a user-prompted value            | `.chezmoi.toml.tmpl`                                                                    |
 | Add machine-type config (non-secret) | `config.toml` on iCloud Drive                                                           |
 | Add a Homebrew package               | `Brewfile.personal` or `Brewfile.swisscom`                                              |
-| Add a global npm package             | `dot_npm.globals`                                                                       |
+| Add a global CLI package             | `dot_bun.globals`                                                                       |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`  |
 | Rename or update a secret            | `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]`  |
 | Inspect or audit secrets             | `secret:list` (table view), `secret:check` (drift detection), `secret:copy` (clipboard) |
@@ -447,7 +447,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | **iCloud `config.toml` over init prompts**                    | Proxy hosts, SSL cert names, and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]`/`[personal]` sections avoids leaking them in the repo.                                                                                                                                                                                                                                                                                    |
 | **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Degrades to empty string on missing keys, unlike chezmoi's `keyring` which panics.                                                                                                                                                                                                                                                                                                                      |
 | **Numbered run scripts**                                      | Deterministic ordering prevents race conditions (keychain import in script 02 must complete before templates that read secrets).                                                                                                                                                                                                                                                                                                                                        |
-| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and npm globals only reinstall when their source files actually change, via embedded content hashes.                                                                                                                                                                                                                                                                                                                                                           |
+| **`run_once_` for setup, `run_onchange_` for content-driven** | Homebrew and bun globals only reinstall when their source files actually change, via embedded content hashes.                                                                                                                                                                                                                                                                                                                                                           |
 | **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one with conditionals.                                                                                                                                                                                                                                                                                                                                         |
 | **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` prevents Homebrew from auto-updating during scripted installs, keeping apply fast and deterministic.                                                                                                                                                                                                                                                                                                                                        |
 | **LaunchAgent for proxy detection**                           | Replaces per-shell `nc` probe (~3s) with an event-driven daemon. Watches `/Library/Preferences/SystemConfiguration` + `/var/run/resolv.conf` (covers Wi-Fi and VPN). Shell startup reads a cached state file (~0ms), falling back to `proxy:probe` on first boot.                                                                                                                                                                                                       |
