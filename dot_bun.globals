@@ -1,0 +1,20 @@
+# Global CLI packages, installed with `bun add -g` (see globals:install / globals:update).
+# bun stores these in ~/.bun/install/global (node-version-independent) and links
+# their bins into ~/.bun/bin, which is already on PATH. bun reads ~/.npmrc for
+# registry + auth, so private/scoped packages resolve the same as under npm.
+
+# Tooling
+npm-check-updates
+@antfu/ni
+
+# Framework CLIs
+@angular/cli
+@nestjs/cli
+@nuxt/cli
+
+# AI
+skilld
+@openai/codex
+@anthropic-ai/claude-code
+@google/gemini-cli
+@github/copilot
