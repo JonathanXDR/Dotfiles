@@ -12,6 +12,9 @@ npm-check-updates
 @nestjs/cli
 @nuxt/cli
 
+# Cloud
+cf
+
 # AI
 skilld
 @openai/codex
