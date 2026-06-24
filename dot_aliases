@@ -154,8 +154,8 @@ alias grep='grep --color=auto'
 # Enable aliases to be sudo'ed (deliberate shadow with trailing-space trick)
 alias sudo='sudo '
 
-# Update macOS, Homebrew, npm globals, and Ruby gems (guards each tool)
-alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists npm && npm update -g; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
+# Update macOS, Homebrew, bun globals, and Ruby gems (guards each tool)
+alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists bun && globals:update; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
 # macOS doesn't ship `hd` / `md5sum` / `sha1sum`. alias:fallback sets them
 # silently on systems where the real binary is missing.
