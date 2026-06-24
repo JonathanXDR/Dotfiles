@@ -10,7 +10,7 @@ PLIST_PATH="${HOME}/Library/LaunchAgents/${PLIST_LABEL}.plist"
 
 {{ if eq .machine_type "work" -}}
 if [[ ! -f "${PLIST_PATH}" ]]; then
-  _log error "Missing plist (${PLIST_PATH}), skipping LaunchAgent bootstrap"
+  _log error "Failed to find plist (${PLIST_PATH}), skipping LaunchAgent bootstrap"
   exit 0
 fi
 

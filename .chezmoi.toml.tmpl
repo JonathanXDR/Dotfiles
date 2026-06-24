@@ -71,8 +71,9 @@
 
 {{- /* Master password for the dotfiles keychain. Empty = no password (keychain
        inherits the login session's unlock state, no extra prompt during use).
-       Non-empty = keychain is locked by default; user must enter this password
-       to unlock for each session. Cached in chezmoi.toml after first init. */ -}}
+       Non-empty = keychain is locked by default. The user must enter this
+       password to unlock for each session. Cached in chezmoi.toml after first
+       init. */ -}}
 {{- $keychain_password := promptStringOnce $ "keychain_password" "Master password for the dotfiles keychain (leave empty for no password)" "" -}}
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}

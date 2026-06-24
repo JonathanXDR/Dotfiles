@@ -13,7 +13,7 @@ export BUN_GLOBALS="$HOME/.bun.globals"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# Infisical — Universal Auth machine identity for Application-Website-Frontend
+# Infisical Universal Auth machine identity for Application-Website-Frontend
 export INFISICAL_CLIENT_ID={{ includeTemplate "keychain" (list "Infisical Client ID" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
 export INFISICAL_CLIENT_SECRET={{ includeTemplate "keychain" (list "Infisical Client Secret" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
 
@@ -95,7 +95,7 @@ setopt APPEND_HISTORY         # append rather than overwrite
 
 # Commands matching this pattern are dropped from both the in-memory list
 # and $HISTFILE. HISTORY_IGNORE alone only filters the file write, leaving
-# entries visible in `history` until shell exit; the zshaddhistory hook
+# entries visible in `history` until shell exit. The zshaddhistory hook
 # rejects them earlier so `history` never shows them.
 HISTORY_IGNORE='({{ .history_ignore | join "*|" }}*)'
 zshaddhistory() {
