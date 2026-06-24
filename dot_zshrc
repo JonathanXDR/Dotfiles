@@ -72,7 +72,7 @@ cmd:exists brew && run:daily brew brew:check
 nvmrc:load
 conda:load
 
-# THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+# Keep SDKMAN initialization after toolchain setup (required for it to work). Only the Kiro post block follows.
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
 # Kiro CLI post block. Keep at the bottom of this file.

@@ -68,7 +68,7 @@ Shortcut aliases:
 Secrets are stored in a dedicated **`dotfiles` keychain** (separate from `login`, its own sidebar entry in Keychain Access) and backed up to iCloud Drive. The keychain is the source of truth, the iCloud tokens file mirrors it for fresh-machine bootstrap. It is created on first `chezmoi apply` and unlocked once per apply by `run_before_00-unlock-keychain`, so the templates that read secrets all render in a single pass without per-call prompts. The keychain itself locks on system sleep with no idle timeout (`security set-keychain-settings -l`).
 
 ```bash
-secret:set <id> <account> <where> <kind> [comment]   # Add/update (prompts for password)
+secret:set <id> <account> <where> <kind> [comment]   # Add a new entry (prompts for password)
 secret:get <id> <account>                            # Read raw value to stdout
 secret:copy <id> <account>                           # Copy to clipboard, auto-clears in 30s
 secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
@@ -88,7 +88,7 @@ Each entry uses five native Keychain Access fields. The `(id, account)` pair is 
 | **Kind**     | Secret type (e.g. Personal Access Token)                 |
 | **Comments** | Consumer (what reads this secret)                        |
 
-Run `secret:list` to see the live keychain state; the table is the only place real values appear.
+Run `secret:list` to see the live keychain state. The table is the only place real values appear.
 
 **Configuration** (`.chezmoidata.toml`):
 
@@ -109,7 +109,7 @@ A **master password** for the keychain can also be set during `chezmoi init` (ca
         │
 ~/.functions ────── utility functions
         │
-PATH setup ──────── Homebrew, pyenv, RVM, Bun, ...; NVM lazy-loaded on first use
+PATH setup ──────── Homebrew, pyenv, RVM, Bun, ... (NVM lazy-loaded on first use)
         │
 ~/.aliases ──────── command aliases
         │

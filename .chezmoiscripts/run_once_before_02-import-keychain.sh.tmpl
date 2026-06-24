@@ -29,8 +29,8 @@ if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
 fi
 
 if [[ ! -f "$TOKENS_FILE" ]]; then
-  _log warning "Missing keychain tokens file ($TOKENS_FILE)"
-  _log info "Skipped import (add tokens manually via 'secret:set <id> <account> <where> <kind> [comment]')"
+  _log warning "Skipped import (tokens file not found at $TOKENS_FILE)"
+  _log info "Add tokens manually via 'secret:set <id> <account> <where> <kind> [comment]'"
   exit 0
 fi
 

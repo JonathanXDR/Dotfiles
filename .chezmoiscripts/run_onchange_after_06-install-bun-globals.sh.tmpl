@@ -8,30 +8,30 @@ set -euo pipefail
 BUN_GLOBALS="${HOME}/.bun.globals"
 
 if [[ ! -f "$BUN_GLOBALS" ]]; then
-  _log warning "Missing bun globals file ($BUN_GLOBALS)"
+  _log warning "Skipped install (bun globals file not found at $BUN_GLOBALS)"
   exit 0
 fi
 
 if ! _cmd_exists bun; then
-  _log warning "Missing bun, skipping global package installation"
+  _log warning "Skipped install (bun not installed)"
   exit 0
 fi
 
 # Nothing to do if the list is only comments/blanks (xargs would call `bun add -g`
 # with no packages and error out).
 if ! grep -qvE '^#|^$' "$BUN_GLOBALS"; then
-  _log warning "No packages listed in $BUN_GLOBALS"
+  _log warning "Skipped install (no packages listed in $BUN_GLOBALS)"
   exit 0
 fi
 
 # bun globals live in ~/.bun/install/global (independent of the active Node/NVM
 # version) with bins linked into ~/.bun/bin (already on PATH). Re-runs are cheap
-# no-ops thanks to the lockfile, so no npm-style --force is needed; this script
+# no-ops thanks to the lockfile, so no npm-style --force is needed. This script
 # only fires when dot_bun.globals changes (content hash above).
 #
 # Lifecycle scripts follow bun's secure default: packages on bun's built-in
-# allowlist (e.g. @anthropic-ai/claude-code) run their postinstall automatically;
-# untrusted (usually transitive) scripts stay blocked, which is correct for CLIs.
+# allowlist (e.g. @anthropic-ai/claude-code) run their postinstall automatically,
+# while untrusted (usually transitive) scripts stay blocked, which is correct for CLIs.
 # To allow a specific blocked package later: `bun pm -g untrusted` to see it, then
 # `bun pm -g trust @anthropic-ai/claude-code <pkg>` (a trustedDependencies list
 # replaces bun's default allowlist, so re-list the defaults you rely on).

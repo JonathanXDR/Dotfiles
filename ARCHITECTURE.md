@@ -249,7 +249,7 @@ iCloud Drive stores two categories of data: **secrets** (keychain backup) and **
 Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.keychain-db`), separate from the user's `login` keychain so dotfile-managed entries don't clutter Wi-Fi/Safari/AirDrop entries. The keychain locks on system sleep with no idle timeout (`security set-keychain-settings -l`). A dedicated [`run_before_00-unlock-keychain`](.chezmoiscripts/run_before_00-unlock-keychain.sh.tmpl) script unlocks it once at the start of every `chezmoi apply`, so all secret-reading templates render in a single pass without per-call prompts. Templates read from this keychain at apply time via the `keychain` template helper.
 
 > [!IMPORTANT]
-> The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add or update. Never edit the iCloud tokens file directly.
+> The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add a secret, or `secret:rename` to update one. Never edit the iCloud tokens file directly.
 
 ```text
 ┌───────────────────────────────────────────────────────────┐
@@ -289,7 +289,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 2. **The keychain is unlocked once per apply.** Script `00` (`run_before_00-unlock-keychain`) runs before any template is rendered, calls `security unlock-keychain` with the cached password, and re-applies the lock policy (`-l` only) so the keychain stays unlocked for the rest of the apply. This is what keeps secret-reading templates prompt-free.
 3. **iCloud Drive is the backup.** Script `02` creates the dotfiles keychain on a fresh machine and imports tokens from iCloud into it. Script `08` re-exports keychain entries back to iCloud after every apply.
 4. **Shell functions** in `dot_functions` cover the full lifecycle:
-   - `secret:set <id> <account> <where> <kind> [comment]` to add or update (prompts for password)
+   - `secret:set <id> <account> <where> <kind> [comment]` to add a new entry (prompts for password)
    - `secret:get <id> <account>`, `secret:copy <id> <account>` to read (stdout / clipboard with auto-clear)
    - `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]` to move or update atomically
    - `secret:remove <id> <account>` to delete (and re-sync iCloud)
@@ -305,7 +305,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 
 - **Where** (`-s` / Service): the URL of the provider, stored in keychain only (never in committed templates). macOS enforces `(Service, Account)` uniqueness at the storage layer.
 - **Account** (`-a`): the identity at that provider.
-- **Name** (`-l` / Label): the friendly identifier passed as `<id>` to all `secret:*` functions and to `includeTemplate "keychain"`. By default this is the **lookup key** templates use (configurable; see below).
+- **Name** (`-l` / Label): the friendly identifier passed as `<id>` to all `secret:*` functions and to `includeTemplate "keychain"`. By default this is the **lookup key** templates use (configurable, see below).
 - **Kind** (`-D` / `desc` attribute): the secret type, in Apple-style title case.
 - **Comments** (`-j` / `icmt` attribute): the consumer (what reads this secret).
 
@@ -364,7 +364,7 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
   ~/.functions ─────────── Utility functions (proxy, VPN, secrets, Node, Git, ...)
           │
           v
-  PATH setup ───────────── Homebrew, pyenv, RVM, Bun, tool-specific paths; NVM lazy-loaded on first use
+  PATH setup ───────────── Homebrew, pyenv, RVM, Bun, tool-specific paths (NVM lazy-loaded on first use)
           │
           v
   ~/.aliases ───────────── Command aliases
@@ -376,7 +376,7 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
   Runtime hooks ────────── nvmrc auto-switch, proxy state load, SSH agent
           │
           v
-  Daily checks ─────────── bun, nvm, pyenv updates; brew deprecation/outdated (gated to once per 24h)
+  Daily checks ─────────── bun, nvm, pyenv updates, brew deprecation/outdated (gated to once per 24h)
           │
           v
   SDKMAN ───────────────── Java SDK manager (must be last)
@@ -438,7 +438,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Symlink mode**                                              | Edits to symlinked `$HOME` files modify the source directly, so no `chezmoi edit` is needed. Templates and `private_` files are the exception. chezmoi writes them as real copies, because rendered output and restrictive modes cannot be represented by a symlink.                                                                                                                                                                                                                                                                                                                                            |
 | **iCloud symlinks for SSH/GPG/SSL/kube/VPN**                  | One copy of keys across all machines. No copy scripts needed: chezmoi creates the symlinks, a `run_onchange_after` script fixes permissions.                                                                                                                                                                                                                                                                                                                            |
-| **Dedicated dotfiles keychain over login keychain**           | Visual isolation in Keychain Access (own sidebar entry), so managed entries don't mix with Safari/Wi-Fi. Empty unlock password ties it to the login session for identical UX. Secrets never exist in plaintext in the repo; FileVault covers rendered files at rest.                                                                                                                                                                                                    |
+| **Dedicated dotfiles keychain over login keychain**           | Visual isolation in Keychain Access (own sidebar entry), so managed entries don't mix with Safari/Wi-Fi. Empty unlock password ties it to the login session for identical UX. Secrets never exist in plaintext in the repo. FileVault covers rendered files at rest.                                                                                                                                                                                                    |
 | **`-A` flag on every managed entry**                          | Allows any user-process to read without a confirmation prompt, which is required for chezmoi templates to render at apply time without UI. Trade-off: malware running as the user can silently read these credentials, vs. login-keychain's per-app prompt model. Acceptable for personal dev secrets behind FileVault, screen lock, and a strong Apple ID with 2FA.                                                                                                    |
 | **Upfront unlock (`run_before_00`) over per-call prompts**    | A custom keychain is not auto-managed by `securityd` the way `login.keychain` is, so each `security find-generic-password` call against a locked keychain triggers its own unlock prompt. A single `unlock-keychain` at the very start of every apply collapses ten-plus prompts into zero. The script also re-applies `set-keychain-settings -l` (lock on sleep, no idle timeout), so existing machines with a misconfigured keychain are healed without manual steps. |
 | **Tokens file mode `0600`**                                   | Enforced by `_secrets:ensure-tokens-file` (idempotent `chmod`). Defends against co-resident user reads on multi-user macOS even though the file is also encrypted in iCloud and protected by FileVault at rest.                                                                                                                                                                                                                                                         |

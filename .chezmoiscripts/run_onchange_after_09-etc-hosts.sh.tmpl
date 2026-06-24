@@ -8,7 +8,7 @@ set -euo pipefail
 HOSTS_SRC="{{ .chezmoi.homeDir }}/.config/hosts"
 
 if [[ ! -f "$HOSTS_SRC" ]]; then
-  _log error "Missing rendered hosts file ($HOSTS_SRC)"
+  _log error "Failed to find rendered hosts file ($HOSTS_SRC)"
   exit 1
 fi
 
