@@ -79,7 +79,7 @@ alias:safe reload="exec ${SHELL} -l"
 # --------------------------------- AI Tools --------------------------------- #
 
 # Deliberate shadows: wrap CLIs with permissive defaults
-alias claude="claude --dangerously-skip-permissions"
+alias claude="claude --dangerously-skip-permissions --remote-control"
 alias codex="codex --yolo"
 alias copilot="copilot --allow-all"
 alias:safe kiro="kiro-cli"
