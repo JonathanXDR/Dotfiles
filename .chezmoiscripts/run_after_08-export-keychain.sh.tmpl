@@ -2,39 +2,22 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Re-export managed secrets from the dotfiles keychain to iCloud Drive after every apply.
-# Tokens file format (tab-separated): id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
+# Re-export managed secrets from the dotfiles keychain to iCloud Drive after
+# every apply. Delegates to the secrets:export zsh function, the single
+# implementation of the export logic. It enumerates the keychain (the source
+# of truth) and skips the write when nothing changed.
 
-TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 KEYCHAIN_NAME={{ .keychain_name | quote }}
 KEYCHAIN="$HOME/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
+TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 
-[[ -f "$TOKENS_FILE" && -f "$KEYCHAIN" ]] || exit 0
+# The tokens-file gate avoids seeding the iCloud path before iCloud has synced
+# it down. The very first backup is created by an interactive secrets:export.
+[[ -f "$KEYCHAIN" && -f "$TOKENS_FILE" && -f "$HOME/.functions" ]] || exit 0
 
-tmpfile="$(mktemp)"
-trap 'rm -f "$tmpfile"' EXIT
-
-grep '^#' "$TOKENS_FILE" > "$tmpfile" 2>/dev/null || true
-
-changed=false
-
-# Read each managed (id, account) pair, then pull live kind/comment/password
-# from the keychain (the source of truth) for the new tokens-file line.
-while IFS=$'\t' read -r id account _ _ _ old_password; do
-  [[ -z "$id" || "$id" == \#* ]] && continue
-
-  password="$(security find-generic-password -l "$id" -a "$account" -w "$KEYCHAIN" 2>/dev/null)" || true
-  [[ -z "$password" ]] && continue
-
-  raw="$(security find-generic-password -l "$id" -a "$account" "$KEYCHAIN" 2>&1)"
-  where=$(  printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')
-  kind=$(   printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')
-  comment=$(printf '%s\n' "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')
-  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$account" "$where" "$kind" "$comment" "$password" >> "$tmpfile"
-  [[ "$password" != "$old_password" ]] && changed=true
-done < "$TOKENS_FILE"
-
-if [[ "$changed" == true ]]; then
-  mv "$tmpfile" "$TOKENS_FILE"
-  _log success "Updated tokens file (keychain → iCloud Drive)"
-fi
+# A failed export must not abort the apply (this script runs before 09), so
+# problems surface as a warning next to the function's own error output.
+SECRETS_TOKENS_FILE="$TOKENS_FILE" \
+SECRETS_KEYCHAIN_NAME="$KEYCHAIN_NAME" \
+  zsh -c 'source "$HOME/.functions" && secrets:export' \
+  || _log warning "Skipped tokens file update (see errors above)"
