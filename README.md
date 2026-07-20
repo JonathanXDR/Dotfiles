@@ -74,9 +74,12 @@ secret:copy <id> <account>                           # Copy to clipboard, auto-c
 secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
                                                      # Move/relabel atomically
 secret:remove <id> <account>                         # Remove from keychain + iCloud
-secret:list                                          # Sorted table of managed entries
-secret:check                                         # Verify keychain matches the tokens file
+secrets:list                                         # Sorted table of all keychain entries
+secrets:import                                       # Import tokens-file entries missing from the keychain, report drift
+secrets:export                                       # Rewrite the tokens file from the keychain (auto-runs on apply)
 ```
+
+Functions prefixed `secret:` operate on a single entry, while `secrets:` functions operate on the whole set.
 
 Each entry uses five native Keychain Access fields. The `(id, account)` pair is the unique lookup key. `id` populates the Label (Name) field, while the URL goes into Service (Where), so URLs never appear in committed templates:
 
@@ -88,7 +91,7 @@ Each entry uses five native Keychain Access fields. The `(id, account)` pair is 
 | **Kind**     | Secret type (e.g. Personal Access Token)                 |
 | **Comments** | Consumer (what reads this secret)                        |
 
-Run `secret:list` to see the live keychain state. The table is the only place real values appear.
+Run `secrets:list` to see the live keychain state. The table is the only place real values appear.
 
 **Configuration** (`.chezmoidata.toml`):
 

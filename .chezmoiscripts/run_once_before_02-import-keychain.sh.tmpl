@@ -2,48 +2,28 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Import tokens from iCloud Drive backup into the dedicated dotfiles keychain.
+# Import tokens from the iCloud Drive backup into the dedicated dotfiles keychain.
 # Runs once before templates render, ensuring keyring calls succeed on a fresh machine.
-# Token file format (tab-separated): id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
-# `id` becomes Label (-l, the configured lookup field by default).
-# `where` becomes Service (-s), typically the URL of the provider.
-# `-A` lets templates read transparently without per-app keychain confirmation.
+# Delegates to the secrets zsh functions (sourced from the chezmoi source dir,
+# since ~/.functions is not symlinked yet on first apply): the keychain is
+# created even when there is no backup to import, because run_before_00 and the
+# secret-reading templates rely on it existing after this script.
 
-TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
-KEYCHAIN_NAME={{ .keychain_name | quote }}
-KEYCHAIN="$HOME/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
-KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+export SECRETS_TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
+export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
+export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
+export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+export DOTFILES_SOURCE={{ .chezmoi.sourceDir | quote }}
 
-# Create the keychain if missing and add it to the user search list.
-# Empty password = inherit login session unlock state. Non-empty = master password.
-# Lock policy and ongoing unlocks are owned by run_before_00-unlock-keychain.
-if [[ ! -f "$KEYCHAIN" ]]; then
-  security create-keychain -p "$KEYCHAIN_PASSWORD" "${KEYCHAIN%-db}" >/dev/null
-  _log success "Created keychain ($KEYCHAIN)"
-fi
-if ! security list-keychains -d user 2>/dev/null | grep -qF -- "$KEYCHAIN"; then
-  current=$(security list-keychains -d user | tr -d '"' | xargs)
-  # shellcheck disable=SC2086  # intentional word splitting
-  security list-keychains -d user -s "$KEYCHAIN" $current
-  _log success "Added keychain to search list"
-fi
+zsh -c 'source "$DOTFILES_SOURCE/dot_functions" && _secrets:ensure-keychain'
 
-if [[ ! -f "$TOKENS_FILE" ]]; then
-  _log warning "Skipped import (tokens file not found at $TOKENS_FILE)"
+if [[ ! -f "$SECRETS_TOKENS_FILE" ]]; then
+  _log warning "Skipped import (tokens file not found at $SECRETS_TOKENS_FILE)"
   _log info "Add tokens manually via 'secret:set <id> <account> <where> <kind> [comment]'"
   exit 0
 fi
 
-_ensure_icloud "$TOKENS_FILE" || true
+_ensure_icloud "$SECRETS_TOKENS_FILE" || true
 
-while IFS=$'\t' read -r id account where kind comment password; do
-  [[ -z "$id" || "$id" == \#* ]] && continue
-  flags=(-U -A -s "${where:-$id}" -a "$account" -l "$id" -w "$password")
-  [[ -n "$kind" ]] && flags+=(-D "$kind")
-  [[ -n "$comment" ]] && flags+=(-j "$comment")
-  if security add-generic-password "${flags[@]}" "$KEYCHAIN" 2>/dev/null; then
-    _log success "Imported $id / $account"
-  else
-    _log info "Updated $id / $account"
-  fi
-done < "$TOKENS_FILE"
+zsh -c 'source "$DOTFILES_SOURCE/dot_functions" && secrets:import' \
+  || _log warning "Detected entries needing attention (run secrets:import after apply)"

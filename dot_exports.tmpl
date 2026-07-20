@@ -116,7 +116,7 @@ export GPG_TTY="$(tty)"
 
 export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
 
-# Secrets tokens file path (used by secret:* functions)
+# Secrets tokens file path (used by the secret:* / secrets:* functions)
 export SECRETS_TOKENS_FILE={{ joinPath .icloud_secrets ".keychain/tokens" | quote }}
 
 # Dedicated keychain for managed secrets (configured via .chezmoidata.toml).
