@@ -249,7 +249,7 @@ iCloud Drive stores two categories of data: **secrets** (keychain backup) and **
 Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.keychain-db`), separate from the user's `login` keychain so dotfile-managed entries don't clutter Wi-Fi/Safari/AirDrop entries. The keychain locks on system sleep with no idle timeout (`security set-keychain-settings -l`). A dedicated [`run_before_00-unlock-keychain`](.chezmoiscripts/run_before_00-unlock-keychain.sh.tmpl) script unlocks it once at the start of every `chezmoi apply`, so all secret-reading templates render in a single pass without per-call prompts. Templates read from this keychain at apply time via the `keychain` template helper.
 
 > [!IMPORTANT]
-> The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and overwritten after every apply by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl). Always use `secret:set` to add a secret, or `secret:rename` to update one. Never edit the iCloud tokens file directly.
+> The dotfiles keychain is the source of truth. The iCloud tokens file is a backup, imported on first-machine bootstrap by [`02-import-keychain`](.chezmoiscripts/run_once_before_02-import-keychain.sh.tmpl) and rewritten from the keychain by [`08-export-keychain`](.chezmoiscripts/run_after_08-export-keychain.sh.tmpl) after any apply where it drifts. Always use `secret:set` to add a secret, or `secret:rename` to update one. Never edit the iCloud tokens file directly.
 
 ```text
 ┌───────────────────────────────────────────────────────────┐
@@ -276,7 +276,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 │                                                           │
 └────────────────────────────┬──────────────────────────────┘
                              │
-                             │  script 08: secret:export (auto, every apply)
+                             │  script 08: secrets:export (auto, every apply)
                              v
 ┌───────────────────────────────────────────────────────────┐
 │ iCloud Drive (backup updated)                             │
@@ -288,14 +288,14 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 1. **The dotfiles keychain is the source of truth for secrets.** Templates read secrets via `includeTemplate "keychain" (list "<id>" "<account>" .keychain_name .keychain_lookup_field)`, which wraps `security find-generic-password` against the configured keychain with a graceful fallback to empty string.
 2. **The keychain is unlocked once per apply.** Script `00` (`run_before_00-unlock-keychain`) runs before any template is rendered, calls `security unlock-keychain` with the cached password, and re-applies the lock policy (`-l` only) so the keychain stays unlocked for the rest of the apply. This is what keeps secret-reading templates prompt-free.
 3. **iCloud Drive is the backup.** Script `02` creates the dotfiles keychain on a fresh machine and imports tokens from iCloud into it. Script `08` re-exports keychain entries back to iCloud after every apply.
-4. **Shell functions** in `dot_functions` cover the full lifecycle:
+4. **Shell functions** in `dot_functions` cover the full lifecycle. `secret:` functions operate on a single entry, `secrets:` functions on the whole set:
    - `secret:set <id> <account> <where> <kind> [comment]` to add a new entry (prompts for password)
    - `secret:get <id> <account>`, `secret:copy <id> <account>` to read (stdout / clipboard with auto-clear)
    - `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]` to move or update atomically
    - `secret:remove <id> <account>` to delete (and re-sync iCloud)
-   - `secret:list` for the sorted Name / Account / Kind / Used by / Where table
-   - `secret:check` to verify keychain matches the tokens file
-   - `secret:export` rebuilds the tokens file (auto-runs via script `08`)
+   - `secrets:list` for the sorted ID / Account / Kind / Used by / Where table (enumerates the keychain)
+   - `secrets:import` to pull tokens-file entries missing from the keychain and report drift
+   - `secrets:export` rebuilds the tokens file from the keychain (auto-runs via script `08`)
 
 > [!NOTE]
 > **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?**
@@ -334,7 +334,7 @@ keychain_lookup_field = "name"      # name | where | kind | comment
 | `dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
 
-For the live values (Where / Account / Name / Kind / Used by), run `secret:list`.
+For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
 
 ### Machine-Type Branching
 
@@ -422,7 +422,7 @@ All scripts include `{{ template "shell-helpers" . }}` which provides shared bas
 | Add a global CLI package             | `dot_bun.globals`                                                                       |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`  |
 | Rename or update a secret            | `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]`  |
-| Inspect or audit secrets             | `secret:list` (table view), `secret:check` (drift detection), `secret:copy` (clipboard) |
+| Inspect or audit secrets             | `secrets:list` (table view), `secrets:import` (sync + drift), `secret:copy` (clipboard) |
 | Change keychain name or lookup field | `.chezmoidata.toml` (`keychain_name`, `keychain_lookup_field`)                          |
 | Set a master keychain password       | Re-run `chezmoi init` (the `promptStringOnce` for `keychain_password`)                  |
 | Manage `/etc/hosts` entries          | `dot_config/hosts.tmpl`                                                                 |

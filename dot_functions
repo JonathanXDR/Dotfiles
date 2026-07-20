@@ -626,6 +626,9 @@ ssh:agent() {
 # All entries are created with `-A` so chezmoi templates can read them at
 # apply time without per-app keychain confirmation prompts.
 #
+# Naming: secret:* functions operate on a single entry, secrets:* functions
+# operate on the whole set (list / import / export).
+#
 # ---------------------------------------------------------------------------- #
 
 _SECRETS_TOKENS_FILE="${SECRETS_TOKENS_FILE}"
@@ -654,7 +657,7 @@ _secrets:ensure-keychain() {
 }
 
 _secrets:write-header() {
-  printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secret:set. Import into the dotfiles keychain on new machines\n' > "$1"
+  printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secrets:export. Run secrets:import on new machines to load into the keychain\n' > "$1"
 }
 
 # Ensure the tokens file exists with a header and user-only permissions.
@@ -665,10 +668,45 @@ _secrets:ensure-tokens-file() {
   chmod 600 "$_SECRETS_TOKENS_FILE"
 }
 
-# Stream "service<TAB>account" lines for each managed entry (skips # and blanks).
-_secrets:each() {
-  [[ -f "$_SECRETS_TOKENS_FILE" ]] || return 0
-  awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$_SECRETS_TOKENS_FILE"
+# Stream "id<TAB>account<TAB>where<TAB>kind<TAB>comment" for every generic-password
+# entry in the keychain (the source of truth), sorted by id. Parses attribute
+# metadata from `security dump-keychain`, which never emits password data.
+# Missing attributes render empty. Values with non-ASCII bytes are rendered by
+# dump-keychain as hex and decoded back to bytes (awk runs under LC_ALL=C to
+# keep sprintf("%c") byte oriented).
+_secrets:entries() {
+  [[ -f "$_SECRETS_KEYCHAIN" ]] || return 0
+  security dump-keychain "$_SECRETS_KEYCHAIN" 2>/dev/null | LC_ALL=C awk '
+    function hx(c) { return index("0123456789abcdef", c) - 1 }
+    function hexdec(h,   i, out) {
+      h = tolower(h); out = ""
+      for (i = 1; i < length(h); i += 2)
+        out = out sprintf("%c", hx(substr(h, i, 1)) * 16 + hx(substr(h, i + 1, 1)))
+      return out
+    }
+    function val(line) {
+      if (line ~ /<blob>="/) {                   # printable value, quoted
+        sub(/^[^=]*="/, "", line); sub(/"$/, "", line); return line
+      }
+      if (line ~ /<blob>=0x/) {                  # non-ASCII value, hex-encoded
+        sub(/^[^=]*=0x/, "", line); sub(/[[:space:]].*$/, "", line)
+        return hexdec(line)
+      }
+      return ""                                  # <NULL>
+    }
+    function flush() {
+      if (cls == "\"genp\"" && (id != "" || acct != ""))
+        print id "\t" acct "\t" where "\t" kind "\t" comment
+    }
+    /^keychain:/            { flush(); cls = id = acct = where = kind = comment = "" }
+    /^class:/               { cls = $2 }
+    /^ *0x00000007 <blob>=/ { id      = val($0) }   # 0x00000007 = Label (-l)
+    /^ *"acct"<blob>=/      { acct    = val($0) }
+    /^ *"svce"<blob>=/      { where   = val($0) }
+    /^ *"desc"<blob>=/      { kind    = val($0) }
+    /^ *"icmt"<blob>=/      { comment = val($0) }
+    END                     { flush() }
+  ' | LC_ALL=C sort -f
 }
 
 # Read the keychain attrs (Where, Kind, Comments) for a managed secret with one
@@ -688,7 +726,7 @@ _secrets:password() {
   security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" -w "$_SECRETS_KEYCHAIN" 2>/dev/null
 }
 
-# Write a secret to the dotfiles keychain and register it in the tokens file.
+# Write a secret to the dotfiles keychain.
 # `id` populates the Label (-l, lookup key in default mode). `where` populates
 # the Service (-s, the URL or other "where" metadata). The -A flag allows
 # transparent reads from any application, so chezmoi templates can read secrets
@@ -703,9 +741,6 @@ _secrets:install() {
     log error "Failed to update keychain"
     return 1
   fi
-  _secrets:ensure-tokens-file
-  grep -qF -- "${id}"$'\t'"${acct}"$'\t' "$_SECRETS_TOKENS_FILE" 2>/dev/null \
-    || print -r -- "${id}"$'\t'"${acct}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"placeholder" >> "$_SECRETS_TOKENS_FILE"
 }
 
 # Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
@@ -729,7 +764,7 @@ secret:set() {
 
   _secrets:install "$id" "$account" "$where" "$kind" "$password" "$comment" || return 1
   log success "Added $id / $account ($kind)"
-  secret:export
+  secrets:export
 }
 
 # Read a secret from the dotfiles keychain.
@@ -771,7 +806,7 @@ secret:remove() {
   else
     log warning "Skipped $1 / $2 (not in keychain)"
   fi
-  secret:export
+  secrets:export
 }
 
 # Move and/or update a managed secret. Source must exist, and the target (when
@@ -796,7 +831,7 @@ secret:rename() {
   fi
 
   local cur_where cur_kind cur_comment
-  IFS=$'\t' read -r cur_where cur_kind cur_comment < <(_secrets:attrs "$old_id" "$old_acct")
+  IFS=$'\t\t' read -r cur_where cur_kind cur_comment < <(_secrets:attrs "$old_id" "$old_acct")
   new_where="${5:-$cur_where}"
   new_kind="${6:-$cur_kind}"
   [[ -n "$new_kind" ]] || new_kind="$new_id"
@@ -806,45 +841,55 @@ secret:rename() {
   (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
 
   log success "Renamed $old_id / $old_acct → $new_id / $new_acct ($new_kind)"
-  secret:export
+  secrets:export
 }
 
-# List managed secrets as a sorted table (Name / Account / Kind / Used by / Where).
-# Reads (service, account) pairs from the tokens file and queries the keychain
-# for live Name/Kind/Comments, so output reflects live keychain state.
-secret:list() {
-  if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
-    log warning "Failed to find tokens file ($_SECRETS_TOKENS_FILE)"
+# List managed secrets as a sorted table (ID / Account / Kind / Used by / Where).
+# Enumerates the keychain directly (one `security` call total), so entries
+# added outside secret:set show up too.
+secrets:list() {
+  if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
+    log warning "Failed to find keychain ($_SECRETS_KEYCHAIN)"
     return 1
   fi
 
   {
     print -r -- $'ID\tACCOUNT\tKIND\tUSED BY\tWHERE'
     local id account where kind comment
-    while IFS=$'\t' read -r id account; do
-      IFS=$'\t' read -r where kind comment < <(_secrets:attrs "$id" "$account")
+    while IFS=$'\t\t' read -r id account where kind comment; do
       print -r -- "$id"$'\t'"$account"$'\t'"${kind:-(none)}"$'\t'"${comment:-(none)}"$'\t'"${where:-(none)}"
-    done < <(_secrets:each) | sort -f
+    done < <(_secrets:entries)
   } | column -t -s $'\t'
 }
 
-# Compare tokens-file passwords vs the live keychain. Reports drift, missing,
-# and placeholder entries as a sorted table. Exits non-zero if any drift exists.
-secret:check() {
+# Sync tokens-file entries into the keychain and report per-entry status.
+# The keychain stays the source of truth: entries it lacks are imported from
+# the file (e.g. after an iCloud sync from another machine), while stale file
+# passwords (drift / placeholder) are left for secrets:export to overwrite.
+# Exits non-zero while any entry still needs attention.
+secrets:import() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
     log warning "Failed to find tokens file ($_SECRETS_TOKENS_FILE)"
     return 1
   fi
 
-  local id acct where kind comment file_pw kc_pw state total=0 drift=0
+  local id acct where kind comment file_pw kc_pw state total=0 drift=0 imported=0 rc
   local -a rows
 
-  while IFS=$'\t' read -r id acct where kind comment file_pw; do
+  while IFS=$'\t\t' read -r id acct where kind comment file_pw; do
     [[ -z "$id" || "$id" == \#* ]] && continue
     (( ++total ))
-    kc_pw="$(_secrets:password "$id" "$acct")" || kc_pw=""
-    if [[ -z "$kc_pw" ]]; then
-      state="missing";     (( ++drift ))
+    kc_pw="$(_secrets:password "$id" "$acct")"; rc=$?
+    if (( rc == 44 )); then    # errSecItemNotFound, the entry is definitively absent
+      if [[ -z "$file_pw" || "$file_pw" == placeholder ]]; then
+        state="missing"; (( ++drift ))
+      elif _secrets:install "$id" "$acct" "$where" "$kind" "$file_pw" "$comment"; then
+        state="imported"; (( ++imported ))
+      else
+        state="failed"; (( ++drift ))
+      fi
+    elif (( rc != 0 )); then   # locked keychain or denied read, never write blind
+      state="failed"; (( ++drift ))
     elif [[ "$file_pw" == placeholder ]]; then
       state="placeholder"; (( ++drift ))
     elif [[ "$file_pw" != "$kc_pw" ]]; then
@@ -860,15 +905,20 @@ secret:check() {
     print -lr -- "${rows[@]}" | LC_ALL=C sort
   } | column -t -s $'\t'
 
+  (( imported > 0 )) && log success "Imported $imported secret(s) into the keychain"
   if (( drift > 0 )); then
-    log warning "Detected drift in $drift / $total entries (run secret:export to sync)"
+    log warning "Detected drift in $drift / $total entries (run secrets:export to sync, or secret:set to restore missing ones)"
     return 1
   fi
   log success "Synced $total / $total entries"
 }
 
 # Atomically rewrite the iCloud tokens file from current keychain values.
-secret:export() {
+# Enumerates the keychain itself (the source of truth), so entries added
+# outside secret:set are exported too. File entries that vanished from the
+# keychain are dropped with a warning. The write is skipped when nothing
+# changed, so iCloud only re-uploads on real updates.
+secrets:export() {
   _secrets:ensure-tokens-file
 
   local tmp id account where kind comment password count=0
@@ -876,16 +926,38 @@ secret:export() {
   trap 'rm -f "$tmp"' EXIT
 
   _secrets:write-header "$tmp"
-  while IFS=$'\t' read -r id account; do
-    password="$(_secrets:password "$id" "$account")" || true
-    if [[ -n "$password" ]]; then
-      IFS=$'\t' read -r where kind comment < <(_secrets:attrs "$id" "$account")
+  while IFS=$'\t\t' read -r id account where kind comment; do
+    # (Service, Account) is unique at the storage layer, so this hits exactly
+    # the enumerated entry regardless of the configured lookup field.
+    if password="$(security find-generic-password -s "$where" -a "$account" -w "$_SECRETS_KEYCHAIN" 2>/dev/null)"; then
       print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
       (( ++count ))
     else
-      log warning "Skipped $id / $account (not in keychain)"
+      log warning "Skipped $id / $account (failed to read password)"
     fi
-  done < <(_secrets:each)
+  done < <(_secrets:entries)
+
+  # Refuse to clobber a populated backup from an empty keychain (e.g. a fresh
+  # machine whose iCloud backup synced down after bootstrap already ran).
+  if (( count == 0 )) && grep -qvE '^[[:space:]]*#|^[[:space:]]*$' "$_SECRETS_TOKENS_FILE"; then
+    rm -f "$tmp"
+    trap - EXIT
+    log error "Refused to overwrite populated tokens file from an empty keychain (run secrets:import first)"
+    return 1
+  fi
+
+  while IFS=$'\t\t' read -r id account; do
+    [[ -n "$id" ]] && log warning "Dropped $id / $account (no longer in keychain)"
+  done < <(comm -23 \
+    <(awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$_SECRETS_TOKENS_FILE" | sort) \
+    <(awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$tmp" | sort))
+
+  if cmp -s "$tmp" "$_SECRETS_TOKENS_FILE"; then
+    rm -f "$tmp"
+    trap - EXIT
+    log success "Verified $count secret(s) already in sync"
+    return 0
+  fi
 
   mv "$tmp" "$_SECRETS_TOKENS_FILE"
   trap - EXIT
