@@ -217,16 +217,31 @@
   "lsp": {
     "discord_presence": {
       "initialization_options": {
-        "state": "Working in Zed",
-        "details": null,
-        "git_integration": false,
-        "rules": {
-          "mode": "blacklist",
-          "paths": [
-            "/Users/taarujo6/Developer/Git/SHIFT",
-            "/Users/taarujo6/Developer/Git/Swisscom",
-          ],
-        },
+        "state": "Working on {filename}:{line_number}",
+        "details": "In {workspace} on {git_branch}",
+        "large_text": "{language:u}",
+        "git_integration": true,
+        "overrides": [
+          {
+            "match": {
+              "paths": [
+                "{{ .chezmoi.homeDir }}/Developer/Git/SHIFT",
+                "{{ .chezmoi.homeDir }}/Developer/Git/Swisscom",
+              ],
+            },
+            "state": "Working in Zed",
+            "details": null,
+            "large_image": "{base_icons_url}/zed.png",
+            "large_text": "Zed",
+            "git_integration": false,
+            "hide": {
+              "filename": true,
+              "repo_name": true,
+              "file_path": true,
+              "line_number": true,
+            },
+          },
+        ],
       },
     },
   },
