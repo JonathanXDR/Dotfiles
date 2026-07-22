@@ -7,6 +7,12 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "status_bar": {
+    "show_active_file": true,
+    "line_endings_button": true,
+  },
+  "show_whitespaces": "all",
+  "format_on_save": "on",
   "completion_menu_item_kind": "symbol",
   "show_signature_help_after_edits": true,
   "auto_signature_help": true,
@@ -28,7 +34,7 @@
       "provider": "openai-subscribed",
       "model": "gpt-5.5",
       "enable_thinking": true,
-      "effort": "medium"
+      "effort": "medium",
     },
     "sidebar_side": "right",
     "dock": "right",
@@ -51,6 +57,7 @@
     "show_count_badge": true,
   },
   "project_panel": {
+    "hide_root": true,
     "dock": "left",
     "diagnostic_badges": true,
     "git_status_indicator": true,
@@ -61,6 +68,7 @@
     "show_pinned_tabs_in_separate_row": true,
   },
   "tabs": {
+    "show_diagnostics": "all",
     "show_close_button": "hover",
     "close_position": "left",
     "file_icons": true,
@@ -75,7 +83,6 @@
     "show_background": true,
     "enabled": true,
   },
-  "show_whitespaces": "all",
   "indent_guides": {
     "coloring": "indent_aware",
   },
@@ -147,8 +154,6 @@
     "code_actions": true,
   },
   "diff_view_style": "unified",
-  "cursor_shape": "underline",
-  "restore_on_startup": "launchpad",
   "cli_default_open_behavior": "new_window",
   "context_servers": {
     "mcp-server-notion": {
@@ -226,8 +231,8 @@
     },
   },
   "telemetry": {
-    "diagnostics": false,
     "metrics": false,
+    "diagnostics": false
   },
   "session": {
     "trust_all_worktrees": true,
