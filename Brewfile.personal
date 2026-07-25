@@ -262,7 +262,7 @@ brew "varlock"
 # Disaster recovery for Kubernetes resources and persistent volumes
 brew "velero"
 # Command-line interface for Vercel
-brew "vercel-cli"
+brew "vercel"
 # Next generation frontend tooling. It's fast!
 brew "vite"
 # Executes a program periodically, showing output fullscreen
@@ -339,18 +339,11 @@ cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
 # OpenAI's official ChatGPT desktop app
 cask "chatgpt"
-# Nintendo 3DS emulator
 cask "citra"
 # Managed desktop virtualization solution
 cask "citrix-workspace", args: { appdir: "/Applications" }
 # Anthropic's official Claude AI desktop app
 cask "claude"
-# Terminal-based AI coding assistant
-cask "claude-code"
-# OpenAI's coding agent that runs in your terminal
-cask "codex"
-# Brings the power of Copilot coding agent directly to your terminal
-cask "copilot-cli"
 # Download and manage your addons and mods
 cask "curseforge"
 # Disk space visualiser
@@ -383,6 +376,8 @@ cask "firefox@developer-edition"
 cask "flutter"
 # Focusrite interface controller for devices of the 4th generation and newer
 cask "focusrite-control-2", args: { appdir: "/Applications" }
+cask "font-mona-sans"
+cask "font-monaspace"
 # Tool that helps teams design every part of the product experience
 cask "framer"
 # Git client focusing on productivity
@@ -483,12 +478,12 @@ cask "zen"
 # OpenJDK distribution from Azul
 cask "zulu"
 mas "AdBlock Pro", id: 1018301773
-mas "Compressor", id: 424390742
 mas "Compressor", id: 6746516157
+mas "Compressor", id: 424390742
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
-mas "Final Cut Pro", id: 424389933
 mas "Final Cut Pro", id: 1631624924
+mas "Final Cut Pro", id: 424389933
 mas "Flighty", id: 1358823008
 mas "Folder Preview", id: 6698876601
 mas "FreeScaler", id: 6443796196
@@ -498,11 +493,11 @@ mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "iPreview", id: 1519213509
 mas "Keynote", id: 361285480
-mas "Logic Pro", id: 634148309
 mas "Logic Pro", id: 1615087040
+mas "Logic Pro", id: 634148309
 mas "Mactracker", id: 430255202
-mas "MainStage", id: 6746637089
 mas "MainStage", id: 634159523
+mas "MainStage", id: 6746637089
 mas "Markdown Preview", id: 6739955340
 mas "Motion", id: 434290957
 mas "Motion", id: 6746637149
