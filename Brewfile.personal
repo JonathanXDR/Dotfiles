@@ -339,18 +339,11 @@ cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
 # OpenAI's official ChatGPT desktop app
 cask "chatgpt"
-# Nintendo 3DS emulator
 cask "citra"
 # Managed desktop virtualization solution
 cask "citrix-workspace", args: { appdir: "/Applications" }
 # Anthropic's official Claude AI desktop app
 cask "claude"
-# Terminal-based AI coding assistant
-cask "claude-code"
-# OpenAI's coding agent that runs in your terminal
-cask "codex"
-# Brings the power of Copilot coding agent directly to your terminal
-cask "copilot-cli"
 # Download and manage your addons and mods
 cask "curseforge"
 # Disk space visualiser
