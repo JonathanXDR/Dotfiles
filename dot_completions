@@ -33,16 +33,16 @@ if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
     && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-  [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]] \
-    && source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
-fi
-
-# Kiro CLI compatibility
-# Kiro renders inline suggestions via figterm (terminal-level overlay), which
-# gets wiped whenever zsh-autocomplete redraws the screen. Disable the
-# as-you-type completion menu to prevent it from overwriting Kiro's suggestions.
-if (( $+functions[.autocomplete:async:complete] )); then
-  .autocomplete:async:complete() { return 0 }
+  if [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
+    # Kiro CLI compatibility: keep zsh-autocomplete's manual widgets, but disable
+    # the async redraw loop that wipes Kiro's figterm inline suggestions.
+    #
+    # Homebrew's zsh-autocomplete 26.08.03 also omits the bundled z-async helper
+    # expected by this module, which otherwise prints:
+    #   .autocomplete:async:clear: z-async: function definition file not found
+    zstyle ':autocomplete:async' enabled no
+    source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+  fi
 fi
 
 # Shift+Tab triggers zsh-autocomplete's menu as a manual fallback, since Tab
