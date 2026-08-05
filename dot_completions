@@ -2,11 +2,25 @@
 
 # Homebrew prefix (HOMEBREW_PREFIX is already set by `brew shellenv` in .zshrc)
 local brew_share=""
+local has_zsh_autocomplete=0
 if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   brew_share="${HOMEBREW_PREFIX}/share"
 
-  FPATH="${brew_share}/zsh-completions:$FPATH"
+  typeset -gU FPATH fpath
+  local -a clean_fpath
+  clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
+  fpath=( "${brew_share}/zsh-completions" ${clean_fpath:#*/zsh-autocomplete/z-async} )
 
+  if [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
+    # Kiro CLI compatibility: keep zsh-autocomplete's manual widgets, but disable
+    # the async redraw loop that wipes Kiro's figterm inline suggestions.
+    zstyle ':autocomplete:async' enabled no
+    source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+    has_zsh_autocomplete=1
+  fi
+fi
+
+if (( ! has_zsh_autocomplete )); then
   autoload -Uz compinit
   if [[ -n ~/.zcompdump(N.mh-24) ]]; then
     compinit -C
@@ -32,17 +46,6 @@ fi
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
     && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"
-
-  if [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
-    # Kiro CLI compatibility: keep zsh-autocomplete's manual widgets, but disable
-    # the async redraw loop that wipes Kiro's figterm inline suggestions.
-    #
-    # Homebrew's zsh-autocomplete 26.08.03 also omits the bundled z-async helper
-    # expected by this module, which otherwise prints:
-    #   .autocomplete:async:clear: z-async: function definition file not found
-    zstyle ':autocomplete:async' enabled no
-    source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
-  fi
 fi
 
 # Shift+Tab triggers zsh-autocomplete's menu as a manual fallback, since Tab
