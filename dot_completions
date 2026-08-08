@@ -1,4 +1,5 @@
-# Shell completions and autocompletion setup
+# Completions, autocompletion, and the ZLE widgets around them. Order matters
+# here, so read the notes before moving a block.
 
 # Homebrew prefix (HOMEBREW_PREFIX is already set by `brew shellenv` in .zshrc)
 local brew_share=""
@@ -6,20 +7,26 @@ local has_zsh_autocomplete=0
 if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   brew_share="${HOMEBREW_PREFIX}/share"
 
+  # Let zsh-autocomplete own its fpath entries. Sourcing it below re-adds
+  # Completions and z-async, so drop any copies inherited from a parent shell,
+  # which may point at a version that no longer exists.
   typeset -gU FPATH fpath
   local -a clean_fpath
   clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
   fpath=( "${brew_share}/zsh-completions" ${clean_fpath:#*/zsh-autocomplete/z-async} )
 
   if [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
-    # Kiro CLI compatibility: keep zsh-autocomplete's manual widgets, but disable
-    # the async redraw loop that wipes Kiro's figterm inline suggestions.
+    # Kiro CLI compatibility. Keep zsh-autocomplete's manual widgets, but
+    # disable the async redraw loop that wipes Kiro's figterm inline
+    # suggestions.
     zstyle ':autocomplete:async' enabled no
     source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
     has_zsh_autocomplete=1
   fi
 fi
 
+# zsh-autocomplete runs compinit itself, so only do it when the plugin is
+# missing. -C skips the security scan while the dump is under 24 hours old.
 if (( ! has_zsh_autocomplete )); then
   autoload -Uz compinit
   if [[ -n ~/.zcompdump(N.mh-24) ]]; then
@@ -42,15 +49,15 @@ if cmd:exists ng; then
   compdef _ng_completion ng
 fi
 
-# zsh plugins (guard each in case plugin is uninstalled)
+# Optional plugins, each guarded in case it is not installed
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
     && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"
 fi
 
-# Shift+Tab triggers zsh-autocomplete's menu as a manual fallback, since Tab
-# is reserved by Kiro CLI. Clears ghost text first to prevent it from being
-# committed into the buffer alongside the selected completion.
+# Kiro CLI owns Tab, so Shift+Tab is the manual way into zsh-autocomplete's
+# menu. Clear the ghost text first, or it gets committed into the buffer
+# alongside the completion that was picked.
 if (( $+widgets[menu-select] )); then
   _zsh_autocomplete_fallback() {
     unset POSTDISPLAY
@@ -61,7 +68,8 @@ if (( $+widgets[menu-select] )); then
   bindkey '\e[Z' _zsh_autocomplete_fallback
 fi
 
-# Syntax highlighting (must be sourced after all ZLE widget setup)
+# Syntax highlighting and history substring search wrap existing ZLE widgets,
+# so they must be sourced after every other widget above is defined
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
     && source "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"

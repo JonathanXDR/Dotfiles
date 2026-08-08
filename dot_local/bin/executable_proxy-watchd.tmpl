@@ -1,5 +1,6 @@
 #!/bin/bash
-# proxy-watchd: Event-driven proxy state updater (called by LaunchAgent on network change).
+# proxy-watchd: Probes the proxy and updates the launchctl proxy variables.
+# Run by the local.proxy-watchd LaunchAgent whenever the network changes.
 # Managed by chezmoi (do not edit directly).
 set -euo pipefail
 
@@ -20,15 +21,14 @@ else
   state="off"
 fi
 
-# Skip if state unchanged
+# Every network event runs this, so only act when the state actually flips
 current="$(cat "${STATE_FILE}" 2>/dev/null || true)"
 [[ "${state}" == "${current}" ]] && exit 0
 
-# Persist new state
 printf '%s\n' "${state}" > "${STATE_FILE}"
 logger "proxy-watchd: ${current:-<none>} -> ${state}"
 
-# Update launchctl env vars for GUI apps
+# GUI apps never read the shell config, so publish the proxy through launchctl
 if [[ "${state}" == "on" ]]; then
   addr="${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}"
   launchctl setenv HTTP_PROXY "${addr}" 2>/dev/null

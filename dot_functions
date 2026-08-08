@@ -1,11 +1,21 @@
 # ---------------------------- Shell & PATH Utils ---------------------------- #
 
-# Logger with a coloured "<Level>:" prefix followed by an action-first message.
+# Logger with a colored "<Level>:" prefix followed by an action-first message.
 # Convention:
-#   1. Messages always start with a verb (Imported / Failed / Skipped /
-#      Installing… / Reading… / Verified / Renamed / etc.).
+#   1. Every message starts with a verb, in one of four forms.
+#      a. Past tense for completed work (Imported / Skipped / Verified /
+#         Detected / Removed).
+#      b. "Failed to <verb>" for failures.
+#      c. Present participle plus a single … for work in progress
+#         (Installing… / Reading…).
+#      d. An imperative remedy hint telling the user what to do next
+#         (Add tokens manually via 'secret:set' / Run 'brew bundle cleanup'
+#         to remove them).
+#      The … belongs to form (c) alone, so a past-tense message never
+#      carries one.
 #   2. The message body MUST NOT contain a formatting colon, since the only
-#      colon in the rendered line is the one in the "<Level>:" prefix.
+#      colon in the rendered line is the one in the "<Level>:" prefix. Put
+#      the detail in parentheses instead.
 #      ✓ "Success: Imported 12 secrets"
 #      ✗ "Success: Imported: 12 secrets"      (two colons)
 #      ✗ "Warning: Detected packages:"        (trailing list-colon)
@@ -53,8 +63,8 @@ cmd:exists() {
 }
 
 # Define an alias only if no command with that name already exists.
-# Warns when skipped so shadowed commands stay visible.
-# Usage: alias:safe name='value'
+# Warns when skipped, so shadowed commands stay visible.
+# Usage: alias:safe <name>='<value>'
 alias:safe() {
   local name="${1%%=*}"
   if cmd:exists "$name"; then
@@ -66,7 +76,7 @@ alias:safe() {
 
 # Silent counterpart to alias:safe, for polyfills where the absence
 # of the real command is what triggers the alias.
-# Usage: alias:fallback name='value'
+# Usage: alias:fallback <name>='<value>'
 alias:fallback() {
   cmd:exists "${1%%=*}" || alias:_set "$1"
 }
@@ -74,6 +84,7 @@ alias:fallback() {
 # Internal: set an alias and warn if its target is unavailable.
 # Resolves the target the way zsh would at expansion time:
 #   (z) tokenize, (Q) dequote escapes, (e) expand parameters.
+# Usage: alias:_set <name>='<value>'
 alias:_set() {
   local -a parts=( ${(z)${1#*=}} )
   local target="${(eQ)parts[1]}"
@@ -82,7 +93,7 @@ alias:_set() {
   alias "$1"
 }
 
-# Run a command at most once per day (24 h), gated by a stamp file.
+# Run a command at most once every 24 hours, gated by a stamp file.
 # Usage: run:daily <name> <command...>
 run:daily() {
   local name="$1"; shift
@@ -94,7 +105,7 @@ run:daily() {
   "$@" && touch "$stamp"
 }
 
-# Safely prepend directories to PATH (skips missing or duplicate entries)
+# Prepend directories to PATH (skips missing or duplicate entries)
 path:add() {
   local dir
   for dir in "$@"; do
@@ -105,7 +116,7 @@ path:add() {
   done
 }
 
-# Safely append directories to PATH (skips missing or duplicate entries)
+# Append directories to PATH (skips missing or duplicate entries)
 path:append() {
   local dir
   for dir in "$@"; do
@@ -121,14 +132,15 @@ mkd() {
   mkdir -p "$@" && cd "${@[-1]}" || return
 }
 
-# Change working directory to the top-most Finder window location
+# Change to the directory of the frontmost Finder window
 cdf() {
   cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
 }
 
 # ----------------------------- Files & Archives ----------------------------- #
 
-# Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
+# Create a .tar.gz archive (zopfli for small inputs, otherwise pigz or gzip)
+# Usage: targz <path...>
 targz() {
   local tmpFile="${1%/}.tar"
   tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1
@@ -155,7 +167,7 @@ targz() {
   log success "Created ${tmpFile}.gz ($((zippedSize / 1000)) kB)"
 }
 
-# Determine size of a file or total size of a directory
+# Show the size of a file, or the total size of a directory
 fs() {
   if (( $# )); then
     du -sh -- "$@"
@@ -164,9 +176,10 @@ fs() {
   fi
 }
 
-# Create a data URL from a file
+# Create a base64 data URL from a file
+# Usage: dataurl <file>
 dataurl() {
-  [[ -f "${1:-}" ]] || { log error "Require a file argument (run 'dataurl <file>')"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Failed to encode (needs an existing file, run 'dataurl <file>')"; return 1; }
   local mimeType
   mimeType=$(file -b --mime-type "$1")
   if [[ $mimeType == text/* ]]; then
@@ -175,16 +188,18 @@ dataurl() {
   echo "data:${mimeType};base64,$(openssl base64 -in "$1" | tr -d '\n')"
 }
 
-# Start an HTTP server from a directory, optionally specifying the port
+# Serve the current directory over HTTP and open it once it answers
+# Usage: server [port]
 server() {
   local port="${1:-8000}"
   { retry 5 1 curl -fs "http://localhost:${port}/" -o /dev/null && open "http://localhost:${port}/"; } &
   python3 -m http.server "${port}"
 }
 
-# Compare original and gzipped file size
+# Compare the original and gzipped size of a file
+# Usage: gz <file>
 gz() {
-  [[ -f "${1:-}" ]] || { log error "Require a file argument (run 'gz <file>')"; return 1; }
+  [[ -f "${1:-}" ]] || { log error "Failed to compare (needs an existing file, run 'gz <file>')"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
   local gzipsize
@@ -195,34 +210,36 @@ gz() {
   printf "gzip: %d bytes (%2.2f%%)\n" "$gzipsize" "$ratio"
 }
 
-# Tree view with colors, ignoring common dirs, piped to less
+# Colored tree view, skipping TREE_IGNORE paths, paged through less
 trec() {
   tree -aC -I "${TREE_IGNORE}" --dirsfirst "$@" | less -FRNX
 }
 
-# Tree view without paging
+# Same tree view as trec, without color or paging
 tre() {
   tree -a -I "${TREE_IGNORE}" --dirsfirst "$@"
 }
 
 # ------------------------------ Open & Launch ------------------------------- #
 
-# Open current directory or given location in Finder
+# Open the current directory, or a given path, in Finder
 o() {
   open "${@:-.}"
 }
 
 # -------------------------- Networking, TLS & DNS --------------------------- #
 
-# Run `dig` and display the most useful info
+# Run `dig` and show only the answer section
+# Usage: digga <domain>
 digga() {
   dig +nocmd "$1" any +multiline +noall +answer
 }
 
-# Show all the names (CNs and SANs) listed in the SSL certificate for a given domain
+# Show every name (common name and SANs) in a domain's TLS certificate
+# Usage: getcertnames <domain>
 getcertnames() {
   if [[ -z "${1}" ]]; then
-    log error "Require a domain as the first argument"
+    log error "Failed to read certificate names (no domain given)"
     return 1
   fi
 
@@ -248,12 +265,15 @@ getcertnames() {
       | sed -e "2s/DNS://g" -e "s/ //g" | tr "," "\n" | tail -n +2
     return 0
   else
-    log error "Failed to find a certificate for the domain"
+    log error "Failed to find a certificate for ${domain}"
     return 1
   fi
 }
 
-# Bundle corporate CA certificates into a single PEM file for NODE_EXTRA_CA_CERTS.
+# Bundle corporate CA certificates into one PEM file for NODE_EXTRA_CA_CERTS.
+# Sources are SSL_BUNDLE_KEYCHAIN_CERTS (common names in the System keychain)
+# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma separated.
+# Usage: ssl:bundle [output_path]
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
   mkdir -p "${output:h}"
@@ -290,7 +310,7 @@ ssl:bundle() {
       continue
     fi
 
-    # Auto-detect PEM vs DER format
+    # Accept either encoding, PEM first then DER
     if openssl x509 -inform PEM -in "$raw" -outform PEM >> "$tmp" 2>/dev/null \
     || openssl x509 -inform DER -in "$raw" -outform PEM >> "$tmp" 2>/dev/null; then
       ((cert_count++))
@@ -309,9 +329,11 @@ ssl:bundle() {
   log success "Bundled $cert_count certificate(s) into $output"
 }
 
+# Point a network service at a specific set of DNS servers.
+# Usage: dns:change <network_service> <comma_separated_dns_ips>
 dns:change() {
   if (($# < 2)); then
-    echo "Usage: dns:change <network service name> <DNS IPs separated by commas>" >&2
+    echo "Usage: dns:change <network_service> <comma_separated_dns_ips>" >&2
     return 1
   fi
 
@@ -341,6 +363,8 @@ vpn:hosts() {
   "$_CISCO_VPN_BIN" hosts
 }
 
+# True when Cisco reports a connected state, in either output format
+# ("state: connected" or a bare "connected" line).
 vpn:is-connected() {
   vpn:state | grep -Eqi '^[[:space:]]*state[[:space:]]*:[[:space:]]*connected([[:space:]]|$)|^[[:space:]]*connected([[:space:]]|$)'
 }
@@ -355,21 +379,25 @@ vpn:google-ok() {
     https://accounts.google.com >/dev/null 2>&1
 }
 
+# True when the plain connectivity check still answers but accounts.google.com
+# does not, the signature of the broken TLS state the Cisco client leaves.
 vpn:google-broken() {
   vpn:internet-ok && ! vpn:google-ok
 }
 
+# Disconnect and reconnect the VPN to clear the broken TLS state, stopping
+# early if the disconnect alone was enough.
 vpn:refresh() {
   _vpn:require-cli || return 1
 
-  log info "Reading Cisco state before refresh"
+  log info "Reading Cisco state before refresh…"
   vpn:state || true
 
   log info "Disconnecting Cisco VPN…"
   "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
-  log info "Reading Cisco state after disconnect"
+  log info "Reading Cisco state after disconnect…"
   vpn:state || true
 
   if ! vpn:google-broken; then
@@ -381,48 +409,51 @@ vpn:refresh() {
   "$_CISCO_VPN_BIN" connect
   local rc=$?
 
-  log info "Reading Cisco state after connect attempt"
+  log info "Reading Cisco state after connect attempt…"
   vpn:state || true
 
   if [[ $rc -ne 0 ]]; then
-    log warning "Failed to connect (returned $rc, likely cancelled, MFA pending, or blocked)"
+    log warning "Failed to connect (returned $rc, likely canceled, MFA pending, or blocked)"
   fi
 
   if vpn:google-broken; then
-    log error "Failed to refresh drive (still broken)"
+    log error "Failed to refresh Drive (still broken)"
     return 1
   fi
 
-  log success "Verified drive works after refresh"
+  log success "Verified Drive works after refresh"
 }
 
+# Disconnect without reconnecting, which is often enough on its own.
 vpn:soft-refresh() {
   _vpn:require-cli || return 1
 
-  log info "Reading Cisco state before soft refresh"
+  log info "Reading Cisco state before soft refresh…"
   vpn:state || true
 
   log info "Disconnecting Cisco VPN (soft refresh)…"
   "$_CISCO_VPN_BIN" disconnect >/dev/null 2>&1 || true
   sleep 3
 
-  log info "Reading Cisco state after soft refresh"
+  log info "Reading Cisco state after soft refresh…"
   vpn:state || true
 
   if vpn:google-broken; then
-    log warning "Failed to soft-refresh drive (still broken)"
+    log warning "Failed to soft-refresh Drive (still broken)"
     return 1
   fi
 
-  log success "Verified drive works after disconnect-only soft refresh"
+  log success "Verified Drive works after disconnect-only soft refresh"
 }
 
+# Soft refresh, then reconnect to a named host.
+# Usage: vpn:full-refresh [host]
 vpn:full-refresh() {
   local vpn_host="${1:-${VPN_DEFAULT_HOST}}"
   _vpn:require-cli || return 1
 
   if [[ -z "$vpn_host" ]]; then
-    log warning "Require a VPN host (pass explicitly or set VPN_DEFAULT_HOST)"
+    log warning "Skipped full refresh (no host given and VPN_DEFAULT_HOST is unset)"
     return 1
   fi
 
@@ -431,6 +462,7 @@ vpn:full-refresh() {
   "$_CISCO_VPN_BIN" connect "$vpn_host"
 }
 
+# Restart the Cisco Secure Client UI, which reloads its network socket filter.
 vpn:reset-filter() {
   log info "Restarting Cisco Secure Client UI (resetting socket filter)…"
   killall "Cisco Secure Client" 2>/dev/null || true
@@ -443,6 +475,11 @@ proxy:compose-addr() {
   printf "%s://%s:%s" "$1" "$2" "$3"
 }
 
+# Export every proxy variable the toolchain reads, and mirror the main ones
+# into the launchd session so GUI apps see them too. Omitted arguments fall
+# back to PROXY_PROTOCOL, PROXY_HOST, PROXY_PORT, and NO_PROXY from .exports,
+# and the first three have to resolve to a value one way or the other.
+# Usage: proxy:set <protocol> <host> <port> [no_proxy]
 proxy:set() {
   local proxy_protocol="${1:-${PROXY_PROTOCOL}}"
   local proxy_host="${2:-${PROXY_HOST}}"
@@ -451,7 +488,7 @@ proxy:set() {
 
   if [[ -z "${proxy_protocol}" || -z "${proxy_host}" || -z "${proxy_port}" ]]; then
     echo "Usage: proxy:set <protocol> <host> <port> [no_proxy]" >&2
-    echo "Or ensure PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT are set in ${HOME}/.exports" >&2
+    echo "Or set PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT in ${HOME}/.exports" >&2
     return 1
   fi
 
@@ -477,6 +514,7 @@ proxy:set() {
   launchctl setenv NO_PROXY "${no_proxy}" 2>/dev/null
 }
 
+# Clear everything proxy:set exported, in the shell and in the launchd session.
 proxy:unset() {
   local var
   for var in http_proxy https_proxy ftp_proxy all_proxy \
@@ -490,11 +528,14 @@ proxy:unset() {
   done
 }
 
+# Turn the proxy on or off depending on whether the corporate proxy answers.
+# Pass the literal keyword "dns" to switch the DNS servers to match.
+# Usage: proxy:probe ["dns"]
 proxy:probe() {
   local with_dns="${1:-}"
 
   if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
-    log info "Enabling proxy (corporate network detected)"
+    log info "Enabling proxy (corporate network detected)…"
     proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
 
     if [[ "${with_dns}" == "dns" ]]; then
@@ -505,7 +546,7 @@ proxy:probe() {
       fi
     fi
   else
-    log info "Disabling proxy (normal network detected)"
+    log info "Disabling proxy (no corporate network detected)…"
     proxy:unset
 
     if [[ "${with_dns}" == "dns" ]]; then
@@ -518,6 +559,7 @@ proxy:probe() {
   fi
 }
 
+# Reload the proxy-watchd LaunchAgent so plist changes take effect.
 proxyd:reload() {
   local label="local.proxy-watchd"
   local plist="${HOME}/Library/LaunchAgents/${label}.plist"
@@ -529,6 +571,8 @@ proxyd:reload() {
   log success "Reloaded ${label}"
 }
 
+# Show whether proxy-watchd is loaded, when it last switched, and the proxy
+# variables currently in effect.
 proxyd:status() {
   local label="local.proxy-watchd"
   local state_file="${HOME}/.cache/proxy-state"
@@ -536,13 +580,13 @@ proxyd:status() {
   if launchctl print "gui/$(id -u)/${label}" &>/dev/null; then
     echo "Agent:  loaded (trigger-based, runs on network change)"
   else
-    log warning "Detected no loaded agent"
+    log warning "Found no loaded agent"
   fi
 
   if [[ -f "${state_file}" ]]; then
     echo "Proxy:  $(< "${state_file}") (since $(stat -f '%Sm' "${state_file}"))"
   else
-    log warning "Detected no state file"
+    log warning "Found no state file"
   fi
 
   local _v
@@ -559,30 +603,34 @@ proxyd:status() {
   done
 }
 
+# Show proxy-watchd entries from the unified log (default last 5 minutes).
+# Usage: proxyd:log [duration]
 proxyd:log() {
   /usr/bin/log show --predicate 'eventMessage CONTAINS "proxy-watchd"' --last "${1:-5m}"
 }
 
+# Repair the broken Drive TLS state, trying the cheapest fix first.
 network:heal() {
   if vpn:google-broken; then
-    log warning "Detected broken Drive TLS state, trying soft Cisco refresh…"
+    log warning "Detected broken Drive TLS state, trying soft Cisco refresh"
     vpn:soft-refresh || {
-      log warning "Failed to soft-refresh drive, trying Cisco UI restart…"
+      log warning "Failed to soft-refresh Drive, trying Cisco UI restart"
       vpn:reset-filter
       sleep 3
 
       if vpn:google-broken; then
-        log warning "Failed to recover drive (still broken after UI restart, run 'vpn:refresh' manually)"
+        log warning "Failed to recover Drive (still broken after UI restart, run 'vpn:refresh' manually)"
         return 1
       fi
 
-      log success "Verified drive works after Cisco UI restart"
+      log success "Verified Drive works after Cisco UI restart"
     }
   fi
 }
 
 # ------------------------------------ SSH ----------------------------------- #
 
+# Adopt a forwarded ssh-agent socket left behind in /tmp by an earlier session.
 ssh:reagent() {
   local agent
   for agent in /tmp/ssh-*/agent.*; do
@@ -597,6 +645,7 @@ ssh:reagent() {
   return 1
 }
 
+# Point SSH_AUTH_SOCK at a working agent, starting a fresh one if needed.
 ssh:agent() {
   if pgrep -x ssh-agent &>/dev/null; then
     ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
@@ -607,27 +656,27 @@ ssh:agent() {
 
 # --------------------------------- Secrets ---------------------------------- #
 #
-# A dedicated `dotfiles` keychain (separate from `login`) is the source of
-# truth for all managed secrets. The tokens file on iCloud Drive
-# (`$SECRETS_TOKENS_FILE`) mirrors it as a tab-separated backup so a fresh
+# A dedicated `dotfiles` keychain (separate from `login`) is the source of truth
+# for every managed secret. The tokens file on iCloud Drive
+# (`$SECRETS_TOKENS_FILE`) mirrors it as a tab-separated backup, so a fresh
 # machine can re-import everything in one shot.
 # Tokens-file format: id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 #
-# Five metadata fields map to native macOS keychain attributes (password is the
-# stored value, not an attribute):
-#   id      = friendly identifier, populates the Label (-l), the lookup key
-#             when SECRETS_KEYCHAIN_LOOKUP_FIELD = "name" (default)
+# Five metadata fields map to native macOS keychain attributes (the password is
+# the stored value, not an attribute):
+#   id      = friendly name, populates the Label (-l), and is the lookup key
+#             when SECRETS_KEYCHAIN_LOOKUP_FIELD is "name" (the default)
 #   account = identity (-a)
-#   where   = URL of the provider, populates the Service (-s). macOS enforces
+#   where   = provider URL, populates the Service (-s). macOS enforces
 #             (Service, Account) uniqueness at the storage layer
 #   kind    = secret type, populates the "desc" attribute (-D)
-#   comment = consumer / what reads this secret, populates "icmt" (-j)
+#   comment = what reads this secret, populates "icmt" (-j)
 #
-# All entries are created with `-A` so chezmoi templates can read them at
-# apply time without per-app keychain confirmation prompts.
+# Every entry is created with `-A` so chezmoi templates can read it at apply
+# time without a per-app keychain confirmation prompt.
 #
-# Naming: secret:* functions operate on a single entry, secrets:* functions
-# operate on the whole set (list / import / export).
+# Naming: secret:* acts on a single entry, secrets:* acts on the whole set
+# (list, import, export).
 #
 # ---------------------------------------------------------------------------- #
 
@@ -638,10 +687,10 @@ _SECRETS_KEYCHAIN="$HOME/Library/Keychains/${SECRETS_KEYCHAIN_NAME:-dotfiles}.ke
 typeset -gA _SECRETS_FLAG_MAP=(name -l where -s kind -D comment -j)
 _SECRETS_LOOKUP_FLAG="${_SECRETS_FLAG_MAP[${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}]:--l}"
 
-# Create the managed keychain if missing and add it to the user search list.
-# Empty SECRETS_KEYCHAIN_PASSWORD means the keychain inherits the login session
-# unlock state, with no extra prompt during use. A non-empty value sets a master
-# password that must be supplied to unlock.
+# Create the managed keychain if it is missing, and add it to the user search
+# list. An empty SECRETS_KEYCHAIN_PASSWORD makes the keychain inherit the login
+# session unlock state, so nothing extra is prompted for during use. A non-empty
+# value sets a master password that has to be entered to unlock.
 _secrets:ensure-keychain() {
   if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
     local pw="${SECRETS_KEYCHAIN_PASSWORD:-}"
@@ -661,19 +710,19 @@ _secrets:write-header() {
 }
 
 # Ensure the tokens file exists with a header and user-only permissions.
-# Idempotent: re-running fixes drift in either step without clobbering content.
+# Idempotent, so re-running fixes either problem without touching the content.
 _secrets:ensure-tokens-file() {
   [[ -d "${_SECRETS_TOKENS_FILE:h}" ]] || mkdir -p "${_SECRETS_TOKENS_FILE:h}"
   [[ -f "$_SECRETS_TOKENS_FILE" ]] || _secrets:write-header "$_SECRETS_TOKENS_FILE"
   chmod 600 "$_SECRETS_TOKENS_FILE"
 }
 
-# Stream "id<TAB>account<TAB>where<TAB>kind<TAB>comment" for every generic-password
-# entry in the keychain (the source of truth), sorted by id. Parses attribute
+# Stream "id<TAB>account<TAB>where<TAB>kind<TAB>comment" for every generic
+# password entry in the keychain (the source of truth), sorted by id. Reads
 # metadata from `security dump-keychain`, which never emits password data.
-# Missing attributes render empty. Values with non-ASCII bytes are rendered by
-# dump-keychain as hex and decoded back to bytes (awk runs under LC_ALL=C to
-# keep sprintf("%c") byte oriented).
+# Missing attributes render empty. dump-keychain hex-encodes any value holding
+# non-ASCII bytes, which awk decodes back (LC_ALL=C keeps sprintf("%c") byte
+# oriented).
 _secrets:entries() {
   [[ -f "$_SECRETS_KEYCHAIN" ]] || return 0
   security dump-keychain "$_SECRETS_KEYCHAIN" 2>/dev/null | LC_ALL=C awk '
@@ -709,9 +758,10 @@ _secrets:entries() {
   ' | LC_ALL=C sort -f
 }
 
-# Read the keychain attrs (Where, Kind, Comments) for a managed secret with one
-# `security` call. Emits a single tab-separated line "<where>\t<kind>\t<comment>".
+# Read the Where, Kind, and Comments attributes of a managed secret in one
+# `security` call. Emits one tab-separated line "<where>\t<kind>\t<comment>".
 # Missing fields render empty. Exits non-zero if the entry is absent.
+# Usage: _secrets:attrs <id> <account>
 _secrets:attrs() {
   local raw where kind comment
   raw="$(security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1)" || return 1
@@ -721,16 +771,14 @@ _secrets:attrs() {
   print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
 }
 
-# Print the password of a managed secret. Empty stdout + non-zero on miss.
+# Print the password of a managed secret. Prints nothing and exits non-zero
+# when the entry is missing.
+# Usage: _secrets:password <id> <account>
 _secrets:password() {
   security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" -w "$_SECRETS_KEYCHAIN" 2>/dev/null
 }
 
-# Write a secret to the dotfiles keychain.
-# `id` populates the Label (-l, lookup key in default mode). `where` populates
-# the Service (-s, the URL or other "where" metadata). The -A flag allows
-# transparent reads from any application, so chezmoi templates can read secrets
-# during apply without a keychain confirmation prompt.
+# Write a secret to the dotfiles keychain, adding it or updating it in place.
 # Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
 _secrets:install() {
   local id="$1" acct="$2" where="$3" kind="$4" password="$5" comment="${6:-}"
@@ -743,24 +791,24 @@ _secrets:install() {
   fi
 }
 
-# Add or update a secret in the dotfiles keychain, then sync to iCloud Drive.
-# Password is read interactively and never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair. Uniqueness is enforced
-# manually on the Label field since macOS only enforces it on Service.
+# Add a secret to the dotfiles keychain, then sync to iCloud Drive. The password
+# is read interactively, so it is never echoed or stored in shell history.
+# Refuses to create a duplicate (id, account) pair. That uniqueness is enforced
+# here, on the Label field, because macOS only enforces it on Service.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {
   (( $# >= 4 && $# <= 5 )) || { echo "Usage: secret:set <id> <account> <where> <kind> [comment]" >&2; return 1; }
   local id="$1" account="$2" where="$3" kind="$4" comment="${5:-}" password
 
   if _secrets:password "$id" "$account" >/dev/null 2>&1; then
-    log error "Rejected $id / $account already exists (use secret:rename to update)"
+    log error "Rejected $id / $account (already exists, use secret:rename to update)"
     return 1
   fi
 
   printf "Password for %s/%s: " "$id" "$account"
   read -rs password
   echo
-  [[ -n "$password" ]] || { log error "Cancelled (password cannot be empty)"; return 1; }
+  [[ -n "$password" ]] || { log error "Canceled (password cannot be empty)"; return 1; }
 
   _secrets:install "$id" "$account" "$where" "$kind" "$password" "$comment" || return 1
   log success "Added $id / $account ($kind)"
@@ -774,9 +822,9 @@ secret:get() {
   _secrets:password "$1" "$2" || { log error "Failed to find $1 / $2"; return 1; }
 }
 
-# Copy a secret to the macOS clipboard with auto-clear after TTL (default 30s).
-# The clipboard is only cleared if it still holds the same value, so anything
-# the user copies in the meantime is preserved. Override via SECRETS_CLIPBOARD_TTL.
+# Copy a secret to the clipboard, then clear it after SECRETS_CLIPBOARD_TTL
+# seconds (default 30). The clipboard is only cleared if it still holds the same
+# value, so anything copied in the meantime survives.
 # Usage: secret:copy <id> <account>
 secret:copy() {
   (( $# == 2 )) || { echo "Usage: secret:copy <id> <account>" >&2; return 1; }
@@ -809,9 +857,9 @@ secret:remove() {
   secrets:export
 }
 
-# Move and/or update a managed secret. Source must exist, and the target (when
-# different) must not, to prevent silent overwrites. Omit any of where/kind/
-# comment to preserve current values.
+# Rename a managed secret and optionally update its metadata. The source must
+# exist and the target (when different) must not, which prevents silent
+# overwrites. Omit where, kind, or comment to keep the current value.
 # Usage: secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
 secret:rename() {
   (( $# >= 4 && $# <= 7 )) || {
@@ -826,7 +874,7 @@ secret:rename() {
     || { log error "Failed to find $old_id / $old_acct"; return 1; }
 
   if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
-    log error "Rejected target $new_id / $new_acct already exists"
+    log error "Rejected $new_id / $new_acct (target already exists)"
     return 1
   fi
 
@@ -844,9 +892,9 @@ secret:rename() {
   secrets:export
 }
 
-# List managed secrets as a sorted table (ID / Account / Kind / Used by / Where).
-# Enumerates the keychain directly (one `security` call total), so entries
-# added outside secret:set show up too.
+# List managed secrets as a sorted table (ID, Account, Kind, Used by, Where).
+# Reads the keychain directly (one `security` call in total), so entries added
+# outside secret:set show up too.
 secrets:list() {
   if [[ ! -f "$_SECRETS_KEYCHAIN" ]]; then
     log warning "Failed to find keychain ($_SECRETS_KEYCHAIN)"
@@ -862,10 +910,10 @@ secrets:list() {
   } | column -t -s $'\t'
 }
 
-# Sync tokens-file entries into the keychain and report per-entry status.
-# The keychain stays the source of truth: entries it lacks are imported from
-# the file (e.g. after an iCloud sync from another machine), while stale file
-# passwords (drift / placeholder) are left for secrets:export to overwrite.
+# Sync tokens-file entries into the keychain and report the status of each one.
+# The keychain stays the source of truth. Entries it lacks are imported from the
+# file (for example after an iCloud sync from another machine), while stale file
+# passwords (drift or placeholder) are left for secrets:export to overwrite.
 # Exits non-zero while any entry still needs attention.
 secrets:import() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
@@ -913,11 +961,11 @@ secrets:import() {
   log success "Synced $total / $total entries"
 }
 
-# Atomically rewrite the iCloud tokens file from current keychain values.
-# Enumerates the keychain itself (the source of truth), so entries added
-# outside secret:set are exported too. File entries that vanished from the
-# keychain are dropped with a warning. The write is skipped when nothing
-# changed, so iCloud only re-uploads on real updates.
+# Atomically rewrite the iCloud tokens file from the current keychain values.
+# Reads the keychain itself (the source of truth), so entries added outside
+# secret:set are exported too. File entries that have vanished from the keychain
+# are dropped with a warning. The write is skipped when nothing changed, so
+# iCloud only re-uploads on a real update.
 secrets:export() {
   _secrets:ensure-tokens-file
 
@@ -966,6 +1014,8 @@ secrets:export() {
 
 # ----------------------- macOS System Tweaks & Utilities -------------------- #
 
+# Let Touch ID authenticate sudo by adding pam_tid to /etc/pam.d/sudo.
+# Backs the file up first and restores it if any step fails.
 sudo:touch-id() {
   local FILE='/etc/pam.d/sudo'
   local BACKUP
@@ -977,7 +1027,7 @@ sudo:touch-id() {
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
 
   # Only enable restore-on-error after a valid backup exists
-  trap 'trap - ERR; log error "Detected error, restoring original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
+  trap 'trap - ERR; log error "Detected an error, restoring the original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
 
   if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
     log error "Failed to find required marker comment in $FILE"
@@ -1009,9 +1059,11 @@ hostname:get() {
   scutil --get ComputerName
 }
 
+# Set the computer, host, and local host names in one go.
+# Usage: hostname:set <new_hostname>
 hostname:set() {
   if [[ $# -ne 1 ]]; then
-    echo "Usage: hostname:set <new-hostname>" >&2
+    echo "Usage: hostname:set <new_hostname>" >&2
     return 1
   fi
 
@@ -1028,6 +1080,7 @@ hostname:reset() {
   hostname:set "${DEFAULT_HOSTNAME}"
 }
 
+# Rebuild the Dock from scratch with only the apps listed in DOCK_APPS.
 dock:reset() {
   defaults delete com.apple.dock
   killall Dock
@@ -1070,14 +1123,20 @@ system:sleep() {
 
 # ---------------------------------- Docker ---------------------------------- #
 
-# Best-effort bulk docker subcommand. Empty input is a no-op. Failures are
-# swallowed (intentional, since stop/rm/rmi often race against each other).
+# Best-effort bulk docker subcommand. Empty input is a no-op, and failures are
+# swallowed on purpose, since stop, rm, and rmi often race against each other.
+# Usage: _docker:bulk <subcommand> <ids>
 _docker:bulk() {
   local cmd="$1" ids="$2"
   [[ -n "$ids" ]] || return 0
   print -r -- "$ids" | xargs docker "$cmd" 2>/dev/null || true
 }
 
+# Remove every container and image, stopping the containers first. Anything
+# whose ID, container name, or image repository matches keep_pattern is kept.
+# Pass a single extended regular expression, because extra arguments are joined
+# with a space into one pattern rather than treated as alternatives.
+# Usage: docker:cleanup [keep_pattern]
 docker:cleanup() {
   local containers images
   if (( $# == 0 )); then
@@ -1095,8 +1154,9 @@ docker:cleanup() {
 
 # -------------------------------- Toolchain --------------------------------- #
 
+# Activate the conda env named in ./environment.yml on entering a directory,
+# and deactivate again on leaving.
 conda:load() {
-  # Auto-activate conda env when entering a directory with environment.yml
   if [[ -f "environment.yml" ]]; then
     local env_name
     env_name=$(grep '^name:' environment.yml | sed 's/^name:[[:space:]]*//')
@@ -1110,9 +1170,9 @@ conda:load() {
 }
 
 # Refresh every mise-managed tool within the ranges pinned in
-# ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which would
-# rewrite that file; it is chezmoi-tracked, so version changes belong in the
-# source. mise itself is upgraded by Homebrew, never from here.
+# ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which
+# would rewrite that file. It is chezmoi-tracked, so version changes belong in
+# the source. mise itself is upgraded by Homebrew, never from here.
 mise:update() {
   local output
   if ! output=$(mise upgrade 2>&1 </dev/null); then
@@ -1124,6 +1184,7 @@ mise:update() {
   [[ "$output" == *"All tools are up to date"* ]] || echo "$output"
 }
 
+# Report deprecated and outdated Homebrew packages without changing anything.
 brew:check() {
   local deprecated outdated
 
@@ -1148,6 +1209,8 @@ if cmd:exists git; then
   }
 fi
 
+# Delete a branch locally and on origin.
+# Usage: gdb <branch>
 gdb() {
   if [[ -z "$1" ]]; then
     echo "Usage: gdb <branch>" >&2
@@ -1156,6 +1219,8 @@ gdb() {
   git branch -d -- "$1" && git push origin :"$1"
 }
 
+# Apply a stash by index, leaving it on the stack.
+# Usage: gas <stash_index>
 gas() {
   if [[ -z "$1" ]]; then
     echo "Usage: gas <stash_index>" >&2
@@ -1164,6 +1229,8 @@ gas() {
   git stash apply "stash@{$1}"
 }
 
+# Interactively rebase the last N commits.
+# Usage: grb <commit_count>
 grb() {
   if [[ -z "$1" ]]; then
     echo "Usage: grb <commit_count>" >&2
@@ -1172,6 +1239,9 @@ grb() {
   git rebase -i "HEAD~$1"
 }
 
+# Copy the full target-branch content of every file that differs between two
+# branches to the clipboard, ready to paste into a review or a chat.
+# Usage: git:diff <source_branch> <target_branch> [exclude_pattern]
 git:diff() {
   if [[ $# -lt 2 ]]; then
     echo "Usage: git:diff <source_branch> <target_branch> [exclude_pattern]" >&2
@@ -1191,13 +1261,16 @@ git:diff() {
     git show "$target_branch:$file"
   done | pbcopy
 
-  log success "Copied diff output to clipboard"
+  log success "Copied changed file contents to clipboard"
 }
 
 # --------------------------------- Chezmoi ---------------------------------- #
 
+# Clear the stale local state that a new shell or gpg trips over. Drops
+# group-write bits from insecure zsh completion directories and removes
+# leftover GnuPG lock files.
 chezmoi:cleanup() {
-  # Fix zsh completion insecure directory warnings (removes group-write permissions)
+  # Silence zsh completion warnings by dropping group-write permissions
   if cmd:exists compaudit; then
     local dirs
     dirs="$(compaudit 2>/dev/null)"
@@ -1216,10 +1289,10 @@ chezmoi:cleanup() {
   fi
 }
 
+# Copy template-managed files back into the chezmoi source. Files that only use
+# {{ .chezmoi.homeDir }} are synced automatically by substituting it back in.
+# Files with secrets or other template variables are flagged for a manual merge.
 chezmoi:sync() {
-  # Sync template-managed files back to chezmoi source.
-  # Files that only use {{ .chezmoi.homeDir }} are auto-synced (reverse substitution).
-  # Files with secrets or other template vars are flagged for manual merge.
   cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
 
   local home_dir="${HOME}"
@@ -1238,7 +1311,6 @@ chezmoi:sync() {
     tmp="$(mktemp)"
     sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
 
-    # Already in sync, skip
     if command diff -q "$src" "$tmp" >/dev/null 2>&1; then
       rm -f "$tmp"
       continue
@@ -1246,7 +1318,7 @@ chezmoi:sync() {
 
     rel="${target#"$home_dir"/}"
 
-    # Check for complex template syntax beyond .chezmoi.homeDir
+    # Look for template syntax beyond .chezmoi.homeDir, which needs a human
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
       log warning "Skipped ${rel} (has secrets/variables, use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
@@ -1261,7 +1333,7 @@ chezmoi:sync() {
   done < <(chezmoi managed --include=files --path-style=absolute)
 
   if (( updated + skipped == 0 )); then
-    log info "Synced all template-managed files"
+    log info "Verified all template-managed files already in sync"
   else
     (( updated > 0 )) && log info "Synced ${updated} file(s) back to source"
     (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates"

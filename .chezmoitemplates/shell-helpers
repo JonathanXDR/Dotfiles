@@ -1,11 +1,21 @@
 # Shared helper functions for chezmoi run scripts (bash-compatible).
 
-# Logger with a coloured "<Level>:" prefix followed by an action-first message.
+# Logger with a colored "<Level>:" prefix followed by an action-first message.
 # Convention:
-#   1. Messages always start with a verb (Imported / Failed / Skipped /
-#      Installing… / Reading… / Verified / Renamed / etc.).
+#   1. Every message starts with a verb, in one of four forms.
+#      a. Past tense for completed work (Imported / Skipped / Verified /
+#         Detected / Removed).
+#      b. "Failed to <verb>" for failures.
+#      c. Present participle plus a single … for work in progress
+#         (Installing… / Reading…).
+#      d. An imperative remedy hint telling the user what to do next
+#         (Add tokens manually via 'secret:set' / Run 'brew bundle cleanup'
+#         to remove them).
+#      The … belongs to form (c) alone, so a past-tense message never
+#      carries one.
 #   2. The message body MUST NOT contain a formatting colon, since the only
-#      colon in the rendered line is the one in the "<Level>:" prefix.
+#      colon in the rendered line is the one in the "<Level>:" prefix. Put
+#      the detail in parentheses instead.
 #      ✓ "Success: Imported 12 secrets"
 #      ✗ "Success: Imported: 12 secrets"      (two colons)
 #      ✗ "Warning: Detected packages:"        (trailing list-colon)

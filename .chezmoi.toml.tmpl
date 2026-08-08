@@ -1,6 +1,6 @@
 {{- $machine_type := promptChoiceOnce . "machine_type" "Machine type" (list "personal" "work") -}}
 
-{{- /* Read machine-type config from iCloud config.toml (if available) */ -}}
+{{- /* Defaults for this machine type, from the iCloud Drive config */ -}}
 {{- $icloudConfigPath := joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles/config.toml" -}}
 {{- $machineConfig := dict -}}
 {{- if stat $icloudConfigPath -}}
@@ -10,9 +10,9 @@
 {{-   end -}}
 {{- end -}}
 
-{{- /* All config keys: defaults and prompt text.
-      Resolution order: config.toml → promptStringOnce (cached/interactive).
-      Keys are resolved in the order listed in $configOrder. */ -}}
+{{- /* Every config key with its fallback value. A value from config.toml wins,
+      otherwise promptStringOnce asks for it and caches the answer in
+      chezmoi.toml. $sharedKeys resolve first, then $workKeys on work machines. */ -}}
 {{- $config := dict
       "email"                      ""
       "name"                       ""
@@ -28,6 +28,7 @@
       "enterprise_domain"          ""
       "forgeops_path"              "" -}}
 
+{{- /* Text `chezmoi init` shows for keys config.toml does not supply */ -}}
 {{- $configPrompts := dict
       "email"                      "Git email address"
       "name"                       "Git full name"
@@ -35,21 +36,21 @@
       "proxy_host"                 "Proxy host (e.g. proxy.company.com)"
       "proxy_port"                 "Proxy port (e.g. 8080)"
       "proxy_protocol"             "Proxy protocol (http/https/socks5)"
-      "proxy_dns"                  "DNS servers when proxy active (comma-separated, leave empty for none)"
-      "no_proxy"                   "No-proxy list (comma-separated)"
-      "no_proxy_dns"               "DNS servers when proxy inactive (comma-separated, leave empty for none)"
-      "ssl_bundle_keychain_certs"  "SSL bundle: keychain cert CNs (comma-separated, leave empty for none)"
-      "ssl_bundle_remote_certs"    "SSL bundle: remote cert URLs (comma-separated, leave empty for none)"
+      "proxy_dns"                  "DNS servers to use while the proxy is on (comma-separated, leave empty for none)"
+      "no_proxy"                   "Hosts that bypass the proxy (comma-separated)"
+      "no_proxy_dns"               "DNS servers to use while the proxy is off (comma-separated, leave empty for none)"
+      "ssl_bundle_keychain_certs"  "SSL bundle: certificate CNs in the System keychain (comma-separated, leave empty for none)"
+      "ssl_bundle_remote_certs"    "SSL bundle: remote certificate URLs to download (comma-separated, leave empty for none)"
       "enterprise_domain"          "Enterprise domain (leave empty for none)"
       "forgeops_path"              "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
 
-{{- /* Keys prompted for all machine types */ -}}
+{{- /* Keys resolved on every machine type */ -}}
 {{- $sharedKeys := list "email" "name" "gpg_key" -}}
 
-{{- /* Keys prompted only for work machines */ -}}
+{{- /* Keys resolved only on work machines */ -}}
 {{- $workKeys := list "proxy_host" "proxy_port" "proxy_protocol" "proxy_dns" "no_proxy" "no_proxy_dns" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" "forgeops_path" -}}
 
-{{- /* Resolve shared keys: config.toml → prompt */ -}}
+{{- /* Resolve shared keys (config.toml first, then prompt) */ -}}
 {{- range $key := $sharedKeys -}}
 {{-   if hasKey $machineConfig $key -}}
 {{-     $_ := set $config $key (index $machineConfig $key) -}}
@@ -58,7 +59,7 @@
 {{-   end -}}
 {{- end -}}
 
-{{- /* Resolve work keys: config.toml → prompt (personal keeps defaults) */ -}}
+{{- /* Resolve work keys the same way. Personal machines keep defaults. */ -}}
 {{- if eq $machine_type "work" -}}
 {{-   range $key := $workKeys -}}
 {{-     if hasKey $machineConfig $key -}}
@@ -69,11 +70,10 @@
 {{-   end -}}
 {{- end -}}
 
-{{- /* Master password for the dotfiles keychain. Empty = no password (keychain
-       inherits the login session's unlock state, no extra prompt during use).
-       Non-empty = keychain is locked by default. The user must enter this
-       password to unlock for each session. Cached in chezmoi.toml after first
-       init. */ -}}
+{{- /* Master password for the dotfiles keychain. Leave it empty and the
+       keychain follows the login session's unlock state, so nothing is
+       prompted for during use. Set one and the keychain starts locked and
+       asks once per session. Either answer is cached in chezmoi.toml. */ -}}
 {{- $keychain_password := promptStringOnce $ "keychain_password" "Master password for the dotfiles keychain (leave empty for no password)" "" -}}
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}
@@ -86,7 +86,7 @@ mode = "symlink"
   machine_type = {{ $machine_type | quote }}
   icloud_secrets = {{ joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" | quote }}
 
-  # Proxy & network (populated for work machines)
+  # Proxy & network (populated on work machines, defaults elsewhere)
   always_proxy_probe = {{ eq $machine_type "work" }}
   proxy_host = {{ index $config "proxy_host" | quote }}
   proxy_port = {{ index $config "proxy_port" | quote }}
@@ -95,13 +95,14 @@ mode = "symlink"
   no_proxy = {{ index $config "no_proxy" | quote }}
   no_proxy_dns = {{ index $config "no_proxy_dns" | quote }}
 
-  # SSL & enterprise (populated for work machines)
+  # SSL & enterprise (populated on work machines, empty elsewhere)
   ssl_bundle_keychain_certs = {{ index $config "ssl_bundle_keychain_certs" | quote }}
   ssl_bundle_remote_certs = {{ index $config "ssl_bundle_remote_certs" | quote }}
   enterprise_domain = {{ index $config "enterprise_domain" | quote }}
   forgeops_path = {{ index $config "forgeops_path" | quote }}
 
-  # Master password for the dotfiles keychain (empty = no password / login session unlock).
+  # Master password for the dotfiles keychain (empty means no password, so the
+  # keychain follows the login session's unlock state)
   keychain_password = {{ $keychain_password | quote }}
 
 [scriptEnv]

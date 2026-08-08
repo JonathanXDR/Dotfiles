@@ -1,9 +1,9 @@
-# ----------------------------- Editor & tools ------------------------------- #
+# ----------------------------- Editor & Tools ------------------------------- #
 
 export EDITOR={{ .editor | quote }}
 export KUBE_EDITOR={{ .editor | quote }}
 
-# Docker
+# Build with BuildKit, for both `docker build` and `docker compose build`
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
@@ -20,8 +20,12 @@ export KUBECONFIG_PATH="$HOME/.kube"
 
 export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 
-# ---------------------------- Proxy configuration --------------------------- #
+# ---------------------------- Proxy Configuration --------------------------- #
 
+# Read by the proxy:* functions and by .zshrc, which restores the cached proxy
+# state at startup when ALWAYS_PROXY_PROBE is true and probes only when there is
+# no usable cached state. The proxy-watchd LaunchAgent gets its own copy baked
+# in by chezmoi, so it does not read these.
 export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
 export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
 export PROXY_HOST={{ .proxy_host | quote }}
@@ -32,6 +36,7 @@ export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
 
 # ----------------------------------- Auth ----------------------------------- #
 
+# Corporate proxy credentials, empty on personal machines
 {{ if eq .machine_type "work" -}}
 {{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) }}
 export NTLM_CREDENTIALS={{ $ntlm | quote }}
@@ -41,36 +46,39 @@ export NTLM_CREDENTIALS=""
 
 # ----------------------------------- Node ----------------------------------- #
 
-# Reject unauthorized TLS/SSL certificates by default.
+# Verify TLS certificates by default, keeping whatever value this shell
+# inherited from its parent environment
 export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 
-# Let Node.js use HTTP(S)_PROXY env vars for fetch().
+# Let Node.js respect HTTP(S)_PROXY in fetch()
 export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-0}"
 
-# Extra CA certificates for corporate proxy
+# Corporate CA bundle built by ssl:bundle, set only when keychain certificate
+# CNs are configured.
 {{ if and (eq .machine_type "work") (ne .ssl_bundle_keychain_certs "") -}}
 export NODE_EXTRA_CA_CERTS="${HOME}/.ssl/ca-bundle.pem"
 {{ else -}}
 export NODE_EXTRA_CA_CERTS=""
 {{ end -}}
 
-# Certificate CNs and URLs for bundling SSL certificates
+# Inputs to ssl:bundle. Keychain certificate CNs and URLs to download, both
+# comma-separated.
 export SSL_BUNDLE_KEYCHAIN_CERTS={{ .ssl_bundle_keychain_certs | quote }}
 export SSL_BUNDLE_REMOTE_CERTS={{ .ssl_bundle_remote_certs | quote }}
 
-# Enable persistent REPL history for `node`.
+# Persistent REPL history for `node`
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
 export NODE_REPL_HISTORY_SIZE="${NODE_REPL_HISTORY_SIZE:-32768}"
 export NODE_REPL_MODE="${NODE_REPL_MODE:-sloppy}"
 
-# Force maximum (24-bit) color output in CLI tools that respect FORCE_COLOR.
+# Force maximum (24-bit) color output in CLI tools that respect FORCE_COLOR
 export FORCE_COLOR=3
 
 # ---------------------------------- Python ---------------------------------- #
 
 export PYTHONIOENCODING="${PYTHONIOENCODING:-UTF-8}"
 
-# ------------------------------ Locale & encoding --------------------------- #
+# ------------------------------ Locale & Encoding --------------------------- #
 
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
@@ -87,54 +95,60 @@ setopt HIST_REDUCE_BLANKS     # trim superfluous whitespace
 setopt SHARE_HISTORY          # share history across sessions
 setopt APPEND_HISTORY         # append rather than overwrite
 
-# Commands matching this pattern are dropped from both the in-memory list
-# and $HISTFILE. HISTORY_IGNORE alone only filters the file write, leaving
-# entries visible in `history` until shell exit. The zshaddhistory hook
-# rejects them earlier so `history` never shows them.
+# Commands matching this pattern are dropped from both the in-memory list and
+# $HISTFILE. HISTORY_IGNORE alone only filters the file write, so entries stay
+# visible in `history` until the shell exits. The zshaddhistory hook rejects
+# them earlier, so `history` never shows them at all.
 HISTORY_IGNORE='({{ .history_ignore | join "*|" }}*)'
 zshaddhistory() {
   emulate -L zsh -o extended_glob
   [[ "${1%$'\n'}" != ${~HISTORY_IGNORE} ]]
 }
 
-# ------------------------------ Pager & manuals ----------------------------- #
+# ------------------------------ Pager & Manuals ----------------------------- #
 
+# -X keeps the page on screen after less quits
 export MANPAGER="${MANPAGER:-less -X}"
 
 # ------------------------------------ GPG ----------------------------------- #
 
+# gpg needs the controlling tty to prompt for a passphrase in the terminal
 # https://stackoverflow.com/a/42265848/96656
 export GPG_TTY="$(tty)"
 
-# ------------------------------ Default values ------------------------------ #
+# ------------------------------ Default Values ------------------------------ #
 
+# Hostname that hostname:reset restores
 export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
 
-# Secrets tokens file path (used by the secret:* / secrets:* functions)
+# Token file on iCloud Drive that the secret:* and secrets:* functions read and
+# write
 export SECRETS_TOKENS_FILE={{ joinPath .icloud_secrets ".keychain/tokens" | quote }}
 
-# Dedicated keychain for managed secrets (configured via .chezmoidata.toml).
+# Dedicated keychain the secret:* and secrets:* functions read and write. The
+# name and the lookup field are configured via .chezmoidata.toml.
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
 export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
 export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
 
-# Cisco VPN binary (used by vpn:* functions)
+# Cisco VPN binary the vpn:* functions drive
 export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
 
-# Tree view default ignore pattern (used by trec/tre functions)
+# Paths the tre and trec functions hide from the tree view
 export TREE_IGNORE={{ .tree_ignore | quote }}
 
-# Directory basenames that rm() should permanently delete instead of trashing
+# Basenames that rm() in .aliases deletes outright instead of trashing
 export TRASH_SKIP={{ .trash_skip | join "|" | quote }}
 
-# Dock apps for dock:reset (comma-separated)
+# Apps that dock:reset pins, in order (comma-separated)
 export DOCK_APPS={{ .dock_apps | join "," | quote }}
 
 # ----------------------------------- Paths ---------------------------------- #
 
-# System-specific paths (appended to PATH in .zshrc)
+# Per-machine extra directories, appended to PATH by .zshrc
 export PATH_ADD="${PATH_ADD:-}"
 
 # ----------------------------------- SSH ------------------------------------ #
 
+# Whether .zshrc starts ssh:agent for every interactive shell
 export AUTOSTART_SSH_AGENT="${AUTOSTART_SSH_AGENT:-{{ .autostart_ssh_agent }}}"
