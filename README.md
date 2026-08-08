@@ -1,30 +1,30 @@
 # Dotfiles
 
-Keychain-backed, iCloud-synced and profile-aware macOS dotfiles.
+Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 
 > [!IMPORTANT]
-> This is a personal setup. Fork freely, but expect macOS-only assumptions and opinionated defaults.
+> This is a personal setup. Fork it freely, but expect macOS-only assumptions and opinionated defaults.
 
-## ✨ Features
+## Features
 
-- 🪨 **Foundation:** Built on [chezmoi](https://chezmoi.io) in symlink mode with Go-templated configs
+- 🪨 **Foundation:** [chezmoi](https://chezmoi.io) in symlink mode, Go templates for per-machine configs
 - 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
 - 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, proxy, SSL, VPN, npm, `/etc/hosts`
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, and `environment.yml` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
-- ⚡ **Performance:** Compiled-binary toolchain resolution (nothing sourced at startup), 24h-cached compinit, daily-gated mise/brew checks
-- 🛠️ **Shell toolkit:** 70+ functions for proxy, VPN, Docker, secrets, toolchain, Git, plus curated aliases
-- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise toolchain, permission fixups
+- ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew checks, cached completions
+- 🛠️ **Shell toolkit:** 70+ functions for proxy, VPN, Docker, secrets, toolchains, Git, plus curated aliases
+- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 
 ## 📋 Prerequisites
 
 > [!WARNING]
-> Enable [Advanced Data Protection](https://support.apple.com/en-us/108756) before bootstrapping. Without it, the iCloud-synced SSH, GPG, SSL, kube, VPN, token backup, and `config.toml` are encrypted under keys Apple retains rather than keys only your trusted devices hold.
+> Turn on [Advanced Data Protection](https://support.apple.com/en-us/108756) before you bootstrap. Without it, everything this setup keeps on iCloud Drive (SSH, GPG, SSL, kube, VPN, the token backup, and `config.toml`) is encrypted under keys Apple also holds, rather than keys only your trusted devices hold.
 
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
-- iCloud Drive signed in (for keys, config, and token backup)
+- iCloud Drive signed in (for keys, config, and the token backup)
 
 ## 🚀 Quick Start
 
@@ -34,26 +34,26 @@ git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfile
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` prompts for your name, email, GPG key, and machine type. Machine-specific config (proxy, SSL, enterprise) is read automatically from `config.toml` on iCloud Drive. If the file is not found, chezmoi falls back to interactive prompts.
+During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, then for a keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Everything after the machine type is resolved key by key, taken from `config.toml` on iCloud Drive when that file supplies it and prompted for when it does not. Your answers are cached, so later runs stay quiet.
 
-After init, chezmoi automatically:
+From there, chezmoi does the rest:
 
-1. Imports tokens from iCloud Drive into the macOS Keychain
-2. Installs Homebrew and all packages from the appropriate Brewfile
-3. Symlinks SSH, GPG, SSL, kube, and VPN directories to iCloud Drive
-4. Installs language runtimes and global CLI packages with mise
-5. Symlinks all shell config files into `$HOME`
+1. Installs Homebrew if it is missing
+2. Imports your tokens from iCloud Drive into the `dotfiles` keychain
+3. Symlinks `~/.ssh` to its iCloud Drive copy (plus `~/.ssl` and `~/.vpn` on work machines), creates `~/.gnupg` and `~/.kube` as real directories whose entries are symlinks into iCloud Drive, and links the shell config files into `$HOME`
+4. Installs everything in the Brewfile for your machine type
+5. Installs language runtimes and global CLI packages with mise
 
 ## 🧪 Usage
 
 ```bash
 chezmoi apply          # Apply changes to $HOME
 chezmoi diff           # Preview what would change
-chezmoi edit ~/.zshrc  # Edit via chezmoi (or edit directly: symlink mode)
+chezmoi edit ~/.zshrc  # Edit through chezmoi (or open the file directly)
 ```
 
 > [!TIP]
-> Because of symlink mode, you can edit `$HOME` files like `~/.zshrc` directly. `chezmoi edit` is offered for habit's sake, not because it's required.
+> In symlink mode, `~/.zshrc` and the other dotfiles point straight at this repo, so editing them in `$HOME` edits the source. The `chezmoi edit` command is there out of habit, not because you need it.
 
 Shortcut aliases:
 
@@ -65,7 +65,9 @@ Shortcut aliases:
 
 ## 🔐 Managing Secrets
 
-Secrets are stored in a dedicated **`dotfiles` keychain** (separate from `login`, its own sidebar entry in Keychain Access) and backed up to iCloud Drive. The keychain is the source of truth, the iCloud tokens file mirrors it for fresh-machine bootstrap. It is created on first `chezmoi apply` and unlocked once per apply by `run_before_00-unlock-keychain`, so the templates that read secrets all render in a single pass without per-call prompts. The keychain itself locks on system sleep with no idle timeout (`security set-keychain-settings -l`).
+Secrets live in a dedicated **`dotfiles` keychain**, separate from `login` and with its own entry in the Keychain Access sidebar. The keychain is the source of truth, and the tokens file on iCloud Drive mirrors it so a fresh machine has something to import from.
+
+The first `chezmoi apply` creates the keychain, and `run_before_00-unlock-keychain` unlocks it once per run, so every template that reads a secret renders in one pass without prompting you again. The keychain locks on system sleep and has no idle timeout (`security set-keychain-settings -l`).
 
 ```bash
 secret:set <id> <account> <where> <kind> [comment]   # Add a new entry (prompts for password)
@@ -79,9 +81,9 @@ secrets:import                                       # Import tokens-file entrie
 secrets:export                                       # Rewrite the tokens file from the keychain (auto-runs on apply)
 ```
 
-Functions prefixed `secret:` operate on a single entry, while `secrets:` functions operate on the whole set.
+The `secret:` functions act on a single entry, while the `secrets:` functions act on the whole set.
 
-Each entry uses five native Keychain Access fields. The `(id, account)` pair is the unique lookup key. `id` populates the Label (Name) field, while the URL goes into Service (Where), so URLs never appear in committed templates:
+Each entry uses five native Keychain Access fields, and the `(id, account)` pair is its unique lookup key. The `id` argument fills the Label (Name) field and the URL goes into Service (Where), which keeps URLs out of committed templates:
 
 | Field        | Holds                                                    |
 | ------------ | -------------------------------------------------------- |
@@ -91,7 +93,7 @@ Each entry uses five native Keychain Access fields. The `(id, account)` pair is 
 | **Kind**     | Secret type (e.g. Personal Access Token)                 |
 | **Comments** | Consumer (what reads this secret)                        |
 
-Run `secrets:list` to see the live keychain state. The table is the only place real values appear.
+Run `secrets:list` to see what the keychain currently holds. It prints the metadata for every entry and never the secrets themselves.
 
 **Configuration** (`.chezmoidata.toml`):
 
@@ -100,10 +102,10 @@ Run `secrets:list` to see the live keychain state. The table is the only place r
 | `keychain_name`         | `"dotfiles"` | Name of the keychain file (`~/Library/Keychains/<name>.keychain-db`)   |
 | `keychain_lookup_field` | `"name"`     | Which field templates query by (`name` / `where` / `kind` / `comment`) |
 
-A **master password** for the keychain can also be set during `chezmoi init` (cached in machine-local `~/.config/chezmoi/chezmoi.toml`, never committed). Leaving it empty (the default) ties the keychain to the login session's unlock state.
+You can also give the keychain a **master password** during `chezmoi init`. It is cached in the machine-local `~/.config/chezmoi/chezmoi.toml` and never committed. Leave it empty (the default) and the keychain follows your login session's unlock state instead.
 
 > [!CAUTION]
-> Managed entries are created with the `-A` flag, meaning any process running as your user can read them without a confirmation prompt. This is required for chezmoi templates to render at apply time. Standard mitigations: FileVault, screen auto-lock, strong account password, and 2FA on Apple ID.
+> Managed entries are created with the `-A` flag, so any process running as your user can read them without a confirmation prompt. The chezmoi templates need this to render at apply time. The usual protections still matter here: FileVault, screen auto-lock, a strong account password, and two-factor authentication on your Apple ID.
 
 ## 🐚 Shell Loading Order
 
@@ -118,9 +120,9 @@ PATH setup ──────── tool paths, Homebrew, conda, then mise activ
         │
 ~/.aliases ──────── command aliases
         │
-~/.completions ──── zsh plugins, autosuggestions, syntax highlighting
+~/.completions ──── completions, zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── conda auto-activate, proxy state load, SSH agent
+Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise & brew checks
 ```
 
 ## 📦 Project Structure
@@ -139,16 +141,16 @@ Runtime hooks ───── conda auto-activate, proxy state load, SSH agent
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
 ├── dot_local/bin/
-│   └── executable_proxy-watchd.tmpl         # Proxy state script (work only)
+│   └── executable_proxy-watchd.tmpl         # Proxy probe on network change, exports proxy vars for GUI apps (work only)
 ├── Library/LaunchAgents/
 │   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
 │
 ├── dot_zshenv                               # PATH for non-interactive shells (mise shims)
-├── dot_zshrc                                # Shell orchestrator
+├── dot_zshrc                                # Interactive shell entry point
 ├── dot_exports.tmpl                         # Env vars, history, zsh options
 ├── dot_functions                            # Shell functions
 ├── dot_aliases                              # Command aliases
-├── dot_completions                          # Zsh completions & plugins
+├── dot_completions                          # Completions & zsh plugins
 │
 ├── dot_gitconfig.tmpl                       # Git user, GPG signing, LFS
 ├── dot_gitignore_global                     # Global gitignore
@@ -168,8 +170,8 @@ Runtime hooks ───── conda auto-activate, proxy state load, SSH agent
 
 ## ⛰️ Next Steps
 
-1. 📖 Read the [Architecture](./ARCHITECTURE.md) for a walkthrough of how the system is organized.
-2. 🔀 Fork this repo and adapt `config.toml`, Brewfiles, and machine types to your setup.
+1. 📖 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for a walkthrough of how the pieces fit together.
+2. 🔀 Fork this repo and adapt `config.toml`, the Brewfiles, and the machine types to your setup.
 3. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
 4. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
 

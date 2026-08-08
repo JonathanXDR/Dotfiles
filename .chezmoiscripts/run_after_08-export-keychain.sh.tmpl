@@ -11,11 +11,12 @@ KEYCHAIN_NAME={{ .keychain_name | quote }}
 KEYCHAIN="$HOME/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
 TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 
-# The tokens-file gate avoids seeding the iCloud path before iCloud has synced
-# it down. The very first backup is created by an interactive secrets:export.
+# Requiring the tokens file avoids seeding the iCloud path before iCloud has
+# synced it down. The very first backup comes from an interactive
+# secrets:export.
 [[ -f "$KEYCHAIN" && -f "$TOKENS_FILE" && -f "$HOME/.functions" ]] || exit 0
 
-# A failed export must not abort the apply (this script runs before 09), so
+# A failed export must not abort the apply (script 09 still has to run), so
 # problems surface as a warning next to the function's own error output.
 SECRETS_TOKENS_FILE="$TOKENS_FILE" \
 SECRETS_KEYCHAIN_NAME="$KEYCHAIN_NAME" \

@@ -2,12 +2,13 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Import tokens from the iCloud Drive backup into the dedicated dotfiles keychain.
-# Runs once before templates render, ensuring keyring calls succeed on a fresh machine.
-# Delegates to the secrets zsh functions (sourced from the chezmoi source dir,
-# since ~/.functions is not symlinked yet on first apply): the keychain is
-# created even when there is no backup to import, because run_before_00 and the
-# secret-reading templates rely on it existing after this script.
+# Import tokens from the iCloud Drive backup into the dedicated dotfiles
+# keychain. Runs once before templates render, so secret lookups succeed on a
+# fresh machine. Delegates to the secrets zsh functions, sourced from the
+# chezmoi source directory because ~/.functions is not symlinked yet on a first
+# apply. The keychain is created even when there is no backup to import,
+# because run_before_00 and the secret-reading templates expect it to exist
+# once this script has run.
 
 export SECRETS_TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}

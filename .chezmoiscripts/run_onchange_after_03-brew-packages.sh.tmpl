@@ -7,7 +7,7 @@ set -euo pipefail
 {{   $brewfile_name = "Brewfile.swisscom" -}}
 {{ end -}}
 
-# Brewfile content hash (triggers re-run when Brewfile changes):
+# Brewfile content hash (triggers a re-run when the Brewfile changes):
 # {{ include $brewfile_name | sha256sum }}
 
 _ensure_brew

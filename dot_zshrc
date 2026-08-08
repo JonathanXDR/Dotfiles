@@ -1,5 +1,5 @@
 
-# Kiro CLI pre block. Keep at the top of this file.
+# Kiro CLI pre block. Must stay first, before anything else in this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
 
 # --------------------------------- Sources ---------------------------------- #
@@ -9,7 +9,9 @@ source "${HOME}/.functions"
 
 # ----------------------------- PATH & Toolchain ----------------------------- #
 
-# Development tool paths
+# Tool directories. Each is prepended, so the last one listed takes priority.
+# Coursier is the exception, appended instead so its launchers never shadow a
+# same-named binary from Homebrew or mise.
 path:add "$HOME/.local/bin"
 path:add "$HOME/.cargo/bin"
 path:add "$HOME/.rd/bin"
@@ -19,25 +21,27 @@ path:add "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 path:append "$HOME/Library/Application Support/Coursier/bin"
 path:add "/opt/homebrew/opt/trash-cli/bin"
 
-# Homebrew
+# Homebrew (Apple silicon prefix first, Intel prefix as the fallback)
 if [[ -x "/opt/homebrew/bin/brew" ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 elif [[ -x "/usr/local/bin/brew" ]]; then
   eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# Conda (miniconda via Homebrew, auto_activate_base is off, use `conda activate` per-project)
+# Conda (miniconda via Homebrew). Sourcing this only defines the `conda`
+# function. Per-project environments come from conda:load below, which
+# activates the environment named in an environment.yml when one is present.
 [[ -f "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]] \
   && source "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
 
-# System-specific PATH additions
+# Per-machine extras from .exports, appended to stay behind everything above
 [[ -n "${PATH_ADD}" ]] && path:append "${PATH_ADD}"
 
-# mise (Node, Python, bun, pnpm, global CLIs). Must come after every other PATH
-# writer: activation snapshots PATH and re-derives from that snapshot on each
-# prompt, so a directory prepended later outranks the managed toolchain for good.
-# Homebrew keeps its own node as a dependency of eslint/prettier/vercel, and this
-# ordering is what keeps it behind mise's.
+# mise (Node, Python, bun, pnpm, global CLIs). Must run after every other PATH
+# writer. Activation snapshots PATH and re-derives it from that snapshot on
+# each prompt, so anything prepended later outranks the managed toolchain for
+# good. Homebrew ships its own node (a dependency of eslint, prettier, and
+# vercel), and this ordering is what keeps that copy behind mise's.
 cmd:exists mise && eval "$(mise activate zsh)"
 
 # ------------------------------ Plugins & Aliases --------------------------- #
@@ -50,6 +54,11 @@ source "${HOME}/.completions"
 autoload -U add-zsh-hook
 add-zsh-hook chpwd conda:load
 
+# Work machines only, since ALWAYS_PROXY_PROBE is true only there. The
+# proxy-watchd LaunchAgent runs on every network change and rewrites
+# .cache/proxy-state whenever the state flips, so a new shell can adopt the
+# recorded state instead of probing. Probing is the fallback for a missing or
+# unrecognized state file.
 if [[ "${ALWAYS_PROXY_PROBE}" == "true" ]]; then
   case "$(cat "${HOME}/.cache/proxy-state" 2>/dev/null)" in
     on)  proxy:set ;;
@@ -62,7 +71,8 @@ fi
 cmd:exists mise && run:daily mise mise:update
 cmd:exists brew && run:daily brew brew:check
 
+# chpwd has not fired yet, so evaluate the starting directory once
 conda:load
 
-# Kiro CLI post block. Keep at the bottom of this file.
+# Kiro CLI post block. Must stay last, after every keybinding and widget above.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"

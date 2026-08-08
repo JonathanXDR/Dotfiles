@@ -1,17 +1,25 @@
-# Shared non-secret data for chezmoi templates.
-# Values here are available as template variables (e.g. {{ .editor }}).
+# Shared non-secret data for chezmoi templates, available as {{ .editor }} and
+# so on. Most values reach the shell through dot_exports.tmpl, which assigns
+# each one to the shell variable named in its comment. Those are exported,
+# except HISTSIZE, SAVEHIST and HISTORY_IGNORE, which stay unexported because
+# zsh reads them as shell parameters.
 
 # Shell defaults
-editor = "vi"
-history_size = 32768
-autostart_ssh_agent = false
+editor = "vi"                # EDITOR and KUBE_EDITOR
+history_size = 32768         # HISTSIZE and SAVEHIST
+autostart_ssh_agent = false  # AUTOSTART_SSH_AGENT
 
-# Commands whose invocations are filtered from shell history
+# Command prefixes kept out of shell history, via HISTORY_IGNORE and the
+# zshaddhistory hook in dot_exports.tmpl
 history_ignore = ["claude", "codex", "copilot", "gh copilot"]
 
-# Display
+# Hostname that hostname:reset restores, exported as DEFAULT_HOSTNAME
 default_hostname = "void(0)"
+
+# Paths that tre and trec leave out, exported as TREE_IGNORE
 tree_ignore = ".git|node_modules|.DS_Store|dist|build|target|__pycache__|.venv|.next|.nuxt|.svelte-kit|.gradle|coverage"
+
+# Dock layout that dock:reset rebuilds, exported as DOCK_APPS
 dock_apps = [
   "Zen",
   "Zed",
@@ -22,17 +30,18 @@ dock_apps = [
   "GitKraken",
 ]
 
-# Directory basenames that `rm` should permanently delete instead of trashing
+# Directory basenames that rm deletes outright instead of trashing, exported as
+# TRASH_SKIP
 trash_skip = ["node_modules"]
 
-# Cisco VPN binary (used by vpn:* functions)
+# Binary that the vpn:* functions drive, exported as CISCO_VPN_BIN
 cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
 
-# Dedicated keychain for managed secrets (separate from the user's login keychain).
+# Dedicated keychain for managed secrets, separate from the login keychain.
 # `keychain_name` becomes ~/Library/Keychains/<name>.keychain-db.
-# `keychain_lookup_field` selects which keychain attribute the template helper
-# queries, one of name (Label / -l), where (Service / -s), kind (Description / -D),
-# or comment (Comments / -j). The user-facing identifier passed to secret:* functions
-# and to `includeTemplate "keychain"` is interpreted as this field.
-keychain_name = "dotfiles"
-keychain_lookup_field = "name"
+# `keychain_lookup_field` picks the attribute the template helper searches on:
+# name (Label / -l), where (Service / -s), kind (Description / -D), or comment
+# (Comments / -j). Identifiers passed to the secret:* functions and to
+# `includeTemplate "keychain"` are matched against that attribute.
+keychain_name = "dotfiles"      # SECRETS_KEYCHAIN_NAME
+keychain_lookup_field = "name"  # SECRETS_KEYCHAIN_LOOKUP_FIELD

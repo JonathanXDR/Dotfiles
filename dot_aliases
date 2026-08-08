@@ -1,12 +1,13 @@
 # Helpers used below (defined in dot_functions):
-#   alias:safe      sets unless the command exists, warns on skip (default)
-#   alias:fallback  sets unless the command exists, silent on skip (polyfills)
-#   plain `alias`   for deliberate shadows (cat→bat, top→btop, etc.)
-#                   or syntax the helpers can't wrap (`alias -s`, `alias -- -=`)
+#   alias:safe      sets the alias unless a real command owns that name, and
+#                   warns whenever it skips one (default)
+#   alias:fallback  the same, minus the warning (used for polyfills)
+#   plain `alias`   deliberate shadows (cat→bat, top→btop, etc.) and syntax
+#                   the helpers cannot wrap (`alias -s`, `alias -- -=`)
 
 # -------------------------- Filesystem & Navigation ------------------------- #
 
-# Make the dirs command useful (deliberate shadow of zsh builtin)
+# Number the directory stack for `cd -<n>` (deliberate shadow of the builtin)
 alias dirs='dirs -v'
 
 # Climb directories quickly (~ for home, `-` for previous)
@@ -31,8 +32,8 @@ alias:safe l="ls -lF"
 # Long format, all files except . and ..
 alias:safe la="ls -lAF"
 
-# List only directories (renamed from `lsd` to avoid colliding with the
-# brew binary, which `ls` already aliases to)
+# List only directories. Named lsdir to avoid colliding with lsd, the Homebrew
+# binary that `ls` aliases to when it is installed.
 alias:safe lsdir="command ls -lF | grep --color=never '^d'"
 
 # Print each PATH entry on a separate line
@@ -45,9 +46,9 @@ cmd:exists python3 && alias python=python3
 cmd:exists btop    && alias top='btop'
 cmd:exists bat     && alias cat='bat --paging=never'
 
-# Safer rm (prefer trash-put if installed)
-# Directories matching TRASH_SKIP (set in .exports) bypass trash and are
-# permanently deleted to avoid bloating ~/.local/share/Trash.
+# Safer rm, moving files to the Trash when trash-put is installed. Names
+# matching TRASH_SKIP (set in .exports) are deleted outright instead, so bulky
+# throwaway directories never pile up in ~/.local/share/Trash.
 if cmd:exists trash-put; then
   rm() {
     local flags=() delete=() trash=()
@@ -68,11 +69,12 @@ if cmd:exists trash-put; then
   }
 fi
 
-# Deliberate shadows: lazy-load SSH keys, allow interactive bash
+# Deliberate shadows: ssh adds each key to the agent on first use, and bash
+# carries a PERMIT_BASH marker that nothing in this repo reads
 alias ssh='ssh -o AddKeysToAgent=yes'
 alias bash='PERMIT_BASH=true bash'
 
-# Reload the shell by re-execing it as a login shell
+# Restart the shell in place, as a login shell
 # shellcheck disable=SC2139
 alias:safe reload="exec ${SHELL} -l"
 
@@ -93,7 +95,7 @@ alias:safe kro="kiro"
 
 # ------------------------------- macOS Tweaks ------------------------------- #
 
-# Sleep the display to lock, relies on "Require password after sleep" being set
+# Sleep the display to lock. Relies on "Require password after sleep" being set.
 alias:safe afk='pmset displaysleepnow'
 
 # Show/hide hidden files in Finder
@@ -114,7 +116,8 @@ alias:safe lscleanup="/System/Library/Frameworks/CoreServices.framework/Framewor
 alias:safe spotoff="sudo mdutil -a -i off"
 alias:safe spoton="sudo mdutil -a -i on"
 
-# Empty the Trash on all mounted volumes, macOS Trash, freedesktop Trash + logs/quarantine
+# Empty every Trash (mounted volumes, macOS, freedesktop), delete the Apple
+# System Log archives, and clear the LaunchServices quarantine event database
 alias:safe emptytrash="sudo /bin/rm -rfv /Volumes/*/.Trashes; sudo /bin/rm -rfv ~/.Trash; /bin/rm -rfv ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*; sudo /bin/rm -rfv /private/var/log/asl/*.asl; sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
 
 # Recursively delete `.DS_Store` files
@@ -151,14 +154,16 @@ cmd:exists kubectx && alias:safe kx='kubectx'
 # Always enable colored `grep` output (deliberate self-shadow of /usr/bin/grep)
 alias grep='grep --color=auto'
 
-# Enable aliases to be sudo'ed (deliberate shadow with trailing-space trick)
+# Trailing space makes zsh expand the next word as an alias too, so aliases can
+# be sudo'ed (deliberate self-shadow)
 alias sudo='sudo '
 
-# Update macOS, Homebrew, mise-managed tools, and Ruby gems (mise/gem steps guarded by cmd:exists)
+# Update macOS, Homebrew, mise-managed tools, and Ruby gems (the mise and gem
+# steps are guarded by cmd:exists)
 alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists mise && mise upgrade; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
-# macOS doesn't ship `hd` / `md5sum` / `sha1sum`. alias:fallback sets them
-# silently on systems where the real binary is missing.
+# macOS ships no `hd`, `md5sum`, or `sha1sum`. alias:fallback stands in for them
+# quietly, and steps aside on systems that have the real binaries.
 alias:fallback hd="hexdump -C"
 alias:fallback md5sum="md5"
 alias:fallback sha1sum="shasum"
@@ -184,9 +189,8 @@ alias:safe urlencode='python3 -c "import sys, urllib.parse; print(urllib.parse.q
 # PlistBuddy
 alias:safe plistbuddy="/usr/libexec/PlistBuddy"
 
-# Intuitive map function
-# For example, to list all directories that contain a certain file:
-# find . -name .gitattributes | map dirname
+# Run a command once per line of input. To list every directory holding a
+# given file: find . -name .gitattributes | map dirname
 alias:safe map="xargs -n1"
 
 # Quick HTTP server in current dir
@@ -288,7 +292,7 @@ if [[ ! -L "$(which "${EDITOR}")" ]]; then
   fi
 fi
 
-# Edit shell config / variables (chezmoi source files)
+# Edit the shell config and the exports through their chezmoi sources
 alias:safe es='chezmoi edit ~/.zshrc'
 alias:safe ev='chezmoi edit ~/.exports'
 
@@ -323,8 +327,9 @@ alias:safe glo='git log --oneline --graph --decorate'
 alias:safe gwip='git add -A && git commit -m "wip"'
 alias:safe gclean='git clean -fd'
 
-# ------------------------------- Suffix alias ------------------------------- #
-# `alias -s` uses different syntax that alias:safe cannot wrap.
+# ------------------------------- Suffix Alias ------------------------------- #
+# Open these file types in $EDITOR by naming them. `alias -s` takes a different
+# syntax that alias:safe cannot wrap.
 
 alias -s go='$EDITOR'
 alias -s md='$EDITOR'
