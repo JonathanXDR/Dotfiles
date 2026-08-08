@@ -1,0 +1,60 @@
+# Language runtimes and global CLI packages, managed by mise (https://mise.jdx.dev).
+#
+# This file is plain (no .tmpl), so chezmoi symlinks it rather than rendering a
+# copy. ~/.config/mise/config.toml and the repo source are the same write, which
+# means `mise use -g` edits the tracked file directly and can never drift from
+# chezmoi. Global config is implicitly trusted, so no `mise trust` step is needed.
+#
+# Installed by run_onchange_after_06-install-mise-tools on every apply that
+# changes this file, and refreshed once a day by `mise:update` (see .zshrc).
+
+[tools]
+
+# Runtimes. Every language whose idiomatic version files are enabled below needs
+# a baseline pinned here, even when the system already ships one. With zero
+# versions installed, mise suppresses its own "missing tool" warning (see
+# status.missing_tools) and generates no shim, so a project pin silently falls
+# through to the system binary instead of being honoured.
+#
+# One rule for all of them: track the LTS line where the language publishes one,
+# otherwise track latest. `mise:update` moves them forward daily within that rule.
+node = "lts"
+java = "lts"
+python = "latest"
+ruby = "latest"
+bun = "latest"
+pnpm = "latest"
+
+# Global CLI packages. Bare names resolve through mise's curated registry, which
+# picks the strongest backend (a native binary beats an npm package) and carries
+# any build approvals the package needs. `npm:` is spelled out where the registry
+# has no entry (skilld) or maps the name to a different tool (`cf` is Cloud
+# Foundry there, not the Cloudflare CLI).
+claude-code = "latest"
+codex = "latest"
+copilot = "latest"
+gemini-cli = "latest"
+"npm:@angular/cli" = "latest"
+"npm:@antfu/ni" = "latest"
+"npm:@nestjs/cli" = "latest"
+"npm:@nuxt/cli" = "latest"
+"npm:cf" = "latest"
+"npm:npm-check-updates" = "latest"
+"npm:skilld" = "latest"
+
+[settings]
+
+# Read the version files projects already ship, so `cd` switches runtimes without
+# every repo needing its own mise.toml. mise disables these by default.
+idiomatic_version_file_enable_tools = ["node", "python", "ruby", "java"]
+
+# package.json counts as an idiomatic Node file, and its `devEngines.runtime` pin
+# would otherwise hijack repos that never opted into mise. Keep the opt-in to
+# .nvmrc and .node-version.
+idiomatic_version_file_disable_files = ["node:package.json"]
+
+# Fail loudly when a pinned version is missing rather than falling through to the
+# next binary of that name on PATH. Homebrew's node stays installed as a hard
+# dependency of eslint, prettier and vercel, so the default fallback would
+# silently run the wrong major instead of erroring.
+not_found_system_fallback = false

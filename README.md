@@ -11,11 +11,11 @@ Keychain-backed, iCloud-synced and profile-aware macOS dotfiles.
 - 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
 - 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, proxy, SSL, VPN, npm, `/etc/hosts`
-- 🌱 **Auto-activating runtimes:** `.nvmrc` and `environment.yml` detected on every `cd`
+- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, and `environment.yml` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
-- ⚡ **Performance:** Lazy-loaded NVM, 24h-cached compinit, daily-gated bun/nvm/pyenv/brew checks
-- 🛠️ **Shell toolkit:** 75+ functions for proxy, VPN, Docker, secrets, Node, Git, plus curated aliases
-- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, bun globals, permission fixups
+- ⚡ **Performance:** Compiled-binary toolchain resolution (nothing sourced at startup), 24h-cached compinit, daily-gated mise/brew checks
+- 🛠️ **Shell toolkit:** 70+ functions for proxy, VPN, Docker, secrets, toolchain, Git, plus curated aliases
+- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise toolchain, permission fixups
 
 ## 📋 Prerequisites
 
@@ -41,7 +41,7 @@ After init, chezmoi automatically:
 1. Imports tokens from iCloud Drive into the macOS Keychain
 2. Installs Homebrew and all packages from the appropriate Brewfile
 3. Symlinks SSH, GPG, SSL, kube, and VPN directories to iCloud Drive
-4. Installs global CLI packages with bun
+4. Installs language runtimes and global CLI packages with mise
 5. Symlinks all shell config files into `$HOME`
 
 ## 🧪 Usage
@@ -108,17 +108,19 @@ A **master password** for the keychain can also be set during `chezmoi init` (ca
 ## 🐚 Shell Loading Order
 
 ```text
+~/.zshenv ───────── mise shims (every zsh, including non-interactive)
+        │
 ~/.exports ──────── env vars, proxy, locale, history, zsh options
         │
 ~/.functions ────── utility functions
         │
-PATH setup ──────── Homebrew, pyenv, RVM, Bun, ... (NVM lazy-loaded on first use)
+PATH setup ──────── tool paths, Homebrew, conda, then mise activation (last)
         │
 ~/.aliases ──────── command aliases
         │
 ~/.completions ──── zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SDKMAN
+Runtime hooks ───── conda auto-activate, proxy state load, SSH agent
 ```
 
 ## 📦 Project Structure
@@ -141,6 +143,7 @@ Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SD
 ├── Library/LaunchAgents/
 │   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
 │
+├── dot_zshenv                               # PATH for non-interactive shells (mise shims)
 ├── dot_zshrc                                # Shell orchestrator
 ├── dot_exports.tmpl                         # Env vars, history, zsh options
 ├── dot_functions                            # Shell functions
@@ -150,12 +153,11 @@ Runtime hooks ───── nvmrc auto-switch, proxy state load, SSH agent, SD
 ├── dot_gitconfig.tmpl                       # Git user, GPG signing, LFS
 ├── dot_gitignore_global                     # Global gitignore
 ├── dot_npmrc.tmpl                           # npm registry tokens (from keychain)
-├── dot_bun.globals                          # Global CLI packages (bun)
 ├── dot_wakatime.cfg.tmpl                    # WakaTime API key (from keychain)
 ├── dot_config/
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
+│   ├── mise/config.toml                     # Language runtimes + global CLI packages
 │   └── zed/settings.json.tmpl               # Zed editor settings (from keychain)
-├── dot_sdkman/etc/config                    # SDKMAN runtime flags (auto_env, native, ...)
 ├── private_dot_claude/                      # ~/.claude/* (0700)
 │   └── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
