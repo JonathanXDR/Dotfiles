@@ -404,8 +404,6 @@ cask "notion", args: { appdir: "/Applications" }
 cask "paste"
 # Control your smart light system
 cask "philips-hue-sync"
-# Collaboration platform for API development
-cask "postman", args: { appdir: "/Applications" }
 # HTTP debugging proxy
 cask "proxyman"
 # Kubernetes and container management on the desktop
