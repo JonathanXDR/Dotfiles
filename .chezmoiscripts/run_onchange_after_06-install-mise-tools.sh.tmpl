@@ -2,23 +2,24 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# mise config content hash (triggers re-run when the tool list changes):
+# mise config content hash (triggers a re-run when the tool list changes):
 # {{ include "dot_config/mise/config.toml" | sha256sum }}
 
 _ensure_brew
 
 if ! _cmd_exists mise; then
-  _log warning "Skipped install (mise not installed)"
+  _log warning "Skipped mise-managed tool install (mise not installed)"
   exit 0
 fi
 
-# `mise install` reads ~/.config/mise/config.toml (symlinked to this repo),
-# installs whatever is missing, and never writes back — unlike `mise use -g`,
-# which would fight chezmoi over the same file. Re-runs are sub-second no-ops,
-# so the content hash above is the only thing gating this step.
+# The `mise install` command reads ~/.config/mise/config.toml (symlinked to
+# this repo) and installs whatever is missing. It never writes back, unlike
+# `mise use -g`, which would rewrite that file and fight chezmoi over it.
+# Re-runs are sub-second no-ops, so the content hash above is the only thing
+# gating this step.
 #
 # Run from $HOME so a project mise.toml in the working directory cannot pull in
-# tools that are not declared here, and so no untrusted config blocks the apply.
+# undeclared tools or block the apply with an untrusted config.
 _log info "Installing mise-managed tools…"
 if (cd "$HOME" && mise install --yes); then
   _log success "Installed mise-managed tools"

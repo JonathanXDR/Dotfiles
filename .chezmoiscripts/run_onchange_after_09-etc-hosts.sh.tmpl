@@ -2,7 +2,11 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Rendered hosts content hash (triggers re-run when template output changes):
+# The chezmoi destination for this repo is $HOME, so /etc/hosts cannot be a
+# managed file. It becomes a symlink to the rendered copy in ~/.config
+# instead, and once that symlink exists, later applies only re-render the copy.
+#
+# Rendered hosts content hash (triggers a re-run when the output changes):
 # {{ include "dot_config/hosts.tmpl" | sha256sum }}
 
 HOSTS_SRC="{{ .chezmoi.homeDir }}/.config/hosts"

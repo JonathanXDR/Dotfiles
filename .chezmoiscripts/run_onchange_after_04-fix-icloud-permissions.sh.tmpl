@@ -2,8 +2,12 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# Ensure iCloud symlink targets are downloaded and have correct permissions.
-# Re-runs when icloud_secrets path or machine_type changes:
+# Make sure the iCloud Drive symlink targets are downloaded, then set the modes
+# each tool expects. Everything is owner-only by default. The exceptions are the
+# SSH public keys, config, known_hosts and authorized_keys, plus the VPN
+# profiles on work machines, all of which stay world-readable.
+#
+# Re-runs when the icloud_secrets path or the machine_type changes:
 # {{ .icloud_secrets }}:{{ .machine_type }}
 
 ICLOUD="{{ .icloud_secrets }}"
@@ -52,4 +56,4 @@ if [[ -d "$ICLOUD/.vpn" ]]; then
 fi
 {{ end -}}
 
-_log success "Verified iCloud symlink permissions"
+_log success "Verified iCloud Drive symlink permissions"
