@@ -1093,125 +1093,7 @@ docker:cleanup() {
   _docker:bulk rmi  "$images"
 }
 
-# ------------------------------- JS Ecosystem ------------------------------- #
-
-# Source nvm.sh and completions (idempotent, safe to call multiple times).
-nvm:init() {
-  (( $+functions[nvm_find_nvmrc] )) && return 0
-  unfunction nvm node npm npx 2>/dev/null
-
-  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-    source "$NVM_DIR/nvm.sh"
-  elif [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
-    source "/opt/homebrew/opt/nvm/nvm.sh"
-  fi
-
-  if [[ -s "$NVM_DIR/bash_completion" ]]; then
-    source "$NVM_DIR/bash_completion"
-  elif [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]]; then
-    source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
-  fi
-}
-
-# Register lightweight stubs that defer nvm.sh sourcing until first use.
-nvm:lazy() {
-  local cmd
-  for cmd in nvm node npm npx; do
-    eval "${cmd}() { nvm:init; ${cmd} \"\$@\" }"
-  done
-}
-
-node:works() {
-  # Subshell catches zsh's "killed" message when macOS terminates an invalid binary
-  (node --version >/dev/null 2>&1) 2>/dev/null
-}
-
-# Diagnose and repair a broken node binary (e.g., invalid code signature on macOS).
-# Usage: nvm:heal [version] (defaults to nvm current)
-nvm:heal() {
-  local version="${1:-$(nvm current 2>/dev/null)}"
-  [[ -z "$version" || "$version" == "none" || "$version" == "system" ]] && return 1
-
-  local node_bin="${NVM_DIR}/versions/node/${version}/bin/node"
-  [[ ! -f "$node_bin" ]] && return 1
-
-  # macOS fast path: ad-hoc re-sign (fixes Gatekeeper kills without redownloading)
-  if [[ "$(uname)" == "Darwin" ]] && ! codesign -v "$node_bin" 2>/dev/null; then
-    log info "Repairing Node $version (invalid code signature, attempting ad-hoc re-sign)…"
-    if codesign --force --sign - "$node_bin" 2>/dev/null && node:works; then
-      log success "Repaired $version via ad-hoc code signing"
-      return 0
-    fi
-  fi
-
-  # Slow path: clear cache and reinstall from scratch
-  node:works && return 0
-  log info "Reinstalling $version from scratch…"
-  local os=${(L)$(uname -s)}
-  rm -rf "${NVM_DIR}/.cache/bin/node-${version}-${os}-$(uname -m)" 2>/dev/null
-  nvm uninstall "$version" 2>/dev/null
-  nvm install "$version"
-  node:works && { log success "Repaired $version via clean reinstall"; return 0; }
-  log error "Failed to repair $version"
-  return 1
-}
-
-node:verify() {
-  if ! node:works; then
-    # Try healing the broken binary first (e.g., invalid code signature on macOS)
-    nvm:heal 2>/dev/null || {
-      log warning "Failed to run node command, reinstalling LTS…"
-      nvm install --lts --latest-npm
-      nvm alias default 'lts/*'
-      nvm use --lts
-    }
-  fi
-
-  if ! node:works; then
-    log warning "Failed to fix LTS node (still broken, trying other installed versions)…"
-    local broken_version
-    broken_version=$(nvm current 2>/dev/null)
-    local version
-    for version in ${(f)"$(nvm ls --no-colors 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -t. -k1,1rn -k2,2rn -k3,3rn)"}; do
-      [[ "$version" == "$broken_version" ]] && continue
-      nvm use "$version" 2>/dev/null
-      if node:works; then
-        log success "Restored working version $version (fallback)"
-        nvm alias default "$version"
-        break
-      fi
-    done
-  fi
-
-  if ! node:works; then
-    log error "Failed to find a working node version"
-    return 1
-  fi
-}
-
-nvmrc:load() {
-  if ! (( $+functions[nvm_find_nvmrc] )); then
-    [[ -f .nvmrc || -f .node-version ]] || return 0
-    nvm:init
-  fi
-
-  local nvmrc_path
-  nvmrc_path="$(nvm_find_nvmrc)"
-
-  if [[ -n "${nvmrc_path}" ]]; then
-    local nvmrc_node_version
-    nvmrc_node_version=$(nvm version "$(< "${nvmrc_path}")")
-
-    if [[ "${nvmrc_node_version}" == "N/A" ]]; then
-      nvm install
-    elif [[ "${nvmrc_node_version}" != "$(nvm version)" ]]; then
-      nvm use
-    fi
-  elif [[ -n "$(PWD=${OLDPWD} nvm_find_nvmrc)" ]] && [[ "$(nvm version)" != "$(nvm version default)" ]]; then
-    log info "Reverting to nvm default version…"
-    nvm use default
-  fi
-}
+# -------------------------------- Toolchain --------------------------------- #
 
 conda:load() {
   # Auto-activate conda env when entering a directory with environment.yml
@@ -1227,126 +1109,19 @@ conda:load() {
   fi
 }
 
-nvm:update() {
-  local previous_version
-  previous_version=$(nvm current 2>/dev/null)
-
-  if ! nvm install --lts --latest-npm &>/dev/null </dev/null; then
-    log info "Skipped nvm update (could not reach remote)"
+# Refresh every mise-managed tool within the ranges pinned in
+# ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which would
+# rewrite that file; it is chezmoi-tracked, so version changes belong in the
+# source. mise itself is upgraded by Homebrew, never from here.
+mise:update() {
+  local output
+  if ! output=$(mise upgrade 2>&1 </dev/null); then
+    log info "Skipped mise update (could not reach remote)"
     return
   fi
 
-  nvm alias default 'lts/*' &>/dev/null
-  nvm use --lts &>/dev/null
-
-  if ! node:works; then
-    log warning "Failed to install LTS node properly (binary killed or crashed)"
-    if nvm:heal; then
-      nvm alias default 'lts/*'
-    elif [[ -n "$previous_version" && "$previous_version" != "none" && "$previous_version" != "system" ]]; then
-      log info "Falling back to previous version ${previous_version}…"
-      nvm use "$previous_version"
-      nvm alias default "$previous_version"
-    fi
-  fi
-
-  node:verify
-}
-
-bun:update() {
-  local start_time elapsed tmplog
-  tmplog=$(mktemp)
-  trap 'rm -f "$tmplog"' EXIT
-  start_time=$SECONDS
-
-  bun upgrade &>"$tmplog" || true
-
-  elapsed=$(( SECONDS - start_time ))
-  if (( elapsed >= 5 )); then
-    cat "$tmplog"
-  fi
-}
-
-# Guard: bun present and the globals list exists with at least one package.
-globals:_ready() {
-  if ! cmd:exists bun; then
-    log warning "Skipped globals (bun not installed)"
-    return 1
-  fi
-  if [[ ! -f "$BUN_GLOBALS" ]]; then
-    log warning "Skipped globals (.bun.globals file not found)"
-    return 1
-  fi
-  if ! grep -qvE '^#|^$' "$BUN_GLOBALS"; then
-    log warning "Skipped globals (.bun.globals lists no packages)"
-    return 1
-  fi
-}
-
-# Install declared global CLIs with bun. Idempotent: bun re-runs are cheap no-ops
-# and globals live in ~/.bun (independent of the active Node/NVM version).
-#
-# Lifecycle scripts follow bun's secure default: packages on bun's built-in
-# allowlist (e.g. @anthropic-ai/claude-code) run their postinstall automatically,
-# while untrusted (usually transitive) scripts stay blocked. To allow a specific
-# blocked package, see it with `bun pm -g untrusted`, then trust it ALONGSIDE the
-# default-trusted ones you rely on, e.g.
-#   bun pm -g trust @anthropic-ai/claude-code <pkg>
-# A trustedDependencies list REPLACES bun's default allowlist, so the defaults you
-# still depend on must be re-listed in the same command.
-globals:install() {
-  globals:_ready || return 1
-  grep -vE '^#|^$' "$BUN_GLOBALS" | xargs bun add -g
-  log success "Installed global packages"
-}
-
-# Force-refresh all declared globals to their latest versions. Uses `bun add -g -f`
-# rather than `bun update -g`, which only updates the first outdated package
-# (oven-sh/bun#25585).
-globals:update() {
-  globals:_ready || return 1
-  grep -vE '^#|^$' "$BUN_GLOBALS" | xargs bun add -g -f
-  log success "Updated global packages"
-}
-
-ncu:update() {
-  ncu -u
-  rm -rf node_modules
-  rm -f yarn.lock package-lock.json pnpm-lock.yaml bun.lock
-  ni
-}
-
-# ------------------------------ Version Checks ------------------------------ #
-
-# Remove stale pyenv-rehash lock files left behind when a previous rehash was
-# killed mid-flight. Without cleanup, every new shell waits 60s for a lock
-# that will never be released. Skipped while another rehash is in progress.
-pyenv:heal() {
-  local shims="${PYENV_ROOT:-$HOME/.pyenv}/shims"
-  local -a stale=( "$shims/.pyenv-shim"(N) "$shims/.pyenv-source-shim"(N) )
-  (( ${#stale} )) || return 0
-  pgrep -fq pyenv-rehash && return 0
-  rm -f -- "${stale[@]}" && log success "Removed ${#stale} stale pyenv lock file(s)"
-}
-
-pyenv:update() {
-  pyenv:heal
-
-  local current latest
-  current=$(pyenv version-name 2>/dev/null)
-  latest=$(pyenv install --list 2>/dev/null \
-    | awk '/^[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+$/ { v=$1 } END { if (v) print v }')
-
-  [[ -z "$latest" ]] && { log info "Skipped pyenv update (could not fetch versions)"; return; }
-  [[ "$current" == "$latest" ]] && return 0
-
-  if ! pyenv install -s "$latest" &>/dev/null; then
-    log info "Skipped pyenv update (install failed for ${latest})"
-    return
-  fi
-
-  pyenv global "$latest"
-  log success "Updated Python ${current} → ${latest}"
+  # Quiet on the common no-op, verbose when something actually moved
+  [[ "$output" == *"All tools are up to date"* ]] || echo "$output"
 }
 
 brew:check() {

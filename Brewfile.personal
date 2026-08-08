@@ -35,8 +35,6 @@ brew "p7zip"
 brew "binwalk"
 # Portable Foreign Function Interface library
 brew "libffi"
-# Open-source, cross-platform JavaScript runtime environment
-brew "node"
 # Package manager for the web
 brew "bower"
 # Install RubyGems as Homebrew formulae
@@ -115,8 +113,6 @@ brew "gnu-sed"
 brew "gnupg"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
-# Development kit for the Java programming language
-brew "openjdk"
 # Reformats Java source code to comply with Google Java Style
 brew "google-java-format"
 # Open-source build automation tool based on the Groovy and Kotlin DSL
@@ -175,12 +171,12 @@ brew "mas"
 brew "maven"
 # Deep clean and optimize your Mac
 brew "mole"
+# Polyglot runtime manager (asdf rust clone)
+brew "mise"
 # 'traceroute' and 'ping' in a single tool
 brew "mtr"
 # Small build system for use with gyp or CMake
 brew "ninja"
-# Manage multiple Node.js versions
-brew "nvm"
 # Open source, general-purpose policy engine
 brew "opa"
 # Swiss-army knife of markup format conversion
@@ -193,8 +189,6 @@ brew "pinentry-mac"
 brew "pipx"
 # Package compiler and linker metadata toolkit
 brew "pkgconf"
-# Fast, disk space efficient package manager
-brew "pnpm"
 # Python package management tool
 brew "poetry"
 # PDF rendering library (based on the xpdf-3.0 code base)
@@ -207,20 +201,14 @@ brew "prettier"
 brew "putty"
 # Password generator
 brew "pwgen"
-# Python version management
-brew "pyenv"
 # Generic machine emulator and virtualizer
 brew "qemu"
-# Ruby version manager
-brew "rbenv"
 # Tools for creating native apps for Android and iOS
 brew "react-native-cli"
 # Persistent key-value database, with built-in net interface
 brew "redis"
 # Generic CLI tool to automate versioning and package publishing related tasks
 brew "release-it"
-# Powerful, clean, object-oriented scripting language
-brew "ruby"
 # Safe, concurrent, practical language
 brew "rust"
 # JVM-based programming language
@@ -796,9 +784,3 @@ vscode "zaaack.markdown-editor"
 vscode "zarifprogrammer.tailwind-snippets"
 vscode "ziglang.vscode-zig"
 vscode "zignd.html-css-class-completion"
-npm "@angular/cli"
-npm "@antfu/ni"
-npm "@nestjs/cli"
-npm "@nuxt/cli"
-npm "npm-check-updates"
-npm "skilld"

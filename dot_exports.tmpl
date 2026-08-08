@@ -3,12 +3,6 @@
 export EDITOR={{ .editor | quote }}
 export KUBE_EDITOR={{ .editor | quote }}
 
-# Tool directories
-export BUN_INSTALL="$HOME/.bun"
-export NVM_DIR="$HOME/.nvm"
-export SDKMAN_DIR="$HOME/.sdkman"
-export BUN_GLOBALS="$HOME/.bun.globals"
-
 # Docker
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -112,7 +106,7 @@ export MANPAGER="${MANPAGER:-less -X}"
 # https://stackoverflow.com/a/42265848/96656
 export GPG_TTY="$(tty)"
 
-# ----------------------------- Default values ------------------------------ #
+# ------------------------------ Default values ------------------------------ #
 
 export DEFAULT_HOSTNAME={{ .default_hostname | quote }}
 

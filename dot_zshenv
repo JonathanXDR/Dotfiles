@@ -1,0 +1,11 @@
+# Sourced by every zsh: interactive, non-interactive, and script invocations.
+# Keep it to PATH essentials; anything interactive belongs in .zshrc.
+
+# Collapse duplicate PATH entries (nested shells re-source this file)
+typeset -gU PATH path
+
+# mise shims, so editors, LaunchAgents and `zsh -c` scripts resolve the same
+# toolchain as an interactive shell (.zshrc is not read by non-interactive
+# shells). Interactive shells additionally run `mise activate zsh`, which
+# prepends the resolved tool directories ahead of these shims.
+[[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
