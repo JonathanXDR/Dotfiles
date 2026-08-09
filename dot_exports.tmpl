@@ -16,10 +16,6 @@ export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
 {{ end -}}
 
-# ------------------------------------ AI ------------------------------------ #
-
-export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
-
 # ---------------------------- Proxy Configuration --------------------------- #
 
 # Read by the proxy:* functions and by .zshrc, which restores the cached proxy
