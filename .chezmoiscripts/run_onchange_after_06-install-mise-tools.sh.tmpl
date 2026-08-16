@@ -18,10 +18,12 @@ fi
 # Re-runs are sub-second no-ops, so the content hash above is the only thing
 # gating this step.
 #
-# Run from $HOME so a project mise.toml in the working directory cannot pull in
-# undeclared tools or block the apply with an untrusted config.
+# Scoped to $HOME with -C so a project mise.toml in the working directory
+# cannot pull in undeclared tools. Leaving that config untrusted would not help:
+# mise asks for trust before running [env], [tasks], and [hooks], never before
+# reading [tools].
 _log info "Installing mise-managed tools…"
-if (cd "$HOME" && mise install --yes); then
+if mise -C "$HOME" install --yes; then
   _log success "Installed mise-managed tools"
 else
   _log warning "Failed to install some mise-managed tools (see above)"
