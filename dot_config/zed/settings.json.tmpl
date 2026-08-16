@@ -294,4 +294,12 @@
     /* AI */
     "**/.claude",
   ],
+  /* Installed extensions, from .chezmoidata/zed.toml. Zed installs anything
+     listed here at startup. It has no CLI to export the list, so refresh it
+     with zed:dump after installing or removing an extension. */
+  "auto_install_extensions": {
+{{- range .zed_extensions }}
+    {{ . | quote }}: true,
+{{- end }}
+  },
 }
