@@ -95,6 +95,8 @@ brew "ffmpeg"
 brew "firebase-cli"
 # Library for FreeImage, a dependency-free graphics library
 brew "freeimage"
+# Command-line fuzzy finder written in Go
+brew "fzf"
 # GitHub command-line tool
 brew "gh"
 # Distributed revision control system
@@ -169,10 +171,14 @@ brew "mariadb"
 brew "mas"
 # Java-based project management
 brew "maven"
-# Deep clean and optimize your Mac
-brew "mole"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
+# Deep clean and optimize your Mac
+brew "mole"
+# Feature-rich command-line audio/video downloader
+brew "yt-dlp"
+# Media player based on MPlayer and mplayer2
+brew "mpv"
 # 'traceroute' and 'ping' in a single tool
 brew "mtr"
 # Small build system for use with gyp or CMake
@@ -267,8 +273,6 @@ brew "wireguard-tools"
 brew "xdelta"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
-# Feature-rich command-line audio/video downloader
-brew "yt-dlp"
 # Programming language designed for robustness, optimality, and clarity
 brew "zig"
 # General-purpose lossless data-compression library
@@ -484,8 +488,8 @@ mas "Keynote", id: 361285480
 mas "Logic Pro", id: 1615087040
 mas "Logic Pro", id: 634148309
 mas "Mactracker", id: 430255202
-mas "MainStage", id: 634159523
 mas "MainStage", id: 6746637089
+mas "MainStage", id: 634159523
 mas "Markdown Preview", id: 6739955340
 mas "Motion", id: 434290957
 mas "Motion", id: 6746637149
