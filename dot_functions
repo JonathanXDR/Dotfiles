@@ -1247,6 +1247,47 @@ brew:dump() {
   fi
 }
 
+# Record the Zed extensions installed on this machine so a fresh machine can
+# restore them. Zed has no CLI to export the list and `brew bundle` covers only
+# VS Code and its forks, so the list comes from the index Zed maintains itself.
+# dot_config/zed/settings.json.tmpl renders it as auto_install_extensions, which
+# Zed acts on at startup.
+zed:dump() {
+  cmd:exists jq || { log error "Failed to find jq"; return 1; }
+  cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
+
+  local index="${HOME}/Library/Application Support/Zed/extensions/index.json"
+  [[ -r "$index" ]] || { log error "Failed to read Zed extension index (${index})"; return 1; }
+
+  local source_dir target
+  source_dir="$(chezmoi source-path)" || return 1
+  target="${source_dir}/.chezmoidata/zed.toml"
+  mkdir -p "${target:h}" || return 1
+
+  # Read the list before opening the file. A brace group exits with the status of
+  # its last command, so a jq failure inside the redirect below would overwrite a
+  # good list with an empty one and still report success.
+  local -a entries
+  entries=( ${(f)"$(jq -r '.extensions | keys | .[] | "  \"\(.)\","' "$index")"} ) || {
+    log error "Failed to parse Zed extension index (${index})"
+    return 1
+  }
+
+  # Sorted, one per line, so adding an extension is a one-line diff. TOML allows
+  # the trailing comma jq leaves on the last entry. The guard is there because
+  # `print -rl` on an empty array still emits a blank line.
+  {
+    print -r -- "# Zed extensions installed on this machine, rendered into"
+    print -r -- "# auto_install_extensions by dot_config/zed/settings.json.tmpl."
+    print -r -- "# Regenerate with zed:dump after installing or removing an extension."
+    print -r -- "zed_extensions = ["
+    (( ${#entries} )) && print -rl -- "${entries[@]}"
+    print -r -- "]"
+  } > "$target" || { log error "Failed to write ${target:t}"; return 1; }
+
+  log success "Dumped ${#entries} Zed extension(s) to ${target:t}"
+}
+
 # ------------------------------------ Git ----------------------------------- #
 
 # Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)
