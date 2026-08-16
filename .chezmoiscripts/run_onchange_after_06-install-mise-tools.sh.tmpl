@@ -35,3 +35,16 @@ if mise -C "$HOME" install --yes; then
 else
   _log warning "Failed to install some mise-managed tools (see above)"
 fi
+
+# `mise install` only ever adds, so a tool dropped from config.toml keeps its
+# install and its shims, and dot_zshenv keeps that shim directory on PATH for
+# every zsh. Pruning is what makes the removal converge. Project toolchains are
+# safe: mise tracks every config it has seen
+# (~/.local/state/mise/tracked-configs) and keeps any version one of them still
+# asks for. The same pass rebuilds the shim directory, so no reshim is needed.
+_log info "Pruning unused tool versions…"
+if mise -C "$HOME" prune --yes; then
+  _log success "Pruned unused tool versions"
+else
+  _log warning "Failed to prune unused tool versions (see above)"
+fi
