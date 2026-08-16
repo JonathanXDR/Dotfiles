@@ -12,6 +12,13 @@ if ! _cmd_exists mise; then
   exit 0
 fi
 
+# mise caches each tool's remote version list for an hour, keyed on the tool
+# alone rather than on the settings that pick which build a version resolves to.
+# java.shorthand_vendor is one of those, so a vendor change keeps reading the
+# old list until the cache expires. Only java is cleared, because the bare form
+# drops every list and makes the sub-second re-run below a network re-resolve.
+mise -C "$HOME" cache clear java >/dev/null 2>&1 || true
+
 # The `mise install` command reads ~/.config/mise/config.toml (symlinked to
 # this repo) and installs whatever is missing. It never writes back, unlike
 # `mise use -g`, which would rewrite that file and fight chezmoi over it.
