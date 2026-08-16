@@ -58,6 +58,14 @@ idiomatic_version_file_disable_files = ["node:package.json"]
 
 # Fail loudly when a pinned version is missing rather than falling through to
 # the next binary of that name on PATH. Homebrew's node stays installed as a
-# hard dependency of eslint, prettier and vercel, so the default fallback would
+# hard dependency of eslint, prettier, and vercel, so the default fallback would
 # quietly run the wrong major instead of erroring.
 not_found_system_fallback = false
+
+# Resolve bare Java versions through Temurin rather than mise's default vendor,
+# Oracle's OpenJDK builds. Oracle stops updating each line six months after it
+# ships, so openjdk-25 ends at 25.0.2 and the `java = "lts"` pin above freezes
+# on a build that no longer gets security patches. The freeze is silent: with no
+# newer openjdk-25 to find, the pin still looks current to mise. Temurin keeps
+# maintaining the line, so the same pin now resolves to 25.0.4.
+java.shorthand_vendor = "temurin"
