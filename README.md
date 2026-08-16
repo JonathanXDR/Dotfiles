@@ -112,6 +112,10 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
 ```text
 ~/.zshenv ───────── mise shims (every zsh, including non-interactive)
         │
+/etc/zprofile ───── macOS path_helper rebuilds PATH (login shells only)
+        │
+~/.zprofile ─────── restores the mise shims to the front of PATH
+        │
 ~/.exports ──────── env vars, proxy, locale, history, zsh options
         │
 ~/.functions ────── utility functions
@@ -130,6 +134,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ```text
 ├── .chezmoi.toml.tmpl                       # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                        # Shared non-secret defaults
+├── .chezmoidata/                            # Generated data files (Zed extensions)
 ├── .chezmoiignore                           # Files excluded from $HOME
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
 ├── .chezmoiscripts/                         # Numbered setup scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
@@ -146,6 +151,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 │   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
 │
 ├── dot_zshenv                               # PATH for non-interactive shells (mise shims)
+├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Interactive shell entry point
 ├── dot_exports.tmpl                         # Env vars, history, zsh options
 ├── dot_functions                            # Shell functions
@@ -165,7 +171,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
-└── Brewfile.swisscom                        # Homebrew packages (work)
+└── Brewfile.work                            # Homebrew packages (work)
 ```
 
 ## ⛰️ Next Steps

@@ -69,6 +69,8 @@ Dotfiles/
 │
 ├── .chezmoi.toml.tmpl                  # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                   # Shared non-secret defaults
+├── .chezmoidata/
+│   └── zed.toml                        # Installed Zed extensions (written by zed:dump)
 ├── .chezmoiignore                      # Files excluded from $HOME
 ├── .chezmoitemplates/
 │   ├── keychain                        # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
@@ -113,6 +115,7 @@ Dotfiles/
 │   # Shell configuration (sourced on every terminal open)
 │
 ├── dot_zshenv                          # PATH for non-interactive shells (mise shims)
+├── dot_zprofile                        # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                           # Shell orchestrator
 ├── dot_exports.tmpl                    # Env vars, history, locale, zsh options
 ├── dot_functions                       # Shell functions
@@ -144,7 +147,7 @@ Dotfiles/
 │   # Package lists (read by run scripts, not copied to $HOME)
 │
 ├── Brewfile.personal                   # Homebrew packages (personal)
-└── Brewfile.swisscom                   # Homebrew packages (work)
+└── Brewfile.work                       # Homebrew packages (work)
 ```
 
 ## 🔑 Key Concepts
@@ -208,7 +211,7 @@ chezmoi merges template data from multiple sources (later layers override earlie
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
 │  Layer 2                                                                            │
-│  .chezmoidata.toml                                                                  │
+│  .chezmoidata.toml and .chezmoidata/                                                │
 │                                                                                     │
 │    editor, history_size, autostart_ssh_agent, default_hostname,                     │
 │    tree_ignore, dock_apps, cisco_vpn_bin                                            │
@@ -341,7 +344,7 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 
 | Layer              | `personal`                              | `work`                                                    |
 | ------------------ | --------------------------------------- | --------------------------------------------------------- |
-| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.swisscom`                                       |
+| **Brewfile**       | `Brewfile.personal`                     | `Brewfile.work`                                           |
 | **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback     |
 | **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud                 |
 | **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud             |
@@ -355,6 +358,12 @@ When a new terminal opens, `~/.zshrc` loads files in this exact sequence:
 
 ```text
   ~/.zshenv ────────────── mise shims (every zsh, including non-interactive)
+          │
+          v
+  /etc/zprofile ────────── macOS path_helper rebuilds PATH (login shells only),
+          │                demoting the shims that .zshenv prepended
+          v
+  ~/.zprofile ──────────── restores the mise shims to the front of PATH
           │
           v
   Kiro CLI pre-hook ────── (if installed)
@@ -416,7 +425,10 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Change a shared default              | `.chezmoidata.toml`                                                                     |
 | Add a user-prompted value            | `.chezmoi.toml.tmpl`                                                                    |
 | Add machine-type config (non-secret) | `config.toml` on iCloud Drive                                                           |
-| Add a Homebrew package               | `Brewfile.personal` or `Brewfile.swisscom`                                              |
+| Add a Homebrew package               | `Brewfile.personal` or `Brewfile.work`                                                  |
+| Refresh this machine's Brewfile      | `brew:dump` (adds `--no-npm` and picks the right Brewfile)                              |
+| Keep a formula out of the Brewfile   | `brew tab --no-installed-on-request <formula>`                                          |
+| Refresh the Zed extension list       | `zed:dump` (Zed has no CLI for this)                                                    |
 | Add a runtime or global CLI package  | `dot_config/mise/config.toml`                                                           |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`  |
 | Rename or update a secret            | `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]`  |
@@ -446,10 +458,13 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **`keychain` template helper**                                | Wraps `security find-generic-password` in a reusable one-liner. Returns an empty string for a missing key, whereas chezmoi's `keyring` panics.                                                                                                                                                                                                                                                                                                                           |
 | **Numbered run scripts**                                      | Deterministic ordering rules out race conditions (the keychain import in script 02 has to finish before any template reads a secret).                                                                                                                                                                                                                                                                                                                                    |
 | **`run_once_` for setup, `run_onchange_` for content-driven** | Embedded content hashes mean Homebrew packages and the mise tool list are only reinstalled when their source files actually change.                                                                                                                                                                                                                                                                                                                                      |
-| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one list full of conditionals.                                                                                                                                                                                                                                                                                                                                  |
+| **Separate Brewfiles per machine type**                       | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one list full of conditionals. Each file is named after the `machine_type` value it serves (`Brewfile.personal`, `Brewfile.work`), which chezmoi constrains to those two, so the run script and `brew:dump` derive the name instead of mapping it.                                                                                                              |
 | **`scriptEnv` for Homebrew flags**                            | `HOMEBREW_NO_AUTO_UPDATE=1` stops Homebrew from auto-updating during scripted installs, which keeps apply fast and deterministic.                                                                                                                                                                                                                                                                                                                                        |
 | **LaunchAgent for proxy detection**                           | Replaces a per-shell `nc` probe (~3s) with an event-driven daemon that watches `/Library/Preferences/SystemConfiguration` and `/var/run/resolv.conf` (covering Wi-Fi and VPN). Shell startup only reads a cached state file (~0ms), falling back to `proxy:probe` on first boot.                                                                                                                                                                                         |
 | **mise activated last in `.zshrc`**                           | mise resolves versions inside a compiled binary, not a sourced shell script, so there is no lazy-loading trick and no `cd` hook of our own to maintain. Ordering is the one hard rule. Activation snapshots `PATH` and re-derives from that snapshot on every prompt, so it must run after `brew shellenv` and every `path:add`. Homebrew keeps its own `node` as a dependency of eslint, prettier, and vercel, and this ordering is what keeps that copy behind mise's. |
+| **`.zprofile` restores the mise shims**                       | `.zshenv` puts the shims first, then macOS `/etc/zprofile` runs `path_helper -s`, which rebuilds `PATH` and appends the rest at the end. On a login shell the shims land behind `/opt/homebrew/bin`, so Homebrew's node wins. Interactive shells recover through `mise activate zsh`, but login shells that never read `.zshrc` do not, and those are the shells `.zshenv` exists to cover. Chosen over `setopt no_global_rcs`, which disables `/etc/zprofile` outright. |
+| **Every mise command pins itself to `$HOME`**                 | mise resolves `[tools]` from the working directory upward, and trust does not gate that: it asks for trust before running `[env]`, `[tasks]`, and `[hooks]`, never before reading a tool list. An unscoped `mise upgrade` from `run:daily` would therefore install the toolchain of whatever project the first terminal of the day opened in. `install`, `upgrade`, `prune`, and `cache clear` all run with `-C "$HOME"`.                                                |
+| **`mise prune` after `mise install`**                         | `mise install` only adds. Dropping a tool from `config.toml` re-fires the script but leaves the old install and its shims in place, and `.zshenv` keeps that shim directory on `PATH` for every zsh. `prune` removes versions no tracked config still asks for, so project toolchains survive, and it rebuilds the shim directory in the same pass.                                                                                                                      |
 | **compinit caching**                                          | Running `compinit -C` skips the full completion rebuild while `~/.zcompdump` is less than 24 hours old (checked with the zsh glob qualifier `(N.mh-24)`). A full rebuild runs once a day to pick up newly installed completions.                                                                                                                                                                                                                                         |
 | **`run:daily` update gating**                                 | The `run:daily` wrapper puts `mise:update` and `brew:check` behind a stamp file in `~/.cache/daily/`, with a `(N.mh-24)` freshness check that costs zero forks. Keeps slow update commands off every shell startup.                                                                                                                                                                                                                                                      |
 | **`/etc/hosts` symlink**                                      | chezmoi renders `dot_config/hosts.tmpl` into `~/.config/hosts` with machine-type-aware entries (work entries are dropped on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes.                                                                                                                                                                                                                            |
