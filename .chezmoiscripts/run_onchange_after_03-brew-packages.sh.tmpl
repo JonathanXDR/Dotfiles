@@ -2,10 +2,7 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-{{ $brewfile_name := "Brewfile.personal" -}}
-{{ if eq .machine_type "work" -}}
-{{   $brewfile_name = "Brewfile.swisscom" -}}
-{{ end -}}
+{{ $brewfile_name := printf "Brewfile.%s" .machine_type -}}
 
 # Brewfile content hash (triggers a re-run when the Brewfile changes):
 # {{ include $brewfile_name | sha256sum }}
