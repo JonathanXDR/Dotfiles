@@ -1219,6 +1219,34 @@ brew:check() {
   log info "Detected ${#${(f)outdated}} outdated Homebrew package(s) (run 'brew upgrade' to update)"
 }
 
+# Rewrite this machine's Brewfile from what Homebrew currently has installed.
+#
+# --no-npm is why this wrapper exists. `brew bundle dump` reads `npm ls -g` from
+# the first node on PATH, which under mise is not Homebrew's, so a plain dump
+# records mise's global packages as Homebrew's. A later `brew bundle` would then
+# install them into whichever node happens to be active.
+#
+# Runtime formulae stay out of the Brewfile as long as Homebrew has them marked
+# as dependencies. If one reappears, it is still flagged as installed on request.
+# Clear that with `brew tab --no-installed-on-request <formula>`.
+brew:dump() {
+  cmd:exists brew || { log error "Failed to find brew"; return 1; }
+  cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
+
+  # Brewfiles are named after the machine type, which chezmoi constrains to
+  # personal or work. No mapping is needed, so this cannot drift from the file
+  # run_onchange_after_03-brew-packages installs.
+  local brewfile
+  brewfile="$(chezmoi execute-template '{{ .chezmoi.sourceDir }}/Brewfile.{{ .machine_type }}')" || return 1
+
+  if brew bundle dump --file="$brewfile" --force --no-npm; then
+    log success "Dumped Homebrew packages to ${brewfile:t}"
+  else
+    log error "Failed to dump Homebrew packages"
+    return 1
+  fi
+}
+
 # ------------------------------------ Git ----------------------------------- #
 
 # Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)
