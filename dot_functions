@@ -1181,13 +1181,26 @@ conda:load() {
 # project's whole toolchain as a side effect.
 mise:update() {
   local output
+  local -a lines
+
   if ! output=$(mise -C "$HOME" upgrade 2>&1 </dev/null); then
-    log info "Skipped mise update (could not reach remote)"
-    return
+    log warning "Failed to update mise-managed tools"
+    print -r -- "$output" >&2
+    # Return 0 so run:daily still stamps the day. An offline laptop then
+    # retries tomorrow rather than on every new shell.
+    return 0
   fi
 
-  # Quiet on the common no-op, verbose when something actually moved
-  [[ "$output" == *"All tools are up to date"* ]] || echo "$output"
+  # Quiet on the common no-op, but drop only that line. mise prints warnings
+  # alongside it (a release held back by minimum_release_age, a version list it
+  # could not fetch), and matching the whole output would swallow them.
+  lines=( ${(f)output} )
+  lines=( ${lines:#*"All tools are up to date"*} )
+  (( ${#lines} )) && print -rl -- "${lines[@]}"
+
+  # Not redundant. The `&&` above leaves status 1 whenever there is nothing to
+  # print, which is the common no-op path, and run:daily only stamps on success.
+  return 0
 }
 
 # Report deprecated and outdated Homebrew packages without changing anything.
