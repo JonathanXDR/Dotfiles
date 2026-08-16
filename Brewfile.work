@@ -42,8 +42,6 @@ brew "bower"
 brew "brew-gem"
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
-# Glorious Glasgow Haskell Compilation System
-brew "ghc"
 # Command-line interface for Cabal and Hackage
 brew "cabal-install"
 # GNU File, Shell, and Text utilities
@@ -90,8 +88,8 @@ brew "ffmpeg"
 brew "firebase-cli"
 # GitHub command-line tool
 brew "gh"
-# OCR (Optical Character Recognition) engine
-brew "tesseract"
+# Glorious Glasgow Haskell Compilation System
+brew "ghc"
 # Distributed revision control system
 brew "git"
 # Quickly rewrite git repository history
@@ -168,10 +166,10 @@ brew "mariadb"
 brew "mas"
 # Java-based project management
 brew "maven"
-# Deep clean and optimize your Mac
-brew "mole"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
+# Deep clean and optimize your Mac
+brew "mole"
 # 'traceroute' and 'ping' in a single tool
 brew "mtr"
 # Small build system for use with gyp or CMake
@@ -226,6 +224,8 @@ brew "tcpflow"
 brew "tectonic"
 # User interface to the TELNET protocol
 brew "telnet"
+# OCR (Optical Character Recognition) engine
+brew "tesseract"
 # Anonymizing overlay network for TCP
 brew "tor"
 # Command-line interface to the freedesktop.org trashcan
@@ -243,7 +243,7 @@ brew "varlock"
 # Disaster recovery for Kubernetes resources and persistent volumes
 brew "velero"
 # Command-line interface for Vercel
-brew "vercel-cli"
+brew "vercel"
 # Next generation frontend tooling. It's fast!
 brew "vite"
 # Executes a program periodically, showing output fullscreen
@@ -400,6 +400,8 @@ cask "rancher"
 cask "raycast", args: { appdir: "/Applications" }
 # Tool that provides consistent, highly configurable symbols for apps
 cask "sf-symbols", args: { appdir: "/Applications" }
+# Code quality and security for terminal workflows, scripts, and AI agents
+cask "sonarqube-cli"
 # Sound and audio controller
 cask "soundsource", args: { appdir: "/Applications" }
 # Native GUI tool for relational databases
@@ -735,3 +737,4 @@ vscode "zaaack.markdown-editor"
 vscode "zarifprogrammer.tailwind-snippets"
 vscode "ziglang.vscode-zig"
 vscode "zignd.html-css-class-completion"
+cargo "gitlab-ci-ls"
