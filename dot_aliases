@@ -159,8 +159,10 @@ alias grep='grep --color=auto'
 alias sudo='sudo '
 
 # Update macOS, Homebrew, mise-managed tools, and Ruby gems (the mise and gem
-# steps are guarded by cmd:exists)
-alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists mise && mise upgrade; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
+# steps are guarded by cmd:exists). mise runs with -C "$HOME" so it upgrades the
+# global toolchain, not whichever project the shell happens to sit in. Every
+# other step here is system-wide too.
+alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists mise && mise -C "$HOME" upgrade; cmd:exists gem && sudo gem update --system && sudo gem update && sudo gem cleanup'
 
 # macOS ships no `hd`, `md5sum`, or `sha1sum`. alias:fallback stands in for them
 # quietly, and steps aside on systems that have the real binaries.

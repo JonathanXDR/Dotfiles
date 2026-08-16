@@ -1173,9 +1173,15 @@ conda:load() {
 # ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which
 # would rewrite that file. It is chezmoi-tracked, so version changes belong in
 # the source. mise itself is upgraded by Homebrew, never from here.
+#
+# Scoped to $HOME with -C, like run_onchange_after_06-install-mise-tools. This
+# fires unattended from run:daily, in whatever directory the shell started in,
+# and mise reads [tools] from the working directory upward. Unscoped, opening
+# the first terminal of the day in a project checkout would install that
+# project's whole toolchain as a side effect.
 mise:update() {
   local output
-  if ! output=$(mise upgrade 2>&1 </dev/null); then
+  if ! output=$(mise -C "$HOME" upgrade 2>&1 </dev/null); then
     log info "Skipped mise update (could not reach remote)"
     return
   fi
