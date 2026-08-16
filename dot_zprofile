@@ -1,0 +1,13 @@
+# Sourced on login shells only, after .zshenv and /etc/zprofile.
+#
+# macOS ships an /etc/zprofile that runs `path_helper -s`, which rebuilds PATH
+# from /etc/paths and /etc/paths.d and appends everything else at the end. That
+# undoes the prepend in .zshenv: the mise shims drop behind /opt/homebrew/bin,
+# so Homebrew's node wins. Interactive shells recover when .zshrc runs
+# `mise activate zsh`, but login shells that never read .zshrc (`zsh -lc ...`)
+# do not, and those are exactly the shells .zshenv exists to cover.
+#
+# .zshenv keeps its own copy for non-login shells (`zsh -c ...`), which never
+# read this file. PATH survives path_helper with its `typeset -U` attribute
+# intact, so the entry stays deduplicated without re-declaring it.
+[[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)

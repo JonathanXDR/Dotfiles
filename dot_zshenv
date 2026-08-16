@@ -8,4 +8,8 @@ typeset -gU PATH path
 # toolchain as an interactive shell (non-interactive shells never read .zshrc).
 # Interactive shells also run `mise activate zsh`, which prepends the resolved
 # tool directories ahead of these shims.
+#
+# This prepend does not survive a login shell: /etc/zprofile runs next and its
+# `path_helper -s` moves the entry to the end of PATH. .zprofile repeats the
+# prepend for that case.
 [[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
