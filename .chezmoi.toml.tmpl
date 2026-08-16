@@ -114,3 +114,12 @@ mode = "symlink"
   pattern = "**/*.json"
   command = "jq"
   args = ["."]
+
+# Zed's settings are JSONC. jq exits non-zero on the comments and trailing
+# commas, and that aborts the entire diff walk, hiding every target chezmoi has
+# not reached yet. Passing this one file through untouched keeps jq formatting
+# everywhere else. chezmoi matches the longest pattern, so this wins over the
+# rule above.
+[[textconv]]
+  pattern = "**/zed/settings.json"
+  command = "cat"
