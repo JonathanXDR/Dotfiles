@@ -36,8 +36,8 @@ export PROXY_NETWORK_SERVICE={{ dig "proxy_network_service" "" . | quote }}
 export NO_PROXY={{ .no_proxy | quote }}
 export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
 
-# The @swisscom npm registry variables live in ~/.config/npm-registry.env, which
-# ~/.zshenv sources, because non-interactive shells never read this file.
+# The @swisscom npm registry variables live in ~/.zshenv, because every reader of
+# ~/.npmrc needs them and this file reaches interactive shells alone.
 
 # ----------------------------------- Auth ----------------------------------- #
 

@@ -39,8 +39,8 @@ cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
 
 # Hosts serving the @swisscom npm scope. Both front the same virtual repo, but
 # only the proxied one is reachable through the corporate proxy and only the
-# direct one without it. private_dot_exports.tmpl exports them, proxy:set,
-# proxy:unset and proxy-watchd swap the active one, and .npmrc reads the result.
+# direct one without it. dot_zshenv.tmpl exports them, proxy:set, proxy:unset
+# and proxy-watchd swap the active one, and .npmrc reads the result.
 # Applied on work machines only.
 npm_swisscom_registry_proxied = "https://artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
 npm_swisscom_registry_direct = "https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
