@@ -18,10 +18,10 @@ tap "ubuntu/microk8s", trusted: true
 tap "updatest/tap", "https://github.com/updatest/tap.git", trusted: true
 # Run your GitHub Actions locally
 brew "act"
-# Cryptography and SSL/TLS Toolkit
-brew "openssl@3"
 # Plugin manager for zsh, inspired by antigen and antibody
 brew "antidote"
+# Cryptography and SSL/TLS Toolkit
+brew "openssl@3"
 # Tool for generating GNU Standards-compliant Makefiles
 brew "automake"
 # Official Amazon AWS command-line interface
@@ -108,6 +108,8 @@ brew "gnu-sed"
 brew "gnupg"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
+# Task is a task runner/build tool that aims to be simpler and easier to use
+brew "go-task", link: false
 # Reformats Java source code to comply with Google Java Style
 brew "google-java-format"
 # Open-source build automation tool based on the Groovy and Kotlin DSL
@@ -272,10 +274,10 @@ brew "zlib"
 brew "zsh"
 # Real-time type-ahead completion for Zsh
 brew "zsh-autocomplete"
-# Additional completion definitions for zsh
-brew "zsh-completions"
 # Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
+# Additional completion definitions for zsh
+brew "zsh-completions"
 # Zsh port of Fish shell's history search
 brew "zsh-history-substring-search"
 # Fish shell like syntax highlighting for zsh
@@ -284,8 +286,6 @@ brew "zsh-syntax-highlighting"
 brew "coursier/formulas/coursier"
 # Distributed search & analytics engine
 brew "elastic/tap/elasticsearch-full"
-# A fast, cross-platform build tool inspired by Make, designed for modern workflows.
-brew "go-task/tap/go-task"
 # Vault
 brew "hashicorp/tap/vault"
 # The official Infisical CLI
@@ -356,6 +356,8 @@ cask "gitbutler"
 cask "github-copilot-app"
 # Git client focusing on productivity
 cask "gitkraken"
+# A fast, cross-platform build tool inspired by Make, designed for modern workflows.
+cask "go-task/tap/go-task", trusted: true
 # Web browser
 cask "google-chrome", args: { appdir: "/Applications" }
 # Development environment
