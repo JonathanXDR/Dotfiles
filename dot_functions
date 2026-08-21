@@ -1603,8 +1603,16 @@ git:diff() {
   local diff_args=("$source_branch...$target_branch")
   [[ -n "$exclude_pattern" ]] && diff_args+=(-- ":!$exclude_pattern")
 
+  # Collect the file list before writing anything, so a bad revision leaves the
+  # clipboard alone instead of clearing it and then reporting the failure.
+  local -a files
+  files=( ${(f)"$(git diff --name-only "${diff_args[@]}")"} ) || {
+    log error "Failed to list changed files (check '${source_branch}' and '${target_branch}' both exist)"
+    return 1
+  }
+
   local file
-  git diff --name-only "${diff_args[@]}" | while read -r file; do
+  for file in "${files[@]}"; do
     printf '\n%s:\n\n' "$file"
     git show "$target_branch:$file"
   done | pbcopy

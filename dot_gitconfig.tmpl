@@ -4,9 +4,6 @@
 {{- if ne .gpg_key "" }}
 	signingKey = {{ .gpg_key }}
 {{- end }}
-[gpg]
-	program = gpg
-	format = openpgp
 [commit]
 	gpgSign = {{ ne .gpg_key "" }}
 [tag]
@@ -14,7 +11,7 @@
 [init]
 	defaultBranch = main
 [core]
-	excludesfile = ~/.gitignore_global
+	excludesFile = ~/.gitignore_global
 [filter "lfs"]
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
@@ -33,7 +30,7 @@
 #   git fix -s auth -a drop v1 tokens  ->  fix(auth)!: drop v1 tokens
 # `revert` is spelled `rev` because git's own subcommand takes the name.
 [alias]
-	cc = "!f() { t=$1; shift; s=; b=; m=; while [ $# -gt 0 ]; do case $1 in -s|--scope) [ $# -ge 2 ] || { echo 'Missing scope' >&2; return 1; }; s=$2; shift 2 ;; -a|--attention) b='!'; shift ;; *) m=\"$m $1\"; shift ;; esac; done; git commit -m \"$t${s:+($s)}$b:$m\"; }; f"
+	cc = "!f() { t=$1; shift; s=; b=; m=; while [ $# -gt 0 ]; do case $1 in -s|--scope) [ $# -ge 2 ] || { echo 'Missing scope. Pass one after -s, for example: git fix -s auth drop v1 tokens' >&2; return 1; }; s=$2; shift 2 ;; -a|--attention) b='!'; shift ;; *) m=\"$m $1\"; shift ;; esac; done; [ -n \"$m\" ] || { echo 'Missing description. Pass one after the type, for example: git feat add pagination' >&2; return 1; }; git commit -m \"$t${s:+($s)}$b:$m\"; }; f"
 	build = "!git cc build"
 	chore = "!git cc chore"
 	ci = "!git cc ci"
