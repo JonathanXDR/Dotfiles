@@ -170,7 +170,9 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
 │   └── zed/settings.json.tmpl               # Zed editor settings (from keychain)
 ├── private_dot_claude/                      # ~/.claude/* (0700)
-│   └── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
+│   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
+│   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
+│   └── private_hooks/                       # Claude Code hook scripts (git push guard)
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
