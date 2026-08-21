@@ -2,12 +2,15 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
+_ensure_brew
+
 if _cmd_exists brew; then
   _log info "Skipped Homebrew (already installed)"
   exit 0
 fi
 
 _log info "Installing Homebrew…"
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-_ensure_brew
+# Download first, so a failed fetch aborts here instead of running an empty
+# installer and marking this run_once script as done.
+installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+/bin/bash -c "$installer"
