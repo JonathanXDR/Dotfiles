@@ -35,7 +35,7 @@ fi
   && source "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
 
 # Per-machine extras from .exports, appended to stay behind everything above
-[[ -n "${PATH_ADD}" ]] && path:append "${PATH_ADD}"
+path:append ${(s.:.)PATH_ADD}
 
 # mise (Node, Python, bun, pnpm, global CLIs). Must run after every other PATH
 # writer. Activation snapshots PATH and re-derives it from that snapshot on
@@ -57,7 +57,7 @@ source "${HOME}/.completions"
 
 # --------------------------------- Runtime ---------------------------------- #
 
-autoload -U add-zsh-hook
+autoload -Uz add-zsh-hook
 add-zsh-hook chpwd conda:load
 
 # Work machines only, since ALWAYS_PROXY_PROBE is true only there. The

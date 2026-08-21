@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# The chezmoi destination for this repo is $HOME, so /etc/hosts cannot be a
+# managed file. It becomes a symlink to the rendered copy in ~/.config
+# instead, and chezmoi re-renders that copy like any other managed file.
+#
+# This runs on every apply rather than behind a content hash, because the state
+# it depends on is /etc/hosts itself. A macOS upgrade, Docker Desktop, or a VPN
+# client can replace the symlink with a regular file, and only a check on every
+# apply notices and repairs that.
+
+HOSTS_SRC="{{ .chezmoi.homeDir }}/.config/hosts"
+
+if [[ ! -f "$HOSTS_SRC" ]]; then
+  _log error "Failed to find rendered hosts file ($HOSTS_SRC)"
+  _log info "Run 'chezmoi apply ~/.config/hosts' to render it, then apply again"
+  exit 1
+fi
+
+# Silent in the steady state, so the every-apply check stays invisible.
+if [[ ! -L /etc/hosts || "$(readlink /etc/hosts)" != "$HOSTS_SRC" ]]; then
+  _log info "Symlinking /etc/hosts → $HOSTS_SRC (requires sudo)…"
+  # Keep the first real file seen, so the pristine copy survives a later
+  # replacement by an installer that drops its own /etc/hosts in place.
+  if [[ -f /etc/hosts && ! -L /etc/hosts && ! -e /etc/hosts.chezmoi-backup ]]; then
+    sudo cp /etc/hosts /etc/hosts.chezmoi-backup
+    _log info "Backed up the previous /etc/hosts (/etc/hosts.chezmoi-backup)"
+  fi
+  sudo ln -sf "$HOSTS_SRC" /etc/hosts
+  _log success "Symlinked /etc/hosts → $HOSTS_SRC"
+fi

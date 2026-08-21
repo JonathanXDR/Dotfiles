@@ -29,7 +29,7 @@ cmd=${cmd//\\$nl/}
 # pairing, heredoc markers (quoted or not) survive as <<TAG, a here-string
 # <<< or a << inside quotes is not a marker, and arithmetic $(( )) spans are
 # consumed whole so their shifts never look like markers. Skipped lines are
-# held; if the terminator never appears the parse was wrong, and the held
+# held. If the terminator never appears the parse was wrong, and the held
 # lines are re-emitted so a live command is never silently dropped. With
 # raw=1 the heredoc bodies are still dropped but each surviving line is
 # emitted with its quotes intact.
@@ -111,11 +111,11 @@ REASON
 segs=$(printf '%s\n' "$body" | grep -oE "${gitpre}commit((\"[^\"]*\")|('[^']*')|[^;&|\"'])*")
 [ -n "$segs" ] || segs=$cmd
 
-# msgline: the pattern occupies the start of a message line — inside a commit
-# segment that is an opening quote or a \n escape, in the whole command a
+# msgline: the pattern occupies the start of a message line. Inside a commit
+# segment that means an opening quote or a \n escape, in the whole command a
 # physical line start (heredoc bodies, real newlines in quotes). The gap
 # admits non-alphanumeric prefixes like the robot emoji of the canonical
-# Claude Code footer; prose mentions mid-subject and trailer strings aimed at
+# Claude Code footer. Prose mentions mid-subject and trailer strings aimed at
 # other commands (git log --grep=...) stay allowed. trailerflag: git commit
 # --trailer attaches a trailer without quotes and accepts = like :, checked
 # against the quote-stripped scan so a quoted prose mention of the flag

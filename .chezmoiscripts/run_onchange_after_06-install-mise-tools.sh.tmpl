@@ -4,6 +4,11 @@ set -euo pipefail
 
 # mise config content hash (triggers a re-run when the tool list changes):
 # {{ include "dot_config/mise/config.toml" | sha256sum }}
+#
+# mise presence is part of the trigger for the same reason as in script 03. mise
+# itself arrives through Homebrew, so a run before that happened must not record
+# its skip as final.
+# mise: {{ output "sh" "-c" "command -v mise >/dev/null 2>&1 && echo yes || echo no" | trim }}
 
 _ensure_brew
 
