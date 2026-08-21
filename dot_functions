@@ -1479,15 +1479,16 @@ brew:check() {
   local deprecated outdated
 
   deprecated=$(brew info --installed --json=v2 2>/dev/null \
-    | jq -r '.formulae[] | select(.deprecated or .disabled)
-      | "  \(.name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
+    | jq -r '(.formulae[], .casks[]) | select(.deprecated or .disabled)
+      | "  \(.token // .name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
 
   [[ -n "$deprecated" ]] && { log warning "Detected deprecated Homebrew packages"; echo "$deprecated"; }
 
   outdated=$(brew outdated --quiet 2>/dev/null)
   [[ -n "$outdated" ]] || return 0
 
-  log info "Detected ${#${(f)outdated}} outdated Homebrew package(s) (run 'brew upgrade' to update)"
+  local -a outdated_lines=( ${(f)outdated} )
+  log info "Detected ${#outdated_lines} outdated Homebrew package(s) (run 'brew upgrade' to update)"
 }
 
 # Rewrite this machine's Brewfile from what Homebrew currently has installed.
