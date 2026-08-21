@@ -639,11 +639,6 @@ vpn:reset-filter() {
   open -a "Cisco Secure Client"
 }
 
-proxy:compose-addr() {
-  [[ $# -eq 3 ]] || return 1
-  printf "%s://%s:%s" "$1" "$2" "$3"
-}
-
 # Export every proxy variable the toolchain reads, and mirror the main ones
 # into the launchd session so GUI apps see them too. Omitted arguments fall
 # back to PROXY_PROTOCOL, PROXY_HOST, PROXY_PORT, and NO_PROXY from .exports,
@@ -661,8 +656,7 @@ proxy:set() {
     return 1
   fi
 
-  local proxy_addr
-  proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")" || return 1
+  local proxy_addr="${proxy_protocol}://${proxy_host}:${proxy_port}"
 
   export http_proxy="${proxy_addr}"
   export https_proxy="${proxy_addr}"
@@ -736,7 +730,8 @@ proxyd:reload() {
   [[ -f "${plist}" ]] || { log error "Failed to find plist (${plist})"; return 1; }
 
   launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "${plist}"
+  launchctl bootstrap "gui/$(id -u)" "${plist}" \
+    || { log error "Failed to bootstrap ${label} (check the plist and retry)"; return 1; }
   log success "Reloaded ${label}"
 }
 
