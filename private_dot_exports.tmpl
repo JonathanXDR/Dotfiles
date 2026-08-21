@@ -14,6 +14,7 @@ export INFISICAL_CLIENT_SECRET={{ includeTemplate "keychain" (list "Infisical Cl
 {{ if eq .machine_type "work" -}}
 export FORGEOPS_PATH={{ .forgeops_path | quote }}
 export KUBECONFIG_PATH="$HOME/.kube"
+
 {{ end -}}
 
 # ---------------------------- Proxy Configuration --------------------------- #
@@ -27,17 +28,27 @@ export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
 export PROXY_HOST={{ .proxy_host | quote }}
 export PROXY_PORT={{ .proxy_port | quote }}
 export PROXY_DNS={{ .proxy_dns | quote }}
+# Network service `proxy:probe dns` switches DNS on, for example "Wi-Fi". Read
+# with dig, because the key reaches chezmoi.toml only on the next `chezmoi
+# init`, and a bare reference would fail the apply on machines initialised
+# before it existed. Empty leaves DNS untouched.
+export PROXY_NETWORK_SERVICE={{ dig "proxy_network_service" "" . | quote }}
 export NO_PROXY={{ .no_proxy | quote }}
 export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
+
+# The @swisscom npm registry variables live in ~/.config/npm-registry.env, which
+# ~/.zshenv sources, because non-interactive shells never read this file.
 
 # ----------------------------------- Auth ----------------------------------- #
 
 # Corporate proxy credentials, empty on personal machines
 {{ if eq .machine_type "work" -}}
-{{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) }}
+{{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) -}}
 export NTLM_CREDENTIALS={{ $ntlm | quote }}
+
 {{ else -}}
 export NTLM_CREDENTIALS=""
+
 {{ end -}}
 
 # ----------------------------------- Node ----------------------------------- #
@@ -46,15 +57,18 @@ export NTLM_CREDENTIALS=""
 # inherited from its parent environment
 export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 
-# Let Node.js respect HTTP(S)_PROXY in fetch()
+# Whether Node.js honors HTTP(S)_PROXY in fetch(). Off by default, override for
+# a single shell with NODE_USE_ENV_PROXY=1.
 export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-0}"
 
 # Corporate CA bundle built by ssl:bundle, set only when keychain certificate
 # CNs are configured.
 {{ if and (eq .machine_type "work") (ne .ssl_bundle_keychain_certs "") -}}
 export NODE_EXTRA_CA_CERTS="${HOME}/.ssl/ca-bundle.pem"
+
 {{ else -}}
 export NODE_EXTRA_CA_CERTS=""
+
 {{ end -}}
 
 # Inputs to ssl:bundle. Keychain certificate CNs and URLs to download, both
@@ -77,7 +91,6 @@ export PYTHONIOENCODING="${PYTHONIOENCODING:-UTF-8}"
 # ------------------------------ Locale & Encoding --------------------------- #
 
 export LANG="${LANG:-en_US.UTF-8}"
-export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 # ---------------------------------- History --------------------------------- #
 
@@ -89,7 +102,6 @@ setopt HIST_IGNORE_DUPS       # skip consecutive duplicates
 setopt HIST_IGNORE_SPACE      # skip commands starting with space
 setopt HIST_REDUCE_BLANKS     # trim superfluous whitespace
 setopt SHARE_HISTORY          # share history across sessions
-setopt APPEND_HISTORY         # append rather than overwrite
 
 # Commands matching this pattern are dropped from both the in-memory list and
 # $HISTFILE. HISTORY_IGNORE alone only filters the file write, so entries stay
@@ -129,6 +141,7 @@ export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keycha
 
 # Cisco VPN binary the vpn:* functions drive
 export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
+export VPN_DEFAULT_HOST={{ .vpn_default_host | quote }}
 
 # Paths the tre and trec functions hide from the tree view
 export TREE_IGNORE={{ .tree_ignore | quote }}

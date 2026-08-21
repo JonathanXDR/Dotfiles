@@ -1533,7 +1533,7 @@ brew:dump() {
 # Record the Zed extensions installed on this machine so a fresh machine can
 # restore them. Zed has no CLI to export the list and `brew bundle` covers only
 # VS Code and its forks, so the list comes from the index Zed maintains itself.
-# dot_config/zed/settings.json.tmpl renders it as auto_install_extensions, which
+# dot_config/zed/private_settings.json.tmpl renders it as auto_install_extensions, which
 # Zed acts on at startup.
 zed:dump() {
   cmd:exists jq || { log error "Failed to find jq"; return 1; }
@@ -1561,7 +1561,7 @@ zed:dump() {
   # `print -rl` on an empty array still emits a blank line.
   {
     print -r -- "# Zed extensions installed on this machine, rendered into"
-    print -r -- "# auto_install_extensions by dot_config/zed/settings.json.tmpl."
+    print -r -- "# auto_install_extensions by dot_config/zed/private_settings.json.tmpl."
     print -r -- "# Regenerate with zed:dump after installing or removing an extension."
     print -r -- "zed_extensions = ["
     (( ${#entries} )) && print -rl -- "${entries[@]}"
