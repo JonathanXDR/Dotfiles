@@ -42,7 +42,6 @@
   "git_panel": {
     "commit_title_max_length": 72,
     "show_count_badge": true,
-    "sort_by_path": true,
     "file_icons": true,
     "tree_view": true,
     "collapse_untracked_diff": true,
@@ -175,8 +174,10 @@
       "remote": false,
       "settings": {
         "supabase_access_token": {{ includeTemplate "keychain" (list "Supabase" "jonathan" .keychain_name .keychain_lookup_field) | quote }},
+        "read_only": true,
       },
     },
+{{- if eq .machine_type "work" }}
     "GitLab (Swisscom)": {
       "command": "bunx",
       "args": ["@swisscom/red-gitlab-mcp@latest"],
@@ -192,6 +193,7 @@
         "USE_GITLAB_WIKI": "true",
       },
     },
+{{- end }}
     "mcp-server-figma": {
       "enabled": true,
       "remote": false,
@@ -247,7 +249,7 @@
   },
   "telemetry": {
     "metrics": false,
-    "diagnostics": false
+    "diagnostics": false,
   },
   "session": {
     "trust_all_worktrees": true,
@@ -281,11 +283,16 @@
     "light": "GitHub Light",
     "dark": "GitHub Dark",
   },
+  /* Zed replaces this list instead of merging into it, so it restates Zed's
+     defaults followed by our own additions. Refresh the defaults from
+     `zed: open default settings` when Zed adds entries. */
   "file_scan_exclusions": [
     "**/.git",
     "**/.svn",
     "**/.hg",
     "**/.jj",
+    "**/.sl",
+    "**/.repo",
     "**/CVS",
     "**/.DS_Store",
     "**/Thumbs.db",
