@@ -11,10 +11,10 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
 - 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, proxy, SSL, VPN, npm, `/etc/hosts`
-- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, and `environment.yml` detected on every `cd`
+- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, `.java-version`, and `environment.yml` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
-- ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew checks, cached completions
-- 🛠️ **Shell toolkit:** 70+ functions for proxy, VPN, Docker, secrets, toolchains, Git, plus curated aliases
+- ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
+- 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, Git, plus curated aliases
 - ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 
 ## 📋 Prerequisites
@@ -61,7 +61,7 @@ Shortcut aliases:
 | -------- | ------------------------- |
 | `es`     | `chezmoi edit ~/.zshrc`   |
 | `ev`     | `chezmoi edit ~/.exports` |
-| `reload` | Reload shell              |
+| `reload` | `exec $SHELL -l`          |
 
 ## 🔐 Managing Secrets
 
@@ -87,7 +87,7 @@ Each entry uses five native Keychain Access fields, and the `(id, account)` pair
 
 | Field        | Holds                                                    |
 | ------------ | -------------------------------------------------------- |
-| **Where**    | URL of the provider (Service, stored in keychain only)   |
+| **Where**    | URL of the provider (Service, kept out of the repo)      |
 | **Account**  | Identity at that provider                                |
 | **Name**     | Friendly identifier (the `<id>` arg, default lookup key) |
 | **Kind**     | Secret type (e.g. Personal Access Token)                 |
@@ -95,12 +95,15 @@ Each entry uses five native Keychain Access fields, and the `(id, account)` pair
 
 Run `secrets:list` to see what the keychain currently holds. It prints the metadata for every entry and never the secrets themselves.
 
+> [!NOTE]
+> macOS stores generic passwords under `(Where, Account)`, so two entries cannot share that pair even when their names differ. `secret:set` and `secret:rename` refuse such a collision rather than overwrite the entry that already holds it. Run `secrets:list` to find the other entry when one is rejected.
+
 **Configuration** (`.chezmoidata.toml`):
 
-| Key                     | Default      | Purpose                                                                |
-| ----------------------- | ------------ | ---------------------------------------------------------------------- |
-| `keychain_name`         | `"dotfiles"` | Name of the keychain file (`~/Library/Keychains/<name>.keychain-db`)   |
-| `keychain_lookup_field` | `"name"`     | Which field templates query by (`name` / `where` / `kind` / `comment`) |
+| Key                     | Default      | Purpose                                                                                                 |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| `keychain_name`         | `"dotfiles"` | Name of the keychain file (`~/Library/Keychains/<name>.keychain-db`)                                    |
+| `keychain_lookup_field` | `"name"`     | Which field templates and the `secret:*` functions match on (only `name` works today, see ARCHITECTURE) |
 
 You can also give the keychain a **master password** during `chezmoi init`. It is cached in the machine-local `~/.config/chezmoi/chezmoi.toml` and never committed. Leave it empty (the default) and the keychain follows your login session's unlock state instead.
 
@@ -128,7 +131,7 @@ plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.
         │
 ~/.completions ──── completions, zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise & brew checks
+Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise, brew & plugin checks
 ```
 
 ## 📦 Project Structure
@@ -152,10 +155,10 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ├── Library/LaunchAgents/
 │   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
 │
-├── dot_zshenv                               # PATH for non-interactive shells (mise shims)
+├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, npm registry)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Interactive shell entry point
-├── dot_exports.tmpl                         # Env vars, history, zsh options
+├── private_dot_exports.tmpl                 # Env vars, history, zsh options (0600, reads the keychain)
 ├── dot_functions                            # Shell functions
 ├── dot_aliases                              # Command aliases
 ├── dot_plugins                              # Oh My Zsh plugin list, compiled by antidote
@@ -163,16 +166,17 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 │
 ├── dot_gitconfig.tmpl                       # Git user, GPG signing, LFS
 ├── dot_gitignore_global                     # Global gitignore
-├── dot_npmrc.tmpl                           # npm registry tokens (from keychain)
-├── dot_wakatime.cfg.tmpl                    # WakaTime API key (from keychain)
+├── private_dot_npmrc.tmpl                   # npm registry tokens (0600, from keychain)
+├── private_dot_wakatime.cfg.tmpl            # WakaTime API key (0600, from keychain)
 ├── dot_config/
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
-│   └── zed/settings.json.tmpl               # Zed editor settings (from keychain)
-├── private_dot_claude/                      # ~/.claude/* (0700)
+│   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)
+├── private_dot_claude/                      # ~/.claude/ (0700)
 │   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
 │   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
-│   └── private_hooks/                       # Claude Code guard hooks (push, destructive git, commit style, secrets)
+│   ├── private_hooks/                       # Claude Code guard hooks (push, destructive git, commit style, secrets)
+│   └── private_plugins/                     # Claude Code plugin and marketplace state
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
