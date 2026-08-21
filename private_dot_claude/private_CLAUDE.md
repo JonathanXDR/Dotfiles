@@ -9,7 +9,7 @@ Personal rules for every project. MUST and MUST NOT are hard rules, SHOULD and u
 3. This file.
 4. General defaults.
 
-A higher layer overrides a lower one, including the MUST rules in this file, when it intentionally requires something different. Exception: the Git Push rules and the shared history rule in Git Commits apply everywhere as written, are not overridable by a repository, and are relaxed further only by an explicit instruction from me for the current task.
+A higher layer overrides a lower one, including the MUST rules in this file, when it intentionally requires something different. Exception: the Git Push rules, the shared history rule, and the destructive git rule in Git Commits apply everywhere as written, are not overridable by a repository, and are relaxed further only by an explicit instruction from me for the current task.
 
 ## Decisions and Questions
 
@@ -82,6 +82,7 @@ Follow the latest stable Conventional Commits specification, currently 1.0.0. Wh
 - Keep commits atomic: one coherent change per commit, independently understandable changes separated where practical, dependencies between commits respected, and each commit leaving the repository in a sensible state where reasonably possible. Do not split so far that commits become artificial.
 - MAY split, combine, or reorder the commits created during the current task. Optimize history for review, maintainability, debugging, and future reverts.
 - MUST NOT rewrite shared history unless I explicitly request it or the rewrite is clearly safe and necessary for the current task.
+- MUST NOT run git commands that discard uncommitted work (`git reset --hard`, forced `git clean`, worktree-discarding `git checkout` or `git restore`) unless I explicitly request it. A PreToolUse hook blocks them mechanically. Once I have explicitly asked, follow the hook's instructions to confirm and proceed.
 
 ## Git Push
 
