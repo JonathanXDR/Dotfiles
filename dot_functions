@@ -339,7 +339,7 @@ targz() {
 
   log info "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
   "${cmd}" -v "${tmpFile}" || return 1
-  [[ -f "${tmpFile}" ]] && rm "${tmpFile}"
+  [[ -f "${tmpFile}" ]] && command rm -f "${tmpFile}"
 
   local zippedSize
   zippedSize=$(stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
@@ -352,7 +352,7 @@ fs() {
   if (( $# )); then
     du -sh -- "$@"
   else
-    du -sh .[^.]* ./*
+    du -sh .[^.]*(N) ./*(N)
   fi
 }
 
@@ -452,16 +452,19 @@ getcertnames() {
 
 # Bundle corporate CA certificates into one PEM file for NODE_EXTRA_CA_CERTS.
 # Sources are SSL_BUNDLE_KEYCHAIN_CERTS (common names in the System keychain)
-# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma separated.
+# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma-separated.
 # Usage: ssl:bundle [output_path]
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
   mkdir -p "${output:h}"
 
   local tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' EXIT
+  # Bake the path in: a function-scoped EXIT trap runs after locals are popped,
+  # so a deferred "$tmp" would expand to the empty string and remove nothing.
+  trap "command rm -f ${(q)tmp}" EXIT
   local cert_count=0
 
+  local -a keychain_certs
   IFS=',' read -rA keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
   local cn
   for cn in "${keychain_certs[@]}"; do
@@ -474,6 +477,7 @@ ssl:bundle() {
     fi
   done
 
+  local -a remote_certs
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
   local -a curl_args=(-fsSL)
   [[ -n "${http_proxy:-}" ]] && curl_args+=(--proxy "$http_proxy")
@@ -486,7 +490,7 @@ ssl:bundle() {
 
     if ! curl "${curl_args[@]}" -o "$raw" "$url"; then
       log warning "Failed to download ${url:t}"
-      rm -f "$raw"
+      command rm -f "$raw"
       continue
     fi
 
@@ -497,7 +501,7 @@ ssl:bundle() {
     else
       log warning "Skipped ${url:t} (not a valid PEM or DER certificate)"
     fi
-    rm -f "$raw"
+    command rm -f "$raw"
   done
 
   if ((cert_count == 0)); then
@@ -1292,7 +1296,7 @@ sudo:touch-id() {
   local BACKUP
   BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
 
-  trap 'rm -f "$BACKUP"' EXIT
+  trap "command rm -f ${(q)BACKUP}" EXIT
 
   log info "Backing up ${FILE} → ${BACKUP}…"
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
@@ -1340,9 +1344,10 @@ hostname:set() {
 
   local new_hostname="$1"
 
-  sudo scutil --set ComputerName "$new_hostname"
-  sudo scutil --set HostName "$new_hostname"
-  sudo scutil --set LocalHostName "$new_hostname"
+  sudo scutil --set ComputerName "$new_hostname" \
+    && sudo scutil --set HostName "$new_hostname" \
+    && sudo scutil --set LocalHostName "$new_hostname" \
+    || { log error "Failed to set hostname \"$new_hostname\""; return 1; }
 
   log success "Set hostname \"$new_hostname\" (restart may be required)"
 }
@@ -1357,6 +1362,7 @@ dock:reset() {
   killall Dock
   sleep 5
 
+  local -a apps
   IFS=',' read -rA apps <<< "${DOCK_APPS:-}"
   local app
   for app in "${apps[@]}"; do
@@ -1409,6 +1415,11 @@ _docker:bulk() {
 # with a space into one pattern rather than treated as alternatives.
 # Usage: docker:cleanup [keep_pattern]
 docker:cleanup() {
+  docker info &>/dev/null || {
+    log error "Failed to reach the Docker daemon (start Docker Desktop and retry)"
+    return 1
+  }
+
   local containers images
   if (( $# == 0 )); then
     containers="$(docker ps -aq 2>/dev/null)"   || true
@@ -1652,7 +1663,7 @@ chezmoi:cleanup() {
   local gpg_locks
   gpg_locks=("$HOME"/.gnupg/public-keys.d/pubring.db*.lock(N))
   if (( ${#gpg_locks[@]} )); then
-    rm -f "${gpg_locks[@]}"
+    command rm -f "${gpg_locks[@]}"
     log success "Removed ${#gpg_locks[@]} stale GnuPG lock file(s)"
   fi
 }
@@ -1666,7 +1677,7 @@ chezmoi:sync() {
   local home_dir="${HOME}"
   local updated=0
   local skipped=0
-  local src tmp rel
+  local src tmp rel target
 
   while IFS= read -r target; do
     src="$(chezmoi source-path "$target" 2>/dev/null)" || continue
@@ -1675,12 +1686,15 @@ chezmoi:sync() {
     [[ "$src" == *".chezmoi"* || "$src" == *"chezmoiscripts"* ]] && continue
     [[ ! -f "$target" ]] && continue
 
-    # Reverse homeDir substitution on the target
+    # Reverse homeDir substitution on the target. The trap is re-registered per
+    # iteration with the path baked in, because a function-scoped EXIT trap runs
+    # after locals are popped and a deferred "$tmp" would expand to nothing.
     tmp="$(mktemp)"
+    trap "command rm -f ${(q)tmp}" EXIT
     sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
 
     if command diff -q "$src" "$tmp" >/dev/null 2>&1; then
-      rm -f "$tmp"
+      command rm -f "$tmp"
       continue
     fi
 
@@ -1690,12 +1704,12 @@ chezmoi:sync() {
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
       log warning "Skipped ${rel} (has secrets/variables, use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
-      rm -f "$tmp"
+      command rm -f "$tmp"
       continue
     fi
 
     cp "$tmp" "$src"
-    rm -f "$tmp"
+    command rm -f "$tmp"
     log success "Synced ${rel}"
     (( updated++ ))
   done < <(chezmoi managed --include=files --path-style=absolute)
