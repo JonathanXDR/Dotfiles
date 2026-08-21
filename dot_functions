@@ -691,6 +691,13 @@ proxy:set() {
   launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv NO_PROXY "${no_proxy}" 2>/dev/null
+
+  # npm has no per-proxy registry setting, so .npmrc reads the active host from
+  # the environment. Only work machines define these, so this is a no-op elsewhere.
+  if [[ -n "${NPM_SWISSCOM_REGISTRY_PROXIED:-}" ]]; then
+    export NPM_SWISSCOM_REGISTRY="${NPM_SWISSCOM_REGISTRY_PROXIED}"
+    launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_SWISSCOM_REGISTRY_PROXIED}" 2>/dev/null
+  fi
 }
 
 # Clear everything proxy:set exported, in the shell and in the launchd session.
@@ -705,6 +712,13 @@ proxy:unset() {
   for var in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; do
     launchctl unsetenv "$var" 2>/dev/null
   done
+
+  # Swap the npm scope back to the direct host rather than unsetting it, because
+  # .npmrc has no fallback and would render the variable name literally.
+  if [[ -n "${NPM_SWISSCOM_REGISTRY_DIRECT:-}" ]]; then
+    export NPM_SWISSCOM_REGISTRY="${NPM_SWISSCOM_REGISTRY_DIRECT}"
+    launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_SWISSCOM_REGISTRY_DIRECT}" 2>/dev/null
+  fi
 }
 
 # Turn the proxy on or off depending on whether the corporate proxy answers.
@@ -772,7 +786,7 @@ proxyd:status() {
   local _v
   echo ""
   echo "  Active (toggled by proxy:set/proxy:unset):"
-  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS; do
+  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS NPM_SWISSCOM_REGISTRY; do
     printf "    %-15s %s\n" "${_v}" "${(P)_v:-<unset>}"
   done
 
