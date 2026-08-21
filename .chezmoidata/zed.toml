@@ -1,5 +1,5 @@
 # Zed extensions installed on this machine, rendered into
-# auto_install_extensions by dot_config/zed/settings.json.tmpl.
+# auto_install_extensions by dot_config/zed/private_settings.json.tmpl.
 # Regenerate with zed:dump after installing or removing an extension.
 zed_extensions = [
   "angular",

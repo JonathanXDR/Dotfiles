@@ -42,7 +42,7 @@ else
 fi
 
 # `mise install` only ever adds, so a tool dropped from config.toml keeps its
-# install and its shims, and dot_zshenv keeps that shim directory on PATH for
+# install and its shims, and dot_zshenv.tmpl keeps that shim directory on PATH for
 # every zsh. Pruning is what makes the removal converge. Project toolchains are
 # safe: mise tracks every config it has seen
 # (~/.local/state/mise/tracked-configs) and keeps any version one of them still
