@@ -1,7 +1,8 @@
-{{- $machine_type := promptChoiceOnce . "machine_type" "Machine type" (list "personal" "work") -}}
+{{- $machine_type := promptChoiceOnce $ "machine_type" "Machine type" (list "personal" "work") -}}
 
 {{- /* Defaults for this machine type, from the iCloud Drive config */ -}}
-{{- $icloudConfigPath := joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles/config.toml" -}}
+{{- $icloudSecrets := joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" -}}
+{{- $icloudConfigPath := joinPath $icloudSecrets "config.toml" -}}
 {{- $machineConfig := dict -}}
 {{- if stat $icloudConfigPath -}}
 {{-   $allConfig := output "cat" $icloudConfigPath | fromToml -}}
@@ -21,6 +22,7 @@
       "proxy_port"                 ""
       "proxy_protocol"             "http"
       "proxy_dns"                  ""
+      "proxy_network_service"      ""
       "no_proxy"                   "localhost,127.0.0.1"
       "no_proxy_dns"               ""
       "ssl_bundle_keychain_certs"  ""
@@ -37,10 +39,11 @@
       "proxy_port"                 "Proxy port (e.g. 8080)"
       "proxy_protocol"             "Proxy protocol (http/https/socks5)"
       "proxy_dns"                  "DNS servers to use while the proxy is on (comma-separated, leave empty for none)"
+      "proxy_network_service"      "Network service the DNS switch applies to (e.g. Wi-Fi, leave empty to disable switching)"
       "no_proxy"                   "Hosts that bypass the proxy (comma-separated)"
       "no_proxy_dns"               "DNS servers to use while the proxy is off (comma-separated, leave empty for none)"
-      "ssl_bundle_keychain_certs"  "SSL bundle: certificate CNs in the System keychain (comma-separated, leave empty for none)"
-      "ssl_bundle_remote_certs"    "SSL bundle: remote certificate URLs to download (comma-separated, leave empty for none)"
+      "ssl_bundle_keychain_certs"  "SSL bundle certificate CNs in the System keychain (comma-separated, leave empty for none)"
+      "ssl_bundle_remote_certs"    "SSL bundle remote certificate URLs to download (comma-separated, leave empty for none)"
       "enterprise_domain"          "Enterprise domain (leave empty for none)"
       "forgeops_path"              "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
 
@@ -48,25 +51,20 @@
 {{- $sharedKeys := list "email" "name" "gpg_key" -}}
 
 {{- /* Keys resolved only on work machines */ -}}
-{{- $workKeys := list "proxy_host" "proxy_port" "proxy_protocol" "proxy_dns" "no_proxy" "no_proxy_dns" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" "forgeops_path" -}}
+{{- $workKeys := list "proxy_host" "proxy_port" "proxy_protocol" "proxy_dns" "proxy_network_service" "no_proxy" "no_proxy_dns" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" "forgeops_path" -}}
 
-{{- /* Resolve shared keys (config.toml first, then prompt) */ -}}
-{{- range $key := $sharedKeys -}}
+{{- /* Resolve the keys this machine type needs. config.toml wins, otherwise
+      prompt once with the fallback above as the default. Personal machines
+      skip the work keys and keep their fallbacks. */ -}}
+{{- $keys := $sharedKeys -}}
+{{- if eq $machine_type "work" -}}
+{{-   $keys = concat $sharedKeys $workKeys -}}
+{{- end -}}
+{{- range $key := $keys -}}
 {{-   if hasKey $machineConfig $key -}}
 {{-     $_ := set $config $key (index $machineConfig $key) -}}
 {{-   else -}}
-{{-     $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key)) -}}
-{{-   end -}}
-{{- end -}}
-
-{{- /* Resolve work keys the same way. Personal machines keep defaults. */ -}}
-{{- if eq $machine_type "work" -}}
-{{-   range $key := $workKeys -}}
-{{-     if hasKey $machineConfig $key -}}
-{{-       $_ := set $config $key (index $machineConfig $key) -}}
-{{-     else -}}
-{{-       $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key)) -}}
-{{-     end -}}
+{{-     $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key) (index $config $key)) -}}
 {{-   end -}}
 {{- end -}}
 
@@ -84,7 +82,7 @@ mode = "symlink"
   name = {{ index $config "name" | quote }}
   gpg_key = {{ index $config "gpg_key" | quote }}
   machine_type = {{ $machine_type | quote }}
-  icloud_secrets = {{ joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" | quote }}
+  icloud_secrets = {{ $icloudSecrets | quote }}
 
   # Proxy & network (populated on work machines, defaults elsewhere)
   always_proxy_probe = {{ eq $machine_type "work" }}
@@ -92,6 +90,7 @@ mode = "symlink"
   proxy_port = {{ index $config "proxy_port" | quote }}
   proxy_protocol = {{ index $config "proxy_protocol" | quote }}
   proxy_dns = {{ index $config "proxy_dns" | quote }}
+  proxy_network_service = {{ index $config "proxy_network_service" | quote }}
   no_proxy = {{ index $config "no_proxy" | quote }}
   no_proxy_dns = {{ index $config "no_proxy_dns" | quote }}
 
