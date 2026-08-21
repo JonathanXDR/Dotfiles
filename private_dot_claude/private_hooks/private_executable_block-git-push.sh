@@ -17,21 +17,25 @@ else
   cmd=$payload
 fi
 
-# Join backslash-newline continuations so a wrapped invocation reads as one line.
+# Splice backslash-newline continuations like the shell does: removed
+# entirely, so a continuation inside a word cannot split the subcommand.
 nl=$'\n'
-cmd=${cmd//\\$nl/ }
+cmd=${cmd//\\$nl/}
 
 # Match a git push invocation in any part of a compound command, including flagged
 # forms such as git -C <path> push and the subtree porcelain. git stash push stays
-# allowed because it never writes to a remote.
-if ! printf '%s\n' "$cmd" | grep -Eq '(^|[^[:alnum:]_./-])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+(subtree[[:space:]]+)?push([^[:alnum:]_-]|$)'; then
+# allowed because it never writes to a remote. The check also runs on a copy with
+# quoted spans emptied, so a quoted flag argument (git -C "My Project" push) cannot
+# hide the push, while quoted text mentions still over-block by design.
+scan=$(printf '%s\n' "$cmd" | sed -E "s/(\"[^\"]*\"|'[^']*')//g")
+if ! printf '%s\n%s\n' "$cmd" "$scan" | grep -Eq '(^|[^[:alnum:]_./-])git([[:space:]]+-([^[:space:]]|\\ )+([[:space:]]+(\\ |[^-[:space:]])([^[:space:]]|\\ )*)?)*[[:space:]]+(subtree[[:space:]]+)?push([^[:alnum:]_-]|$)'; then
   exit 0
 fi
 
-# The override only counts as the leading word of a command line, exactly as the
-# message below instructs. A mere mention elsewhere, for example in a commit message
-# or documentation text, does not disarm the guard.
-if printf '%s\n' "$cmd" | grep -Eq '^[[:space:]]*(env[[:space:]]+)?CLAUDE_PUSH_OK=1([[:space:]]|$)'; then
+# The override only counts as the first word of the command, exactly as the
+# message below instructs. head -1 keeps a token at the start of a later line
+# of a multi-line command, or a mere mention elsewhere, from disarming the guard.
+if printf '%s\n' "$cmd" | head -1 | grep -Eq '^[[:space:]]*(env[[:space:]]+)?CLAUDE_PUSH_OK=1([[:space:]]|$)'; then
   exit 0
 fi
 

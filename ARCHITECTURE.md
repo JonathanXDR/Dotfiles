@@ -67,91 +67,94 @@ Dotfiles/
 │
 │   # chezmoi configuration
 │
-├── .chezmoi.toml.tmpl                  # User config (iCloud config.toml or prompts)
-├── .chezmoidata.toml                   # Shared non-secret defaults
+├── .chezmoi.toml.tmpl                                   # User config (iCloud config.toml or prompts)
+├── .chezmoidata.toml                                    # Shared non-secret defaults
 ├── .chezmoidata/
-│   └── zed.toml                        # Installed Zed extensions (written by zed:dump)
-├── .chezmoiignore                      # Files excluded from $HOME
+│   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
+├── .chezmoiignore                                       # Files excluded from $HOME
 ├── .chezmoitemplates/
-│   ├── keychain                        # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
-│   └── shell-helpers                   # Reusable bash helpers for run scripts
+│   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
+│   └── shell-helpers                                    # Reusable bash helpers for run scripts
 │
 │   # Setup scripts (run by chezmoi apply, numbered for ordering)
 │
 ├── .chezmoiscripts/
-│   ├── run_before_00-*                 # Unlock dotfiles keychain (every apply)
-│   ├── run_once_before_01-*            # Install Homebrew
-│   ├── run_once_before_02-*            # Import keychain tokens from iCloud
-│   ├── run_onchange_after_03-*         # Install Homebrew packages (re-runs on Brewfile change)
-│   ├── run_onchange_after_04-*         # Fix iCloud symlink permissions (re-runs on config change)
-│   ├── run_onchange_after_05-*         # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
-│   ├── run_onchange_after_06-*         # Install mise runtimes and global CLIs (re-runs on list change)
-│   ├── run_once_after_07-*             # Fix zsh completion permissions
-│   ├── run_after_08-*                  # Export keychain to iCloud (every apply)
-│   └── run_onchange_after_09-*         # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
+│   ├── run_before_00-*                                  # Unlock dotfiles keychain (every apply)
+│   ├── run_once_before_01-*                             # Install Homebrew
+│   ├── run_once_before_02-*                             # Import keychain tokens from iCloud
+│   ├── run_onchange_after_03-*                          # Install Homebrew packages (re-runs on Brewfile change)
+│   ├── run_onchange_after_04-*                          # Fix iCloud symlink permissions (re-runs on config change)
+│   ├── run_onchange_after_05-*                          # Bootstrap proxy LaunchAgent (re-runs on plist change, work only)
+│   ├── run_onchange_after_06-*                          # Install mise runtimes and global CLIs (re-runs on list change)
+│   ├── run_once_after_07-*                              # Fix zsh completion permissions
+│   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
+│   └── run_onchange_after_09-*                          # Symlink /etc/hosts → ~/.config/hosts (re-runs on hosts change)
 │
 │   # iCloud Drive symlinks (point $HOME directories at iCloud)
 │
-├── symlink_dot_ssh.tmpl                # ~/.ssh → iCloud
-├── symlink_dot_ssl.tmpl                # ~/.ssl → iCloud (work only)
-├── symlink_dot_vpn.tmpl                # ~/.vpn → iCloud (work only)
-├── private_dot_gnupg/                  # ~/.gnupg/* → iCloud (6 symlinks)
+├── symlink_dot_ssh.tmpl                                 # ~/.ssh → iCloud
+├── symlink_dot_ssl.tmpl                                 # ~/.ssl → iCloud (work only)
+├── symlink_dot_vpn.tmpl                                 # ~/.vpn → iCloud (work only)
+├── private_dot_gnupg/                                   # ~/.gnupg/* → iCloud (6 symlinks)
 │   ├── symlink_common.conf.tmpl
 │   ├── symlink_trustdb.gpg.tmpl
 │   ├── symlink_sshcontrol.tmpl
 │   ├── symlink_private-keys-v1.d.tmpl
 │   ├── symlink_public-keys.d.tmpl
 │   └── symlink_openpgp-revocs.d.tmpl
-├── private_dot_kube/                   # ~/.kube/config → iCloud
+├── private_dot_kube/                                    # ~/.kube/config → iCloud
 │   └── symlink_config.tmpl
 │
 │   # Proxy daemon (work only, ignored on personal via .chezmoiignore)
 │
 ├── dot_local/bin/
-│   └── executable_proxy-watchd.tmpl    # Proxy state script run by LaunchAgent (work only)
+│   └── executable_proxy-watchd.tmpl                     # Proxy state script run by LaunchAgent (work only)
 ├── Library/LaunchAgents/
-│   └── local.proxy-watchd.plist.tmpl   # LaunchAgent watching network changes (work only)
+│   └── local.proxy-watchd.plist.tmpl                    # LaunchAgent watching network changes (work only)
 │
 │   # Shell configuration (sourced on every terminal open)
 │
-├── dot_zshenv                          # PATH for non-interactive shells (mise shims)
-├── dot_zprofile                        # Restores the mise shims after macOS path_helper (login shells)
-├── dot_zshrc                           # Shell orchestrator
-├── dot_exports.tmpl                    # Env vars, history, locale, zsh options
-├── dot_functions                       # Shell functions
-├── dot_aliases                         # Command aliases
-├── dot_plugins                         # Oh My Zsh plugin list, compiled by antidote
-├── dot_completions                     # Zsh completions, plugins, Kiro CLI support
+├── dot_zshenv                                           # PATH for non-interactive shells (mise shims)
+├── dot_zprofile                                         # Restores the mise shims after macOS path_helper (login shells)
+├── dot_zshrc                                            # Shell orchestrator
+├── dot_exports.tmpl                                     # Env vars, history, locale, zsh options
+├── dot_functions                                        # Shell functions
+├── dot_aliases                                          # Command aliases
+├── dot_plugins                                          # Oh My Zsh plugin list, compiled by antidote
+├── dot_completions                                      # Zsh completions, plugins, Kiro CLI support
 │
 │   # Tool configuration
 │
-├── dot_gitconfig.tmpl                  # Git user, GPG signing, LFS, pull strategy
-├── dot_gitignore_global                # Global gitignore (referenced by dot_gitconfig.tmpl)
-├── dot_npmrc.tmpl                      # npm registry tokens (from keychain)
-├── dot_wakatime.cfg.tmpl               # WakaTime API key (from keychain)
+├── dot_gitconfig.tmpl                                   # Git user, GPG signing, LFS, pull strategy
+├── dot_gitignore_global                                 # Global gitignore (referenced by dot_gitconfig.tmpl)
+├── dot_npmrc.tmpl                                       # npm registry tokens (from keychain)
+├── dot_wakatime.cfg.tmpl                                # WakaTime API key (from keychain)
 ├── dot_config/
-│   ├── hosts.tmpl                      # /etc/hosts source (machine-type aware)
-│   ├── mise/config.toml                # Language runtimes + global CLI packages
-│   └── zed/settings.json.tmpl          # Zed editor + MCP server keys (from keychain)
-├── private_dot_claude/                 # ~/.claude/* (0700)
-│   ├── private_CLAUDE.md               # Global Claude Code instructions (all projects)
-│   ├── private_settings.json.tmpl      # Claude Code user settings (plugins, marketplaces, hooks)
-│   ├── private_hooks/                  # ~/.claude/hooks/ (0700)
-│   │   └── private_executable_block-git-push.sh  # PreToolUse guard, blocks unrequested git push
-│   └── private_plugins/                # ~/.claude/plugins/ (0700)
-│       ├── installed_plugins.json.tmpl   # Claude Code plugin install state
-│       └── known_marketplaces.json.tmpl  # Claude Code marketplace registry
+│   ├── hosts.tmpl                                       # /etc/hosts source (machine-type aware)
+│   ├── mise/config.toml                                 # Language runtimes + global CLI packages
+│   └── zed/settings.json.tmpl                           # Zed editor + MCP server keys (from keychain)
+├── private_dot_claude/                                  # ~/.claude/* (0700)
+│   ├── private_CLAUDE.md                                # Global Claude Code instructions (all projects)
+│   ├── private_settings.json.tmpl                       # Claude Code user settings (plugins, marketplaces, hooks)
+│   ├── private_hooks/                                   # ~/.claude/hooks/ (0700)
+│   │   ├── private_executable_block-git-push.sh         # PreToolUse guard, blocks unrequested git push
+│   │   ├── private_executable_block-git-destructive.sh  # PreToolUse guard, blocks git commands that discard work
+│   │   ├── private_executable_check-commit-message.sh   # PreToolUse guard, validates the commit message
+│   │   └── private_executable_scan-written-secrets.sh   # PostToolUse guard, sonar secrets scan of written files
+│   └── private_plugins/                                 # ~/.claude/plugins/ (0700)
+│       ├── installed_plugins.json.tmpl                  # Claude Code plugin install state
+│       └── known_marketplaces.json.tmpl                 # Claude Code marketplace registry
 │
 │   # IDE settings
 │
 ├── Library/Application Support/Code/User/
-│   ├── settings.json.tmpl              # VS Code settings (home dir templated for Java/Gradle paths)
-│   └── keybindings.json                # VS Code keybindings
+│   ├── settings.json.tmpl                               # VS Code settings (home dir templated for Java/Gradle paths)
+│   └── keybindings.json                                 # VS Code keybindings
 │
 │   # Package lists (read by run scripts, not copied to $HOME)
 │
-├── Brewfile.personal                   # Homebrew packages (personal)
-└── Brewfile.work                       # Homebrew packages (work)
+├── Brewfile.personal                                    # Homebrew packages (personal)
+└── Brewfile.work                                        # Homebrew packages (work)
 ```
 
 ## 🔑 Key Concepts
@@ -444,6 +447,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Refresh the Zed extension list       | `zed:dump` (Zed has no CLI for this)                                                    |
 | Add a runtime or global CLI package  | `dot_config/mise/config.toml`                                                           |
 | Edit global Claude Code instructions | `private_dot_claude/private_CLAUDE.md`                                                  |
+| Change a Claude Code guard hook      | `private_dot_claude/private_hooks/`                                                     |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`  |
 | Rename or update a secret            | `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]`  |
 | Inspect or audit secrets             | `secrets:list` (table view), `secrets:import` (sync + drift), `secret:copy` (clipboard) |
@@ -495,3 +499,5 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **`/etc/hosts` symlink**                                      | chezmoi renders `dot_config/hosts.tmpl` into `~/.config/hosts` with machine-type-aware entries (work entries are dropped on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes.                                                                                                                                                                                                                            |
 | **Global Claude instructions as `private_CLAUDE.md`**         | Claude Code loads `~/.claude/CLAUDE.md` at the start of every session in every project, before any repository `CLAUDE.md`, so the file carries only cross-project rules and lets repository conventions win. The `private_` prefix keeps the rendered file at `0600` like the rest of `~/.claude`, and it also keeps the source name clear of the global gitignore's `**/CLAUDE.md` rule, which would otherwise ignore the source file in this very repo. Like the settings template, the file is written as a copy, so edits made directly to the target need `chezmoi add` to reach the source. |
 | **A PreToolUse hook guards `git push`**                       | "Never push unless explicitly asked" needs mechanical enforcement, because CLAUDE.md instructions are advisory and the `claude` alias runs with `--dangerously-skip-permissions`, which skips `ask` permission rules. A `deny` rule would block requested pushes too. The settings filter narrows the hook to git commands as a fast path, and the script itself inspects the actual command, blocks any `git push` invocation (including flagged forms such as `git -C <path> push`) with exit code 2, and tells Claude to re-run the command with `CLAUDE_PUSH_OK=1` once the user has explicitly asked for the push. The `private_executable_` prefix renders the script at `0700`. |
+| **Write-time secrets scan and destructive git guard**         | The SonarQube integration only scans files Claude reads and user prompts, so a PostToolUse hook runs `sonar analyze secrets` on every file Claude writes and feeds findings back with exit code 2. A second PreToolUse guard blocks `git reset --hard`, forced `git clean`, and worktree-discarding `checkout` and `restore` behind the same explicit-confirmation pattern as the push guard (`CLAUDE_DESTRUCTIVE_OK=1`). The sonar-installed wrappers under `~/.claude/hooks/sonar-secrets/` stay vendor-managed and out of chezmoi, while their settings registration is templated so `chezmoi apply` cannot wipe it. |
+| **Commit style enforced by an agent hook, not a git hook**    | A global `core.hooksPath` was tried and reverted: it hijacks every repo's hook path (git-lfs and local tooling install into `.git/hooks`) and binds the human too, while the rule only needs to steer the agent. A PreToolUse hook now validates the Conventional Commits subject (lowercase type) and rejects Claude attribution trailers in commands it can parse, fails open for editor-based commits and exotic quoting, and accepts `CLAUDE_COMMIT_OK=1` when a repository's documented convention intentionally differs. Bodies and footers stay unrestricted. |
