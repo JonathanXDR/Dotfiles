@@ -5,6 +5,49 @@
 #   plain `alias`   deliberate shadows (cat→bat, top→btop, etc.) and syntax
 #                   the helpers cannot wrap (`alias -s`, `alias -- -=`)
 
+# --------------------------- Plugin Corrections ----------------------------- #
+# The Oh My Zsh bundle (~/.plugins) loads immediately before this file. Anything
+# further down overrides it simply by defining the same name again. This section
+# covers the cases that need a removal instead, so it has to run before the rest
+# of the file rather than after it.
+#
+# `alias:shadows` prints every alias currently sitting on a real binary. Run it
+# after adding a plugin to see whether this list needs another entry.
+
+# common-aliases makes rm, cp and mv interactive. rm is the urgent one: the
+# alias has to go before the trash-put wrapper below can be defined at all,
+# because zsh refuses to declare a function whose name is an existing alias and
+# fails the entire file with a parse error at that line.
+unalias rm cp mv 2>/dev/null
+
+# Drop common-aliases' suffix aliases whose viewer is not installed here and
+# keep the ones that work, so `.tar` still lists an archive and `.c` still opens
+# an editor. The suffix aliases this file sets are defined at the bottom, long
+# after this pass, so only plugin entries are considered.
+alias:prune-suffix
+
+# Global aliases expand anywhere on the line, so the two whose pager is missing
+# would fire on any bare M or P. The names have to be quoted, because unquoted
+# they are global aliases themselves and expand before unalias ever sees them,
+# leaving it with no arguments. zsh has no `unalias -g` either.
+unalias "M" "P" 2>/dev/null
+
+# Give these names back to their binaries. Every one is a tool installed on
+# purpose, so the plugin alias loses:
+#   gcp grm gpr god  coreutils cp, rm, pr and od
+#   cs               the Coursier launcher, which .zshrc deliberately appends to
+#                    PATH so it never shadows another binary
+#   ng ni na         the Angular CLI and @antfu/ni, both pinned in
+#                    mise/config.toml. The nestjs plugin claims all three, and
+#                    ng also has a hand-written completion in .completions
+# Two shadows stay on purpose: `cu` (composer update over the legacy serial-line
+# tool) and `asr` (aws over Apple Software Restore).
+unalias gcp grm gpr god cs ng ni na 2>/dev/null
+
+# The emacs plugin points `emacs` at its own emacsclient wrapper. Keep the
+# Homebrew binary. Every other alias the plugin sets stays.
+unalias emacs 2>/dev/null
+
 # -------------------------- Filesystem & Navigation ------------------------- #
 
 # Number the directory stack for `cd -<n>` (deliberate shadow of the builtin)
@@ -26,11 +69,9 @@ else
   export LSCOLORS='BxBxhxDxfxhxhxhxhxcxcx'
 fi
 
-# Long format, hidden files excluded
-alias:safe l="ls -lF"
-
-# Long format, all files except . and ..
-alias:safe la="ls -lAF"
+# l (long format) and la (long format, all but . and ..) come from the
+# common-aliases plugin, which sets the same pair plus -h for readable sizes.
+# Both still chain through the ls alias above, so lsd renders them.
 
 # List only directories. Named lsdir to avoid colliding with lsd, the Homebrew
 # binary that `ls` aliases to when it is installed.
@@ -151,8 +192,8 @@ cmd:exists kubectx && alias:safe kx='kubectx'
 
 # --------------------------------- Utilities -------------------------------- #
 
-# Always enable colored `grep` output (deliberate self-shadow of /usr/bin/grep)
-alias grep='grep --color=auto'
+# Colored `grep` output comes from the common-aliases plugin, which self-shadows
+# /usr/bin/grep with `grep --color`.
 
 # Trailing space makes zsh expand the next word as an alias too, so aliases can
 # be sudo'ed (deliberate self-shadow)
@@ -302,6 +343,13 @@ alias:safe ev='chezmoi edit ~/.exports'
 alias:safe e='$EDITOR .'
 
 # ------------------------------------ Git ----------------------------------- #
+# The git plugin defines about 200 aliases and loads first, so the names below
+# are the ones this file deliberately keeps. Each one differs from the plugin's
+# in meaning rather than in flags: gst is a contributor shortlog rather than
+# status, gpu pushes to the default remote rather than upstream, gau adds an
+# upstream remote rather than staging tracked files, gca takes the message
+# inline, and gwip keeps GPG signing, which the plugin's version disables. Four
+# more names (gba, gbd, gcl, glg) were dropped so the plugin's versions win.
 
 alias:safe g="git"
 alias:safe gs="git status"
@@ -311,11 +359,8 @@ alias:safe gaa="git add --all"
 alias:safe gpl="git pull"
 alias:safe gpu="git push"
 alias:safe gps="git push && say You are awesome!"
-alias:safe gcl="git clone"
-alias:safe glg="git log"
 alias:safe gst="git shortlog -sn"
 alias:safe gch="git checkout"
-alias:safe gba="git branch -av"
 alias:safe gsl="git stash list"
 alias:safe gsc="git stash clear"
 alias:safe gd='git diff'
@@ -323,7 +368,6 @@ alias:safe gds='git diff --staged'
 alias:safe gco='git checkout'
 alias:safe gcb='git checkout -b'
 alias:safe gb='git branch'
-alias:safe gbd='git branch -d'
 alias:safe gun='git reset HEAD~1'
 alias:safe glo='git log --oneline --graph --decorate'
 alias:safe gwip='git add -A && git commit -m "wip"'
