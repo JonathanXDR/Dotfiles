@@ -9,6 +9,8 @@ PROXY_PROTOCOL="{{ .proxy_protocol }}"
 PROXY_HOST="{{ .proxy_host }}"
 PROXY_PORT="{{ .proxy_port }}"
 NO_PROXY="{{ .no_proxy }}"
+NPM_REGISTRY_PROXIED="{{ .npm_swisscom_registry_proxied }}"
+NPM_REGISTRY_DIRECT="{{ .npm_swisscom_registry_direct }}"
 
 STATE_FILE="${HOME}/.cache/proxy-state"
 
@@ -21,23 +23,28 @@ else
   state="off"
 fi
 
-# Every network event runs this, so only act when the state actually flips
+# The state file survives a reboot but the launchd session environment does not,
+# so the launchctl calls below run every time and only the logging is gated on
+# an actual flip.
 current="$(cat "${STATE_FILE}" 2>/dev/null || true)"
-[[ "${state}" == "${current}" ]] && exit 0
-
-printf '%s\n' "${state}" > "${STATE_FILE}"
-logger "proxy-watchd: ${current:-<none>} -> ${state}"
+if [[ "${state}" != "${current}" ]]; then
+  printf '%s\n' "${state}" > "${STATE_FILE}"
+  logger "proxy-watchd: ${current:-<none>} -> ${state}"
+fi
 
 # GUI apps never read the shell config, so publish the proxy through launchctl
 if [[ "${state}" == "on" ]]; then
   addr="${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}"
-  launchctl setenv HTTP_PROXY "${addr}" 2>/dev/null
-  launchctl setenv HTTPS_PROXY "${addr}" 2>/dev/null
-  launchctl setenv ALL_PROXY "${addr}" 2>/dev/null
-  launchctl setenv NO_PROXY "${NO_PROXY}" 2>/dev/null
+  launchctl setenv HTTP_PROXY "${addr}"
+  launchctl setenv HTTPS_PROXY "${addr}"
+  launchctl setenv ALL_PROXY "${addr}"
+  launchctl setenv NO_PROXY "${NO_PROXY}"
+  launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_REGISTRY_PROXIED}"
 else
-  launchctl unsetenv HTTP_PROXY 2>/dev/null
-  launchctl unsetenv HTTPS_PROXY 2>/dev/null
-  launchctl unsetenv ALL_PROXY 2>/dev/null
-  launchctl unsetenv NO_PROXY 2>/dev/null
+  launchctl unsetenv HTTP_PROXY
+  launchctl unsetenv HTTPS_PROXY
+  launchctl unsetenv ALL_PROXY
+  launchctl unsetenv NO_PROXY
+  # Set rather than unset, because .npmrc has no fallback for a missing value
+  launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_REGISTRY_DIRECT}"
 fi

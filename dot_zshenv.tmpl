@@ -1,0 +1,31 @@
+# Sourced by every zsh, interactive or not. Keep it to PATH essentials and to
+# values that non-interactive shells genuinely need. Anything interactive
+# belongs in .zshrc.
+
+# Collapse duplicate PATH entries (nested shells re-source this file)
+typeset -gU PATH path
+
+# mise shims, so editors, LaunchAgents, and `zsh -c` scripts resolve the same
+# toolchain as an interactive shell (non-interactive shells never read .zshrc).
+# Interactive shells also run `mise activate zsh`, which prepends the resolved
+# tool directories ahead of these shims.
+#
+# This prepend does not survive a login shell: /etc/zprofile runs next and its
+# `path_helper -s` moves the entry to the end of PATH. .zprofile repeats the
+# prepend for that case.
+[[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
+
+{{ if eq .machine_type "work" -}}
+# The @swisscom npm scope resolves through whichever host the current network can
+# reach, and ~/.npmrc reads the active one as ${NPM_SWISSCOM_REGISTRY}. This sits
+# here rather than in .exports, because .exports reaches interactive shells alone
+# while every reader of ~/.npmrc needs the value, `zsh -c`, ssh sessions and cron
+# included. An ini file has no fallback, so a shell that left it unset would make
+# npm treat the variable name itself as the registry URL. proxy:set, proxy:unset
+# and the proxy-watchd LaunchAgent swap the active value as the network changes.
+export NPM_SWISSCOM_REGISTRY_PROXIED={{ .npm_swisscom_registry_proxied | quote }}
+export NPM_SWISSCOM_REGISTRY_DIRECT={{ .npm_swisscom_registry_direct | quote }}
+
+# Keep an inherited value, so a parent shell or the launchd session still wins.
+export NPM_SWISSCOM_REGISTRY="${NPM_SWISSCOM_REGISTRY:-$NPM_SWISSCOM_REGISTRY_DIRECT}"
+{{ end -}}
