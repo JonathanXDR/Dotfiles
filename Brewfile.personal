@@ -5,7 +5,7 @@ tap "domt4/autoupdate", trusted: true
 tap "elastic/tap", trusted: true
 tap "go-task/tap", trusted: true
 tap "hashicorp/tap", trusted: true
-tap "homebrew/autoupdate", "https://github.com/DomT4/homebrew-autoupdate.git"
+tap "homebrew/autoupdate", "https://github.com/DomT4/homebrew-autoupdate.git", trusted: true
 tap "hpedrorodrigues/tools", trusted: true
 tap "infisical/get-cli", trusted: true
 tap "majd/repo", trusted: true
@@ -434,6 +434,8 @@ cask "raycast", args: { appdir: "/Applications" }
 cask "sensei"
 # Tool that provides consistent, highly configurable symbols for apps
 cask "sf-symbols"
+# Code quality and security for terminal workflows, scripts, and AI agents
+cask "sonarqube-cli"
 # Sound and audio controller
 cask "soundsource", args: { appdir: "/Applications" }
 # Video game digital distribution service
