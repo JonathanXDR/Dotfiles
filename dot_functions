@@ -194,7 +194,7 @@ unset _tool
 
 # Rails needs its own guard rather than a bare cmd:exists. macOS ships
 # /usr/bin/rails, a stub whose only job is to print "Rails is not currently
-# installed", so the plain test always succeeds and the plugin would load its 70
+# installed", so the plain test always succeeds and the plugin would load its 73
 # aliases on a machine with no Rails.
 have:rails() {
   local bin
@@ -299,7 +299,14 @@ plugins:load() {
   if [[ ! "$bundle" -nt "$list" && -f "$antidote" ]]; then
     [[ -d "${bundle:h}" ]] || mkdir -p "${bundle:h}"
     source "$antidote"
-    antidote bundle < "$list" >| "$bundle"
+    # Write then move, as plugins:update does. `>|` truncates the bundle before
+    # antidote runs, so a failed rebuild would leave an empty file that the next
+    # line sources and whose mtime then defeats the check above for good.
+    if antidote bundle < "$list" >| "${bundle}.new"; then
+      command mv -f "${bundle}.new" "$bundle"
+    else
+      command rm -f "${bundle}.new"
+    fi
   fi
 
   [[ -f "$bundle" ]] && source "$bundle"

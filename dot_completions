@@ -12,8 +12,9 @@ if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   # which may point at a version that no longer exists.
   #
   # zsh-completions is a Brewfile formula (180 definitions for tools Homebrew
-  # does not complete itself, including mvn, flutter and scala). It goes first
-  # so a tool's own site-functions copy, which is usually newer, still wins.
+  # does not complete itself, including mvn, flutter and scala). It goes
+  # first, as the formula's own caveats prescribe, so these definitions win
+  # over any same-named copy later on fpath.
   typeset -gU FPATH fpath
   local -a clean_fpath
   clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
@@ -30,7 +31,9 @@ if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
 fi
 
 # zsh-autocomplete runs compinit itself, so only do it when the plugin is
-# missing. -C skips the security scan while the dump is under 24 hours old.
+# missing. -C skips the security scan and the check for new completion files,
+# so a tool installed today gets completion once the dump ages past 24 hours
+# and the full compinit runs.
 if (( ! has_zsh_autocomplete )); then
   autoload -Uz compinit
   if [[ -n ~/.zcompdump(N.mh-24) ]]; then
@@ -41,8 +44,10 @@ if (( ! has_zsh_autocomplete )); then
 fi
 
 # Replay the compdef calls the plugin bundle queued before the completion system
-# existed (see the stub in plugins:load). compinit has replaced that stub with
-# the real compdef by now, so each entry re-runs as written.
+# existed (see the stub in plugins:load). With zsh-autocomplete installed these
+# land in its own compdef queue instead, which it flushes after running compinit
+# from its first precmd. Without it, the compinit above has already installed
+# the real compdef, so each entry runs right here.
 if (( ${#COMPDEF_DEFERRED} )); then
   local deferred
   for deferred in "${COMPDEF_DEFERRED[@]}"; do
@@ -64,7 +69,7 @@ if cmd:exists ng; then
   compdef _ng_completion ng
 fi
 
-# Optional plugins, each guarded in case it is not installed
+# zsh-autosuggestions, guarded in case it is not installed
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \
     && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"

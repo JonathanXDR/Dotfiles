@@ -97,7 +97,7 @@ ohmyzsh/ohmyzsh path:plugins/gh
 # --------------------------------- History ---------------------------------- #
 
 # After helm, so `h` resolves to history rather than helm. Two of the three
-# plugins claiming the name agree on history, and helm keeps hin/hup/hun/hls.
+# plugins claiming the name agree on history, and helm keeps hin/hup/hun/hse.
 ohmyzsh/ohmyzsh path:plugins/history
 
 # -------------------------------- Fun & Dumb -------------------------------- #
