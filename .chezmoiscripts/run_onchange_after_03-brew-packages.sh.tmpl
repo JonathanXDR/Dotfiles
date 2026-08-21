@@ -17,14 +17,14 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 _log info "Installing Homebrew packages from ${BREWFILE}…"
-if brew bundle --file="$BREWFILE"; then
+if brew bundle --file="$BREWFILE" --no-upgrade; then
   _log success "Installed Homebrew packages"
 else
   _log warning "Failed to install some Homebrew packages (see above)"
 fi
 
 _log info "Checking for packages not in ${BREWFILE}…"
-if brew bundle cleanup --file="$BREWFILE"; then
+if brew bundle cleanup --file="$BREWFILE" </dev/null; then
   _log success "Verified no unused Homebrew packages"
 else
   _log warning "Detected packages not in Brewfile (listed above)"
