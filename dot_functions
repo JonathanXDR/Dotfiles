@@ -1558,10 +1558,10 @@ if cmd:exists git; then
 fi
 
 # Delete a branch locally and on origin.
-# Usage: gdb <branch>
-gdb() {
+# Usage: git:delete-branch <branch>
+git:delete-branch() {
   if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>" >&2
+    echo "Usage: git:delete-branch <branch>" >&2
     return 1
   fi
   git branch -d -- "$1" && git push origin :"$1"
@@ -1578,10 +1578,10 @@ gas() {
 }
 
 # Interactively rebase the last N commits.
-# Usage: grb <commit_count>
-grb() {
+# Usage: git:rebase <commit_count>
+git:rebase() {
   if [[ -z "$1" ]]; then
-    echo "Usage: grb <commit_count>" >&2
+    echo "Usage: git:rebase <commit_count>" >&2
     return 1
   fi
   git rebase -i "HEAD~$1"
