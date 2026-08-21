@@ -17,10 +17,10 @@ tap "ubuntu/microk8s", trusted: true
 tap "updatest/tap", "https://github.com/updatest/tap.git", trusted: true
 # Run your GitHub Actions locally
 brew "act"
-# Cryptography and SSL/TLS Toolkit
-brew "openssl@3"
 # Plugin manager for zsh, inspired by antigen and antibody
 brew "antidote"
+# Cryptography and SSL/TLS Toolkit
+brew "openssl@3"
 # Tool for generating GNU Standards-compliant Makefiles
 brew "automake"
 # Official Amazon AWS command-line interface
@@ -43,8 +43,6 @@ brew "bower"
 brew "brew-gem"
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
-# Glorious Glasgow Haskell Compilation System
-brew "ghc"
 # Command-line interface for Cabal and Hackage
 brew "cabal-install"
 # GNU File, Shell, and Text utilities
@@ -101,6 +99,8 @@ brew "freeimage"
 brew "fzf"
 # GitHub command-line tool
 brew "gh"
+# Glorious Glasgow Haskell Compilation System
+brew "ghc"
 # Distributed revision control system
 brew "git"
 # Quickly rewrite git repository history
@@ -283,10 +283,10 @@ brew "zlib"
 brew "zsh"
 # Real-time type-ahead completion for Zsh
 brew "zsh-autocomplete"
-# Additional completion definitions for zsh
-brew "zsh-completions"
 # Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
+# Additional completion definitions for zsh
+brew "zsh-completions"
 # Zsh port of Fish shell's history search
 brew "zsh-history-substring-search"
 # Fish shell like syntax highlighting for zsh
@@ -295,8 +295,6 @@ brew "zsh-syntax-highlighting"
 brew "coursier/formulas/coursier"
 # Distributed search & analytics engine
 brew "elastic/tap/elasticsearch-full"
-# A fast, cross-platform build tool inspired by Make, designed for modern workflows.
-brew "go-task/tap/go-task"
 # Vault
 brew "hashicorp/tap/vault"
 # The official Infisical CLI
@@ -478,8 +476,8 @@ mas "Compressor", id: 6746516157
 mas "Compressor", id: 424390742
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
-mas "Final Cut Pro", id: 1631624924
 mas "Final Cut Pro", id: 424389933
+mas "Final Cut Pro", id: 1631624924
 mas "Flighty", id: 1358823008
 mas "Folder Preview", id: 6698876601
 mas "FreeScaler", id: 6443796196
