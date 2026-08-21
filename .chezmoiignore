@@ -2,8 +2,6 @@ README.md
 ARCHITECTURE.md
 LICENSE
 Brewfile.*
-.gitignore
-.git
 
 {{ if ne .machine_type "work" }}
 .ssl
