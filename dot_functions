@@ -831,6 +831,12 @@ ssh:agent() {
 # machine can re-import everything in one shot.
 # Tokens-file format: id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
 #
+# Every read of that format below uses IFS=$'\t\t', and the doubled tab is
+# load-bearing. zsh treats an IFS whitespace character that appears twice as a
+# plain separator (zshparam(1), IFS), so runs of tabs stop collapsing and empty
+# where, kind, and comment fields survive the read. A single $'\t' would shift
+# every field after an empty one.
+#
 # Five metadata fields map to native macOS keychain attributes (the password is
 # the stored value, not an attribute):
 #   id      = friendly name, populates the Label (-l), and is the lookup key
@@ -927,17 +933,27 @@ _secrets:entries() {
   ' | LC_ALL=C sort -f
 }
 
-# Read the Where, Kind, and Comments attributes of a managed secret in one
-# `security` call. Emits one tab-separated line "<where>\t<kind>\t<comment>".
-# Missing fields render empty. Exits non-zero if the entry is absent.
+# Read the Where, Kind, and Comments attributes of a managed secret. Emits one
+# tab-separated line "<where>\t<kind>\t<comment>". Missing fields render empty.
+# Exits non-zero if the entry is absent. Reuses the _secrets:entries parser,
+# which is the only one that also decodes the hex form `security` prints for
+# any value holding non-ASCII bytes. Matches on the configured lookup field, so
+# it stays in step with _secrets:password rather than always keying on the Label.
 # Usage: _secrets:attrs <id> <account>
 _secrets:attrs() {
-  local raw where kind comment
-  raw="$(security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1)" || return 1
-  where=$(  print -r -- "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')
-  kind=$(   print -r -- "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')
-  comment=$(print -r -- "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')
-  print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
+  local id acct where kind comment key
+  while IFS=$'\t\t' read -r id acct where kind comment; do
+    case "${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}" in
+      where)   key="$where" ;;
+      kind)    key="$kind" ;;
+      comment) key="$comment" ;;
+      *)       key="$id" ;;
+    esac
+    [[ "$key" == "$1" && "$acct" == "$2" ]] || continue
+    print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
+    return 0
+  done < <(_secrets:entries)
+  return 1
 }
 
 # Print the password of a managed secret. Prints nothing and exits non-zero
@@ -962,15 +978,22 @@ _secrets:install() {
 
 # Add a secret to the dotfiles keychain, then sync to iCloud Drive. The password
 # is read interactively, so it is never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair. That uniqueness is enforced
-# here, on the Label field, because macOS only enforces it on Service.
+# Refuses to create a duplicate (id, account) pair, which macOS does not enforce
+# itself, and refuses a (where, account) pair another entry already owns, since
+# `add-generic-password -U` matches on that pair and would overwrite the entry
+# holding it, password included.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {
   (( $# >= 4 && $# <= 5 )) || { echo "Usage: secret:set <id> <account> <where> <kind> [comment]" >&2; return 1; }
   local id="$1" account="$2" where="$3" kind="$4" comment="${5:-}" password
 
   if _secrets:password "$id" "$account" >/dev/null 2>&1; then
-    log error "Rejected $id / $account (already exists, use secret:rename to update)"
+    log error "Rejected $id / $account (already exists, run secret:remove first to replace the value)"
+    return 1
+  fi
+
+  if security find-generic-password -s "$where" -a "$account" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log error "Rejected $id / $account (another entry already holds this where and account, run secrets:list to find it)"
     return 1
   fi
 
@@ -1002,7 +1025,8 @@ secret:copy() {
   password="$(_secrets:password "$1" "$2")" \
     || { log error "Failed to find $1 / $2"; return 1; }
 
-  printf '%s' "$password" | pbcopy
+  printf '%s' "$password" | pbcopy \
+    || { log error "Failed to copy $1 / $2 to the clipboard"; return 1; }
   snapshot=$(printf '%s' "$password" | shasum -a 256 | awk '{print $1}')
   unset password
 
@@ -1036,13 +1060,17 @@ secret:rename() {
     return 1
   }
   local old_id="$1" old_acct="$2" new_id="$3" new_acct="$4" password new_where new_kind new_comment
-  local same_pair=0
-  [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_pair=1
+  # Two different notions of "same entry" are in play. same_lookup answers
+  # "would the target collide with a different entry under the lookup field",
+  # while same_storage answers "does add-generic-password -U update this item
+  # in place", which macOS decides from (Service, Account) alone.
+  local same_lookup=0
+  [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_lookup=1
 
   password="$(_secrets:password "$old_id" "$old_acct")" \
     || { log error "Failed to find $old_id / $old_acct"; return 1; }
 
-  if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
+  if (( ! same_lookup )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
     log error "Rejected $new_id / $new_acct (target already exists)"
     return 1
   fi
@@ -1051,11 +1079,26 @@ secret:rename() {
   IFS=$'\t\t' read -r cur_where cur_kind cur_comment < <(_secrets:attrs "$old_id" "$old_acct")
   new_where="${5:-$cur_where}"
   new_kind="${6:-$cur_kind}"
-  [[ -n "$new_kind" ]] || new_kind="$new_id"
   new_comment="${7:-$cur_comment}"
 
+  local same_storage=0
+  [[ "$new_where" == "$cur_where" && "$new_acct" == "$old_acct" ]] && same_storage=1
+
+  # Writing a (Service, Account) pair that belongs to another entry would
+  # replace that entry instead of moving this one.
+  if (( ! same_storage )) \
+    && security find-generic-password -s "$new_where" -a "$new_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log error "Rejected $new_id / $new_acct (another entry already holds this where and account, run secrets:list to find it)"
+    return 1
+  fi
+
   _secrets:install "$new_id" "$new_acct" "$new_where" "$new_kind" "$password" "$new_comment" || return 1
-  (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
+  # Only a changed storage pair leaves the original item behind, and it is
+  # addressed by that pair, because the new item may now share the old Label.
+  if (( ! same_storage )) \
+    && ! security delete-generic-password -s "$cur_where" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log warning "Skipped removing $old_id / $old_acct (copy left behind, remove it with secret:remove)"
+  fi
 
   log success "Renamed $old_id / $old_acct → $new_id / $new_acct ($new_kind)"
   secrets:export
@@ -1083,6 +1126,12 @@ secrets:list() {
 # The keychain stays the source of truth. Entries it lacks are imported from the
 # file (for example after an iCloud sync from another machine), while stale file
 # passwords (drift or placeholder) are left for secrets:export to overwrite.
+# A password of the literal string "placeholder" is a stub row from older tokens
+# files (secret:set used to append one). It is reported, never imported. Restore
+# the real value with secret:set, or drop the row by running secrets:export.
+# A "conflict" row is one whose Where and Account already belong to a different
+# keychain entry. It is reported, never imported, because writing it would
+# replace that entry. Run secrets:list to find the owner.
 # Exits non-zero while any entry still needs attention.
 secrets:import() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
@@ -1100,6 +1149,11 @@ secrets:import() {
     if (( rc == 44 )); then    # errSecItemNotFound, the entry is definitively absent
       if [[ -z "$file_pw" || "$file_pw" == placeholder ]]; then
         state="missing"; (( ++drift ))
+      # Absent under the lookup field is not the same as absent in storage.
+      # macOS keys generic passwords by (Service, Account), so importing a row
+      # whose pair another entry already owns would overwrite that entry.
+      elif security find-generic-password -s "$where" -a "$acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+        state="conflict"; (( ++drift ))
       elif _secrets:install "$id" "$acct" "$where" "$kind" "$file_pw" "$comment"; then
         state="imported"; (( ++imported ))
       else
@@ -1130,6 +1184,36 @@ secrets:import() {
   log success "Synced $total / $total entries"
 }
 
+# Read the password a previous export recorded for an entry. Lets secrets:export
+# carry a value forward when the keychain read fails, instead of dropping the
+# row. Exits non-zero when the file holds no row for the pair.
+# Usage: _secrets:backed-up-password <id> <account>
+_secrets:backed-up-password() {
+  [[ -f "$_SECRETS_TOKENS_FILE" ]] || return 1
+  local f_id f_acct f_where f_kind f_comment f_pw
+  while IFS=$'\t\t' read -r f_id f_acct f_where f_kind f_comment f_pw; do
+    [[ -z "$f_id" || "$f_id" == \#* ]] && continue
+    if [[ "$f_id" == "$1" && "$f_acct" == "$2" ]]; then
+      print -r -- "$f_pw"
+      return 0
+    fi
+  done < "$_SECRETS_TOKENS_FILE"
+  return 1
+}
+
+# Summarise the entries secrets:export could not read, keeping the two outcomes
+# apart. A carried-over entry still has its value in the backup, a dropped one
+# does not, so reporting them under one heading would make real loss look
+# temporary. The status stays zero either way, because secrets:export is the
+# tail call of secret:set, secret:remove and secret:rename, and one unreadable
+# entry must not make an otherwise successful command report failure.
+# Usage: _secrets:report-unread <kept> <dropped>
+_secrets:report-unread() {
+  (( $1 )) && log warning "Carried $1 entry(s) over from the previous backup (failed to read them)"
+  (( $2 )) && log error "Dropped $2 entry(s) from the backup (failed to read, with no backed-up value to keep)"
+  return 0
+}
+
 # Atomically rewrite the iCloud tokens file from the current keychain values.
 # Reads the keychain itself (the source of truth), so entries added outside
 # secret:set are exported too. File entries that have vanished from the keychain
@@ -1138,9 +1222,9 @@ secrets:import() {
 secrets:export() {
   _secrets:ensure-tokens-file
 
-  local tmp id account where kind comment password count=0
+  local tmp id account where kind comment password prior count=0 kept=0 dropped=0
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' EXIT
+  trap "command rm -f ${(q)tmp}" EXIT
 
   _secrets:write-header "$tmp"
   while IFS=$'\t\t' read -r id account where kind comment; do
@@ -1149,15 +1233,24 @@ secrets:export() {
     if password="$(security find-generic-password -s "$where" -a "$account" -w "$_SECRETS_KEYCHAIN" 2>/dev/null)"; then
       print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
       (( ++count ))
+    # A read can fail for one entry alone (an item added outside secret:set has
+    # no -A ACL, so `security` prompts and a denial fails just that read). Carry
+    # the previous backup value forward rather than dropping the row for good.
+    # Metadata still comes from the keychain, so edits keep propagating.
+    elif prior="$(_secrets:backed-up-password "$id" "$account")" && [[ -n "$prior" ]]; then
+      print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${prior}" >> "$tmp"
+      (( ++kept ))
+      log warning "Kept the backed-up value for $id / $account (failed to read password)"
     else
-      log warning "Skipped $id / $account (failed to read password)"
+      (( ++dropped ))
+      log error "Dropped $id / $account from the backup (failed to read password, no backed-up value to keep)"
     fi
   done < <(_secrets:entries)
 
   # Refuse to clobber a populated backup from an empty keychain (e.g. a fresh
   # machine whose iCloud backup synced down after bootstrap already ran).
   if (( count == 0 )) && grep -qvE '^[[:space:]]*#|^[[:space:]]*$' "$_SECRETS_TOKENS_FILE"; then
-    rm -f "$tmp"
+    command rm -f "$tmp"
     trap - EXIT
     log error "Refused to overwrite populated tokens file from an empty keychain (run secrets:import first)"
     return 1
@@ -1170,14 +1263,16 @@ secrets:export() {
     <(awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$tmp" | sort))
 
   if cmp -s "$tmp" "$_SECRETS_TOKENS_FILE"; then
-    rm -f "$tmp"
+    command rm -f "$tmp"
     trap - EXIT
+    _secrets:report-unread "$kept" "$dropped"
     log success "Verified $count secret(s) already in sync"
     return 0
   fi
 
   mv "$tmp" "$_SECRETS_TOKENS_FILE"
   trap - EXIT
+  _secrets:report-unread "$kept" "$dropped"
   log success "Exported $count secret(s) to iCloud Drive"
 }
 
