@@ -62,12 +62,24 @@ cmd:exists() {
   command -v "$1" &>/dev/null
 }
 
+# Internal: true when a binary, function, or builtin already owns this name.
+#
+# Deliberately narrower than cmd:exists, which also resolves aliases. The Oh My
+# Zsh bundle loads before .aliases, so `command -v` would report every plugin
+# alias as an existing command and .aliases would step aside for all of them.
+# The guards exist to stop a real command being shadowed. Sitting on top of a
+# plugin alias is intended, because .aliases owns the names it sets.
+# Usage: alias:_taken <name>
+alias:_taken() {
+  (( ${+commands[$1]} + ${+functions[$1]} + ${+builtins[$1]} ))
+}
+
 # Define an alias only if no command with that name already exists.
 # Warns when skipped, so shadowed commands stay visible.
 # Usage: alias:safe <name>='<value>'
 alias:safe() {
   local name="${1%%=*}"
-  if cmd:exists "$name"; then
+  if alias:_taken "$name"; then
     log warning "Skipped alias '${name}' (would shadow existing command)"
   else
     alias:_set "$1"
@@ -78,7 +90,7 @@ alias:safe() {
 # of the real command is what triggers the alias.
 # Usage: alias:fallback <name>='<value>'
 alias:fallback() {
-  cmd:exists "${1%%=*}" || alias:_set "$1"
+  alias:_taken "${1%%=*}" || alias:_set "$1"
 }
 
 # Internal: set an alias and warn if its target is unavailable.
@@ -91,6 +103,36 @@ alias:_set() {
   [[ -n "$target" ]] && ! cmd:exists "$target" \
     && log warning "Skipped alias '${1%%=*}' (target '${target}' is not available)"
   alias "$1"
+}
+
+# Drop suffix aliases whose target command is not installed. The common-aliases
+# plugin ships 35 of them for a Linux desktop (mplayer, acroread, xchm, djview,
+# xdvi, gv, unace, unrar), and the ones with no viewer here would fail the first
+# time they were used. Resolves the target the same way alias:_set does.
+# Usage: alias:prune-suffix
+alias:prune-suffix() {
+  local suffix target
+  local -a parts
+  for suffix in ${(k)saliases}; do
+    parts=( ${(z)saliases[$suffix]} )
+    target="${(eQ)parts[1]}"
+    if [[ -n "$target" ]] && ! cmd:exists "$target"; then
+      unalias -s -- "$suffix"
+    fi
+  done
+}
+
+# List every alias currently sitting on top of a real binary. The plugin bundle
+# has no equivalent of alias:safe, so this is how a plugin update that claims a
+# new command name stays visible. Deliberate shadows from .aliases appear here
+# too, so read the output rather than acting on it directly.
+# Usage: alias:shadows
+alias:shadows() {
+  local name binary
+  for name in ${(ko)aliases}; do
+    binary="$(whence -p -- "$name" 2>/dev/null)" || continue
+    printf '%-14s %-44s %s\n' "$name" "${aliases[$name]}" "$binary"
+  done
 }
 
 # Run a command at most once every 24 hours, gated by a stamp file.
@@ -135,6 +177,133 @@ mkd() {
 # Change to the directory of the frontmost Finder window
 cdf() {
   cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
+}
+
+# -------------------------------- Zsh Plugins ------------------------------- #
+
+# Conditional guards for the Oh My Zsh bundle. antidote calls the function named
+# in a `conditional:` annotation with no arguments and wraps that entry in a
+# plain `if <name>; then ... fi`, so the tool a plugin needs has to be encoded
+# in the guard's own name. Each plugin listed here targets a tool that is not
+# installed yet, so its entry costs one test per shell until the tool arrives.
+local _tool
+for _tool in mongocli multipass pre-commit sbt terraform; do
+  functions[have:${_tool}]="cmd:exists ${_tool}"
+done
+unset _tool
+
+# Rails needs its own guard rather than a bare cmd:exists. macOS ships
+# /usr/bin/rails, a stub whose only job is to print "Rails is not currently
+# installed", so the plain test always succeeds and the plugin would load its 70
+# aliases on a machine with no Rails.
+have:rails() {
+  local bin
+  bin="$(whence -p rails)" || return 1
+  [[ "$bin" != "/usr/bin/rails" ]]
+}
+
+# fzf's setup is pure ZLE. It evaluates `fzf --zsh`, which saves the shell
+# options and restores them afterwards. A shell with no terminal has no ZLE to
+# restore, so `zsh -ic` prints "can't change option: zle" twice. Such a shell
+# has no use for key bindings anyway, so gate the plugin on a real tty.
+have:tty() {
+  [[ -t 0 ]]
+}
+
+# Update the cloned plugin repositories, then rebuild the bundle from them.
+#
+# Nothing else does this. antidote clones a plugin once and never revisits it,
+# so the Oh My Zsh checkout would otherwise stay at whatever commit it had on
+# the day it was cloned. Runs from run:daily in .zshrc, on the same 24-hour
+# stamp as mise:update and brew:check. The four Homebrew plugins in .completions
+# are unaffected, because `brew upgrade` already covers those.
+# Usage: plugins:update
+plugins:update() {
+  local antidote="${HOMEBREW_PREFIX}/opt/antidote/share/antidote/antidote.zsh"
+  local bundle="${HOME}/.cache/zsh/plugins.zsh"
+  local output
+
+  [[ -f "$antidote" && -f "${HOME}/.plugins" ]] || return 0
+  source "$antidote"
+
+  if ! output=$(antidote update 2>&1 </dev/null); then
+    log warning "Failed to update zsh plugins"
+    print -r -- "$output" >&2
+    # Return 0 so run:daily still stamps the day, matching mise:update. An
+    # offline laptop retries tomorrow rather than on every new shell.
+    return 0
+  fi
+
+  # Recompile against the updated clones. Rebuilt in place rather than deleted,
+  # because if antidote could not regenerate it, deleting would leave the next
+  # shell with no plugins, while an older bundle still works. This shell has
+  # already sourced the old file, so the new one takes effect next time.
+  if ! output=$(antidote bundle < "${HOME}/.plugins" 2>&1 >| "${bundle}.new"); then
+    log warning "Failed to rebuild the plugin bundle (keeping the current one)"
+    print -r -- "$output" >&2
+    command rm -f "${bundle}.new"
+    return 0
+  fi
+  command mv -f "${bundle}.new" "$bundle"
+
+  log success "Updated zsh plugins"
+  return 0
+}
+
+# Load the Oh My Zsh bundle listed in ~/.plugins.
+#
+# antidote compiles that list into one flat file under ~/.cache/zsh. antidote
+# itself is sourced only when the list is newer than the compiled file, so a
+# normal startup reads a single script and does no plugin resolution. Deleting
+# the compiled file forces a rebuild.
+#
+# Called from .zshrc before .aliases, which is the authority on every name it
+# also defines. Sourcing the bundle inside a function is deliberate and safe:
+# aliases, functions and `typeset -g` values all survive it, and the only value
+# that stops reaching the shell is the git plugin's `git_version` scratch
+# variable.
+# Usage: plugins:load
+plugins:load() {
+  local list="${HOME}/.plugins"
+  local bundle="${HOME}/.cache/zsh/plugins.zsh"
+  local antidote="${HOMEBREW_PREFIX}/opt/antidote/share/antidote/antidote.zsh"
+
+  [[ -f "$list" ]] || return 0
+
+  # The docker, kubectl, helm, uv and gh plugins write generated completions
+  # here on first use, so it has to exist and sit on fpath before they load.
+  # .completions rebuilds fpath afterwards but keeps this entry.
+  export ZSH_CACHE_DIR="${HOME}/.cache/oh-my-zsh"
+  [[ -d "${ZSH_CACHE_DIR}/completions" ]] || mkdir -p "${ZSH_CACHE_DIR}/completions"
+  fpath=("${ZSH_CACHE_DIR}/completions" $fpath)
+
+  # zsh's completion cache, which several plugins reach for at load time via
+  # _retrieve_cache/_store_cache. It is off by default, and without it the
+  # composer plugin re-runs `composer global config bin-dir` on every shell to
+  # find its vendor path, measured at 236 ms against 6 ms once the cache
+  # answers. It has to be set here rather than in .completions, because the
+  # plugins ask for it while this function is still running.
+  zstyle ':completion:*' use-cache on
+  zstyle ':completion:*' cache-path "${ZSH_CACHE_DIR}/zcompcache"
+
+  # Several plugins call compdef as they load, to give their aliases the
+  # completion of the command behind them. compinit does not run until
+  # .completions, which has to stay last because zsh-syntax-highlighting only
+  # wraps widgets that already exist. Queue those calls and let .completions
+  # replay them. Running compinit early instead does not work, because a second
+  # compinit discards everything registered against the first.
+  typeset -ga COMPDEF_DEFERRED=()
+  (( ${+functions[compdef]} )) || \
+    compdef() { COMPDEF_DEFERRED+=( "${(j: :)${(q)@}}" ) }
+
+  if [[ ! "$bundle" -nt "$list" && -f "$antidote" ]]; then
+    [[ -d "${bundle:h}" ]] || mkdir -p "${bundle:h}"
+    source "$antidote"
+    antidote bundle < "$list" >| "$bundle"
+  fi
+
+  [[ -f "$bundle" ]] && source "$bundle"
+  return 0
 }
 
 # ----------------------------- Files & Archives ----------------------------- #
