@@ -270,6 +270,8 @@ brew "zlib"
 brew "zsh"
 # Real-time type-ahead completion for Zsh
 brew "zsh-autocomplete"
+# Additional completion definitions for zsh
+brew "zsh-completions"
 # Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
 # Zsh port of Fish shell's history search

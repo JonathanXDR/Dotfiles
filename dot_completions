@@ -10,6 +10,10 @@ if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   # Let zsh-autocomplete own its fpath entries. Sourcing it below re-adds
   # Completions and z-async, so drop any copies inherited from a parent shell,
   # which may point at a version that no longer exists.
+  #
+  # zsh-completions is a Brewfile formula (180 definitions for tools Homebrew
+  # does not complete itself, including mvn, flutter and scala). It goes first
+  # so a tool's own site-functions copy, which is usually newer, still wins.
   typeset -gU FPATH fpath
   local -a clean_fpath
   clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
