@@ -6,8 +6,23 @@ set -euo pipefail
 
 # Brewfile content hash (triggers a re-run when the Brewfile changes):
 # {{ include $brewfile_name | sha256sum }}
+#
+# Homebrew presence is part of the trigger too. Without it a skipped run would
+# record its state and never retry, so the packages would stay uninstalled even
+# after Homebrew arrives. With it, the state key differs between the two cases
+# and the step re-runs the day brew appears.
+# brew: {{ output "sh" "-c" "command -v brew >/dev/null 2>&1 && echo yes || echo no" | trim }}
 
 _ensure_brew
+
+# Exit 0 rather than 1, so a missing Homebrew cannot abort the apply and skip
+# every later script, including the every-apply keychain export and the
+# /etc/hosts repair. The presence marker above is what makes this retry.
+if ! _cmd_exists brew; then
+  _log warning "Skipped Homebrew packages (brew not installed)"
+  _log info "Install Homebrew from https://brew.sh, then re-apply"
+  exit 0
+fi
 
 BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
 
@@ -17,14 +32,14 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 _log info "Installing Homebrew packages from ${BREWFILE}…"
-if brew bundle --file="$BREWFILE"; then
+if brew bundle --file="$BREWFILE" --no-upgrade; then
   _log success "Installed Homebrew packages"
 else
   _log warning "Failed to install some Homebrew packages (see above)"
 fi
 
 _log info "Checking for packages not in ${BREWFILE}…"
-if brew bundle cleanup --file="$BREWFILE"; then
+if brew bundle cleanup --file="$BREWFILE" </dev/null; then
   _log success "Verified no unused Homebrew packages"
 else
   _log warning "Detected packages not in Brewfile (listed above)"

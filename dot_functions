@@ -140,7 +140,11 @@ alias:shadows() {
 run:daily() {
   local name="$1"; shift
   local stamp="${HOME}/.cache/daily/${name}"
-  local -a fresh=( ${stamp}(N.mh-24) )
+  # `mh-24` also matches a stamp dated in the future (clock skew, restored
+  # backup), which would gate the command off forever, so require a positive
+  # age. The cost is that a second shell starting in the same wall-clock second
+  # repeats the run once, which is cheaper than a permanently skipped update.
+  local -a fresh=( ${stamp}(N.mh-24ms+0) )
   (( ${#fresh} )) && return 0
 
   mkdir -p "${stamp:h}"
@@ -194,7 +198,7 @@ unset _tool
 
 # Rails needs its own guard rather than a bare cmd:exists. macOS ships
 # /usr/bin/rails, a stub whose only job is to print "Rails is not currently
-# installed", so the plain test always succeeds and the plugin would load its 70
+# installed", so the plain test always succeeds and the plugin would load its 73
 # aliases on a machine with no Rails.
 have:rails() {
   local bin
@@ -299,7 +303,14 @@ plugins:load() {
   if [[ ! "$bundle" -nt "$list" && -f "$antidote" ]]; then
     [[ -d "${bundle:h}" ]] || mkdir -p "${bundle:h}"
     source "$antidote"
-    antidote bundle < "$list" >| "$bundle"
+    # Write then move, as plugins:update does. `>|` truncates the bundle before
+    # antidote runs, so a failed rebuild would leave an empty file that the next
+    # line sources and whose mtime then defeats the check above for good.
+    if antidote bundle < "$list" >| "${bundle}.new"; then
+      command mv -f "${bundle}.new" "$bundle"
+    else
+      command rm -f "${bundle}.new"
+    fi
   fi
 
   [[ -f "$bundle" ]] && source "$bundle"
@@ -328,7 +339,7 @@ targz() {
 
   log info "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
   "${cmd}" -v "${tmpFile}" || return 1
-  [[ -f "${tmpFile}" ]] && rm "${tmpFile}"
+  [[ -f "${tmpFile}" ]] && command rm -f "${tmpFile}"
 
   local zippedSize
   zippedSize=$(stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
@@ -341,7 +352,7 @@ fs() {
   if (( $# )); then
     du -sh -- "$@"
   else
-    du -sh .[^.]* ./*
+    du -sh .[^.]*(N) ./*(N)
   fi
 }
 
@@ -441,16 +452,19 @@ getcertnames() {
 
 # Bundle corporate CA certificates into one PEM file for NODE_EXTRA_CA_CERTS.
 # Sources are SSL_BUNDLE_KEYCHAIN_CERTS (common names in the System keychain)
-# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma separated.
+# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma-separated.
 # Usage: ssl:bundle [output_path]
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
   mkdir -p "${output:h}"
 
   local tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' EXIT
+  # Bake the path in: a function-scoped EXIT trap runs after locals are popped,
+  # so a deferred "$tmp" would expand to the empty string and remove nothing.
+  trap "command rm -f ${(q)tmp}" EXIT
   local cert_count=0
 
+  local -a keychain_certs
   IFS=',' read -rA keychain_certs <<< "${SSL_BUNDLE_KEYCHAIN_CERTS:-}"
   local cn
   for cn in "${keychain_certs[@]}"; do
@@ -463,6 +477,7 @@ ssl:bundle() {
     fi
   done
 
+  local -a remote_certs
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
   local -a curl_args=(-fsSL)
   [[ -n "${http_proxy:-}" ]] && curl_args+=(--proxy "$http_proxy")
@@ -475,7 +490,7 @@ ssl:bundle() {
 
     if ! curl "${curl_args[@]}" -o "$raw" "$url"; then
       log warning "Failed to download ${url:t}"
-      rm -f "$raw"
+      command rm -f "$raw"
       continue
     fi
 
@@ -486,7 +501,7 @@ ssl:bundle() {
     else
       log warning "Skipped ${url:t} (not a valid PEM or DER certificate)"
     fi
-    rm -f "$raw"
+    command rm -f "$raw"
   done
 
   if ((cert_count == 0)); then
@@ -507,9 +522,10 @@ dns:change() {
   fi
 
   local network_service="$1"
+  local -a nameservers
   IFS=',' read -rA nameservers <<<"$2"
 
-  sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
+  sudo networksetup -setdnsservers "${network_service}" "${nameservers[@]}"
 }
 
 # Cisco VPN binary path (set via CISCO_VPN_BIN in .exports)
@@ -639,11 +655,6 @@ vpn:reset-filter() {
   open -a "Cisco Secure Client"
 }
 
-proxy:compose-addr() {
-  [[ $# -eq 3 ]] || return 1
-  printf "%s://%s:%s" "$1" "$2" "$3"
-}
-
 # Export every proxy variable the toolchain reads, and mirror the main ones
 # into the launchd session so GUI apps see them too. Omitted arguments fall
 # back to PROXY_PROTOCOL, PROXY_HOST, PROXY_PORT, and NO_PROXY from .exports,
@@ -661,8 +672,7 @@ proxy:set() {
     return 1
   fi
 
-  local proxy_addr
-  proxy_addr="$(proxy:compose-addr "${proxy_protocol}" "${proxy_host}" "${proxy_port}")" || return 1
+  local proxy_addr="${proxy_protocol}://${proxy_host}:${proxy_port}"
 
   export http_proxy="${proxy_addr}"
   export https_proxy="${proxy_addr}"
@@ -681,6 +691,13 @@ proxy:set() {
   launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
   launchctl setenv NO_PROXY "${no_proxy}" 2>/dev/null
+
+  # npm has no per-proxy registry setting, so .npmrc reads the active host from
+  # the environment. Only work machines define these, so this is a no-op elsewhere.
+  if [[ -n "${NPM_SWISSCOM_REGISTRY_PROXIED:-}" ]]; then
+    export NPM_SWISSCOM_REGISTRY="${NPM_SWISSCOM_REGISTRY_PROXIED}"
+    launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_SWISSCOM_REGISTRY_PROXIED}" 2>/dev/null
+  fi
 }
 
 # Clear everything proxy:set exported, in the shell and in the launchd session.
@@ -695,6 +712,13 @@ proxy:unset() {
   for var in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; do
     launchctl unsetenv "$var" 2>/dev/null
   done
+
+  # Swap the npm scope back to the direct host rather than unsetting it, because
+  # .npmrc has no fallback and would render the variable name literally.
+  if [[ -n "${NPM_SWISSCOM_REGISTRY_DIRECT:-}" ]]; then
+    export NPM_SWISSCOM_REGISTRY="${NPM_SWISSCOM_REGISTRY_DIRECT}"
+    launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_SWISSCOM_REGISTRY_DIRECT}" 2>/dev/null
+  fi
 }
 
 # Turn the proxy on or off depending on whether the corporate proxy answers.
@@ -736,7 +760,8 @@ proxyd:reload() {
   [[ -f "${plist}" ]] || { log error "Failed to find plist (${plist})"; return 1; }
 
   launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "${plist}"
+  launchctl bootstrap "gui/$(id -u)" "${plist}" \
+    || { log error "Failed to bootstrap ${label} (check the plist and retry)"; return 1; }
   log success "Reloaded ${label}"
 }
 
@@ -761,7 +786,7 @@ proxyd:status() {
   local _v
   echo ""
   echo "  Active (toggled by proxy:set/proxy:unset):"
-  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS; do
+  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS NPM_SWISSCOM_REGISTRY; do
     printf "    %-15s %s\n" "${_v}" "${(P)_v:-<unset>}"
   done
 
@@ -830,6 +855,12 @@ ssh:agent() {
 # (`$SECRETS_TOKENS_FILE`) mirrors it as a tab-separated backup, so a fresh
 # machine can re-import everything in one shot.
 # Tokens-file format: id<TAB>account<TAB>where<TAB>kind<TAB>comment<TAB>password
+#
+# Every read of that format below uses IFS=$'\t\t', and the doubled tab is
+# load-bearing. zsh treats an IFS whitespace character that appears twice as a
+# plain separator (zshparam(1), IFS), so runs of tabs stop collapsing and empty
+# where, kind, and comment fields survive the read. A single $'\t' would shift
+# every field after an empty one.
 #
 # Five metadata fields map to native macOS keychain attributes (the password is
 # the stored value, not an attribute):
@@ -927,17 +958,27 @@ _secrets:entries() {
   ' | LC_ALL=C sort -f
 }
 
-# Read the Where, Kind, and Comments attributes of a managed secret in one
-# `security` call. Emits one tab-separated line "<where>\t<kind>\t<comment>".
-# Missing fields render empty. Exits non-zero if the entry is absent.
+# Read the Where, Kind, and Comments attributes of a managed secret. Emits one
+# tab-separated line "<where>\t<kind>\t<comment>". Missing fields render empty.
+# Exits non-zero if the entry is absent. Reuses the _secrets:entries parser,
+# which is the only one that also decodes the hex form `security` prints for
+# any value holding non-ASCII bytes. Matches on the configured lookup field, so
+# it stays in step with _secrets:password rather than always keying on the Label.
 # Usage: _secrets:attrs <id> <account>
 _secrets:attrs() {
-  local raw where kind comment
-  raw="$(security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" "$_SECRETS_KEYCHAIN" 2>&1)" || return 1
-  where=$(  print -r -- "$raw" | sed -nE 's/^[[:space:]]*"svce"<blob>="([^"]*)".*$/\1/p')
-  kind=$(   print -r -- "$raw" | sed -nE 's/^[[:space:]]*"desc"<blob>="([^"]*)".*$/\1/p')
-  comment=$(print -r -- "$raw" | sed -nE 's/^[[:space:]]*"icmt"<blob>="([^"]*)".*$/\1/p')
-  print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
+  local id acct where kind comment key
+  while IFS=$'\t\t' read -r id acct where kind comment; do
+    case "${SECRETS_KEYCHAIN_LOOKUP_FIELD:-name}" in
+      where)   key="$where" ;;
+      kind)    key="$kind" ;;
+      comment) key="$comment" ;;
+      *)       key="$id" ;;
+    esac
+    [[ "$key" == "$1" && "$acct" == "$2" ]] || continue
+    print -r -- "${where}"$'\t'"${kind}"$'\t'"${comment}"
+    return 0
+  done < <(_secrets:entries)
+  return 1
 }
 
 # Print the password of a managed secret. Prints nothing and exits non-zero
@@ -962,15 +1003,22 @@ _secrets:install() {
 
 # Add a secret to the dotfiles keychain, then sync to iCloud Drive. The password
 # is read interactively, so it is never echoed or stored in shell history.
-# Refuses to create a duplicate (id, account) pair. That uniqueness is enforced
-# here, on the Label field, because macOS only enforces it on Service.
+# Refuses to create a duplicate (id, account) pair, which macOS does not enforce
+# itself, and refuses a (where, account) pair another entry already owns, since
+# `add-generic-password -U` matches on that pair and would overwrite the entry
+# holding it, password included.
 # Usage: secret:set <id> <account> <where> <kind> [comment]
 secret:set() {
   (( $# >= 4 && $# <= 5 )) || { echo "Usage: secret:set <id> <account> <where> <kind> [comment]" >&2; return 1; }
   local id="$1" account="$2" where="$3" kind="$4" comment="${5:-}" password
 
   if _secrets:password "$id" "$account" >/dev/null 2>&1; then
-    log error "Rejected $id / $account (already exists, use secret:rename to update)"
+    log error "Rejected $id / $account (already exists, run secret:remove first to replace the value)"
+    return 1
+  fi
+
+  if security find-generic-password -s "$where" -a "$account" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log error "Rejected $id / $account (another entry already holds this where and account, run secrets:list to find it)"
     return 1
   fi
 
@@ -1002,7 +1050,8 @@ secret:copy() {
   password="$(_secrets:password "$1" "$2")" \
     || { log error "Failed to find $1 / $2"; return 1; }
 
-  printf '%s' "$password" | pbcopy
+  printf '%s' "$password" | pbcopy \
+    || { log error "Failed to copy $1 / $2 to the clipboard"; return 1; }
   snapshot=$(printf '%s' "$password" | shasum -a 256 | awk '{print $1}')
   unset password
 
@@ -1036,13 +1085,17 @@ secret:rename() {
     return 1
   }
   local old_id="$1" old_acct="$2" new_id="$3" new_acct="$4" password new_where new_kind new_comment
-  local same_pair=0
-  [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_pair=1
+  # Two different notions of "same entry" are in play. same_lookup answers
+  # "would the target collide with a different entry under the lookup field",
+  # while same_storage answers "does add-generic-password -U update this item
+  # in place", which macOS decides from (Service, Account) alone.
+  local same_lookup=0
+  [[ "$old_id" == "$new_id" && "$old_acct" == "$new_acct" ]] && same_lookup=1
 
   password="$(_secrets:password "$old_id" "$old_acct")" \
     || { log error "Failed to find $old_id / $old_acct"; return 1; }
 
-  if (( ! same_pair )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
+  if (( ! same_lookup )) && _secrets:password "$new_id" "$new_acct" >/dev/null; then
     log error "Rejected $new_id / $new_acct (target already exists)"
     return 1
   fi
@@ -1051,11 +1104,26 @@ secret:rename() {
   IFS=$'\t\t' read -r cur_where cur_kind cur_comment < <(_secrets:attrs "$old_id" "$old_acct")
   new_where="${5:-$cur_where}"
   new_kind="${6:-$cur_kind}"
-  [[ -n "$new_kind" ]] || new_kind="$new_id"
   new_comment="${7:-$cur_comment}"
 
+  local same_storage=0
+  [[ "$new_where" == "$cur_where" && "$new_acct" == "$old_acct" ]] && same_storage=1
+
+  # Writing a (Service, Account) pair that belongs to another entry would
+  # replace that entry instead of moving this one.
+  if (( ! same_storage )) \
+    && security find-generic-password -s "$new_where" -a "$new_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log error "Rejected $new_id / $new_acct (another entry already holds this where and account, run secrets:list to find it)"
+    return 1
+  fi
+
   _secrets:install "$new_id" "$new_acct" "$new_where" "$new_kind" "$password" "$new_comment" || return 1
-  (( same_pair )) || security delete-generic-password "$_SECRETS_LOOKUP_FLAG" "$old_id" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
+  # Only a changed storage pair leaves the original item behind, and it is
+  # addressed by that pair, because the new item may now share the old Label.
+  if (( ! same_storage )) \
+    && ! security delete-generic-password -s "$cur_where" -a "$old_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+    log warning "Skipped removing $old_id / $old_acct (copy left behind, remove it with secret:remove)"
+  fi
 
   log success "Renamed $old_id / $old_acct → $new_id / $new_acct ($new_kind)"
   secrets:export
@@ -1083,6 +1151,12 @@ secrets:list() {
 # The keychain stays the source of truth. Entries it lacks are imported from the
 # file (for example after an iCloud sync from another machine), while stale file
 # passwords (drift or placeholder) are left for secrets:export to overwrite.
+# A password of the literal string "placeholder" is a stub row from older tokens
+# files (secret:set used to append one). It is reported, never imported. Restore
+# the real value with secret:set, or drop the row by running secrets:export.
+# A "conflict" row is one whose Where and Account already belong to a different
+# keychain entry. It is reported, never imported, because writing it would
+# replace that entry. Run secrets:list to find the owner.
 # Exits non-zero while any entry still needs attention.
 secrets:import() {
   if [[ ! -f "$_SECRETS_TOKENS_FILE" ]]; then
@@ -1100,6 +1174,11 @@ secrets:import() {
     if (( rc == 44 )); then    # errSecItemNotFound, the entry is definitively absent
       if [[ -z "$file_pw" || "$file_pw" == placeholder ]]; then
         state="missing"; (( ++drift ))
+      # Absent under the lookup field is not the same as absent in storage.
+      # macOS keys generic passwords by (Service, Account), so importing a row
+      # whose pair another entry already owns would overwrite that entry.
+      elif security find-generic-password -s "$where" -a "$acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+        state="conflict"; (( ++drift ))
       elif _secrets:install "$id" "$acct" "$where" "$kind" "$file_pw" "$comment"; then
         state="imported"; (( ++imported ))
       else
@@ -1130,6 +1209,36 @@ secrets:import() {
   log success "Synced $total / $total entries"
 }
 
+# Read the password a previous export recorded for an entry. Lets secrets:export
+# carry a value forward when the keychain read fails, instead of dropping the
+# row. Exits non-zero when the file holds no row for the pair.
+# Usage: _secrets:backed-up-password <id> <account>
+_secrets:backed-up-password() {
+  [[ -f "$_SECRETS_TOKENS_FILE" ]] || return 1
+  local f_id f_acct f_where f_kind f_comment f_pw
+  while IFS=$'\t\t' read -r f_id f_acct f_where f_kind f_comment f_pw; do
+    [[ -z "$f_id" || "$f_id" == \#* ]] && continue
+    if [[ "$f_id" == "$1" && "$f_acct" == "$2" ]]; then
+      print -r -- "$f_pw"
+      return 0
+    fi
+  done < "$_SECRETS_TOKENS_FILE"
+  return 1
+}
+
+# Summarise the entries secrets:export could not read, keeping the two outcomes
+# apart. A carried-over entry still has its value in the backup, a dropped one
+# does not, so reporting them under one heading would make real loss look
+# temporary. The status stays zero either way, because secrets:export is the
+# tail call of secret:set, secret:remove and secret:rename, and one unreadable
+# entry must not make an otherwise successful command report failure.
+# Usage: _secrets:report-unread <kept> <dropped>
+_secrets:report-unread() {
+  (( $1 )) && log warning "Carried $1 entry(s) over from the previous backup (failed to read them)"
+  (( $2 )) && log error "Dropped $2 entry(s) from the backup (failed to read, with no backed-up value to keep)"
+  return 0
+}
+
 # Atomically rewrite the iCloud tokens file from the current keychain values.
 # Reads the keychain itself (the source of truth), so entries added outside
 # secret:set are exported too. File entries that have vanished from the keychain
@@ -1138,9 +1247,9 @@ secrets:import() {
 secrets:export() {
   _secrets:ensure-tokens-file
 
-  local tmp id account where kind comment password count=0
+  local tmp id account where kind comment password prior count=0 kept=0 dropped=0
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' EXIT
+  trap "command rm -f ${(q)tmp}" EXIT
 
   _secrets:write-header "$tmp"
   while IFS=$'\t\t' read -r id account where kind comment; do
@@ -1149,15 +1258,24 @@ secrets:export() {
     if password="$(security find-generic-password -s "$where" -a "$account" -w "$_SECRETS_KEYCHAIN" 2>/dev/null)"; then
       print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${password}" >> "$tmp"
       (( ++count ))
+    # A read can fail for one entry alone (an item added outside secret:set has
+    # no -A ACL, so `security` prompts and a denial fails just that read). Carry
+    # the previous backup value forward rather than dropping the row for good.
+    # Metadata still comes from the keychain, so edits keep propagating.
+    elif prior="$(_secrets:backed-up-password "$id" "$account")" && [[ -n "$prior" ]]; then
+      print -r -- "${id}"$'\t'"${account}"$'\t'"${where}"$'\t'"${kind}"$'\t'"${comment}"$'\t'"${prior}" >> "$tmp"
+      (( ++kept ))
+      log warning "Kept the backed-up value for $id / $account (failed to read password)"
     else
-      log warning "Skipped $id / $account (failed to read password)"
+      (( ++dropped ))
+      log error "Dropped $id / $account from the backup (failed to read password, no backed-up value to keep)"
     fi
   done < <(_secrets:entries)
 
   # Refuse to clobber a populated backup from an empty keychain (e.g. a fresh
   # machine whose iCloud backup synced down after bootstrap already ran).
   if (( count == 0 )) && grep -qvE '^[[:space:]]*#|^[[:space:]]*$' "$_SECRETS_TOKENS_FILE"; then
-    rm -f "$tmp"
+    command rm -f "$tmp"
     trap - EXIT
     log error "Refused to overwrite populated tokens file from an empty keychain (run secrets:import first)"
     return 1
@@ -1170,14 +1288,16 @@ secrets:export() {
     <(awk -F'\t' '!/^[[:space:]]*#/ && NF>=2 {print $1 "\t" $2}' "$tmp" | sort))
 
   if cmp -s "$tmp" "$_SECRETS_TOKENS_FILE"; then
-    rm -f "$tmp"
+    command rm -f "$tmp"
     trap - EXIT
+    _secrets:report-unread "$kept" "$dropped"
     log success "Verified $count secret(s) already in sync"
     return 0
   fi
 
   mv "$tmp" "$_SECRETS_TOKENS_FILE"
   trap - EXIT
+  _secrets:report-unread "$kept" "$dropped"
   log success "Exported $count secret(s) to iCloud Drive"
 }
 
@@ -1190,7 +1310,7 @@ sudo:touch-id() {
   local BACKUP
   BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
 
-  trap 'rm -f "$BACKUP"' EXIT
+  trap "command rm -f ${(q)BACKUP}" EXIT
 
   log info "Backing up ${FILE} → ${BACKUP}…"
   sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
@@ -1238,9 +1358,10 @@ hostname:set() {
 
   local new_hostname="$1"
 
-  sudo scutil --set ComputerName "$new_hostname"
-  sudo scutil --set HostName "$new_hostname"
-  sudo scutil --set LocalHostName "$new_hostname"
+  sudo scutil --set ComputerName "$new_hostname" \
+    && sudo scutil --set HostName "$new_hostname" \
+    && sudo scutil --set LocalHostName "$new_hostname" \
+    || { log error "Failed to set hostname \"$new_hostname\""; return 1; }
 
   log success "Set hostname \"$new_hostname\" (restart may be required)"
 }
@@ -1255,6 +1376,7 @@ dock:reset() {
   killall Dock
   sleep 5
 
+  local -a apps
   IFS=',' read -rA apps <<< "${DOCK_APPS:-}"
   local app
   for app in "${apps[@]}"; do
@@ -1307,6 +1429,11 @@ _docker:bulk() {
 # with a space into one pattern rather than treated as alternatives.
 # Usage: docker:cleanup [keep_pattern]
 docker:cleanup() {
+  docker info &>/dev/null || {
+    log error "Failed to reach the Docker daemon (start Docker Desktop and retry)"
+    return 1
+  }
+
   local containers images
   if (( $# == 0 )); then
     containers="$(docker ps -aq 2>/dev/null)"   || true
@@ -1377,15 +1504,16 @@ brew:check() {
   local deprecated outdated
 
   deprecated=$(brew info --installed --json=v2 2>/dev/null \
-    | jq -r '.formulae[] | select(.deprecated or .disabled)
-      | "  \(.name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
+    | jq -r '(.formulae[], .casks[]) | select(.deprecated or .disabled)
+      | "  \(.token // .name) (\(.deprecation_reason // .disable_reason // "unknown"))"' 2>/dev/null)
 
   [[ -n "$deprecated" ]] && { log warning "Detected deprecated Homebrew packages"; echo "$deprecated"; }
 
   outdated=$(brew outdated --quiet 2>/dev/null)
   [[ -n "$outdated" ]] || return 0
 
-  log info "Detected ${#${(f)outdated}} outdated Homebrew package(s) (run 'brew upgrade' to update)"
+  local -a outdated_lines=( ${(f)outdated} )
+  log info "Detected ${#outdated_lines} outdated Homebrew package(s) (run 'brew upgrade' to update)"
 }
 
 # Rewrite this machine's Brewfile from what Homebrew currently has installed.
@@ -1419,7 +1547,7 @@ brew:dump() {
 # Record the Zed extensions installed on this machine so a fresh machine can
 # restore them. Zed has no CLI to export the list and `brew bundle` covers only
 # VS Code and its forks, so the list comes from the index Zed maintains itself.
-# dot_config/zed/settings.json.tmpl renders it as auto_install_extensions, which
+# dot_config/zed/private_settings.json.tmpl renders it as auto_install_extensions, which
 # Zed acts on at startup.
 zed:dump() {
   cmd:exists jq || { log error "Failed to find jq"; return 1; }
@@ -1447,7 +1575,7 @@ zed:dump() {
   # `print -rl` on an empty array still emits a blank line.
   {
     print -r -- "# Zed extensions installed on this machine, rendered into"
-    print -r -- "# auto_install_extensions by dot_config/zed/settings.json.tmpl."
+    print -r -- "# auto_install_extensions by dot_config/zed/private_settings.json.tmpl."
     print -r -- "# Regenerate with zed:dump after installing or removing an extension."
     print -r -- "zed_extensions = ["
     (( ${#entries} )) && print -rl -- "${entries[@]}"
@@ -1467,10 +1595,10 @@ if cmd:exists git; then
 fi
 
 # Delete a branch locally and on origin.
-# Usage: gdb <branch>
-gdb() {
+# Usage: git:delete-branch <branch>
+git:delete-branch() {
   if [[ -z "$1" ]]; then
-    echo "Usage: gdb <branch>" >&2
+    echo "Usage: git:delete-branch <branch>" >&2
     return 1
   fi
   git branch -d -- "$1" && git push origin :"$1"
@@ -1487,10 +1615,10 @@ gas() {
 }
 
 # Interactively rebase the last N commits.
-# Usage: grb <commit_count>
-grb() {
+# Usage: git:rebase <commit_count>
+git:rebase() {
   if [[ -z "$1" ]]; then
-    echo "Usage: grb <commit_count>" >&2
+    echo "Usage: git:rebase <commit_count>" >&2
     return 1
   fi
   git rebase -i "HEAD~$1"
@@ -1512,8 +1640,16 @@ git:diff() {
   local diff_args=("$source_branch...$target_branch")
   [[ -n "$exclude_pattern" ]] && diff_args+=(-- ":!$exclude_pattern")
 
+  # Collect the file list before writing anything, so a bad revision leaves the
+  # clipboard alone instead of clearing it and then reporting the failure.
+  local -a files
+  files=( ${(f)"$(git diff --name-only "${diff_args[@]}")"} ) || {
+    log error "Failed to list changed files (check '${source_branch}' and '${target_branch}' both exist)"
+    return 1
+  }
+
   local file
-  git diff --name-only "${diff_args[@]}" | while read -r file; do
+  for file in "${files[@]}"; do
     printf '\n%s:\n\n' "$file"
     git show "$target_branch:$file"
   done | pbcopy
@@ -1541,7 +1677,7 @@ chezmoi:cleanup() {
   local gpg_locks
   gpg_locks=("$HOME"/.gnupg/public-keys.d/pubring.db*.lock(N))
   if (( ${#gpg_locks[@]} )); then
-    rm -f "${gpg_locks[@]}"
+    command rm -f "${gpg_locks[@]}"
     log success "Removed ${#gpg_locks[@]} stale GnuPG lock file(s)"
   fi
 }
@@ -1555,7 +1691,7 @@ chezmoi:sync() {
   local home_dir="${HOME}"
   local updated=0
   local skipped=0
-  local src tmp rel
+  local src tmp rel target
 
   while IFS= read -r target; do
     src="$(chezmoi source-path "$target" 2>/dev/null)" || continue
@@ -1564,12 +1700,15 @@ chezmoi:sync() {
     [[ "$src" == *".chezmoi"* || "$src" == *"chezmoiscripts"* ]] && continue
     [[ ! -f "$target" ]] && continue
 
-    # Reverse homeDir substitution on the target
+    # Reverse homeDir substitution on the target. The trap is re-registered per
+    # iteration with the path baked in, because a function-scoped EXIT trap runs
+    # after locals are popped and a deferred "$tmp" would expand to nothing.
     tmp="$(mktemp)"
+    trap "command rm -f ${(q)tmp}" EXIT
     sed "s|${home_dir}|{{ .chezmoi.homeDir }}|g" "$target" > "$tmp"
 
     if command diff -q "$src" "$tmp" >/dev/null 2>&1; then
-      rm -f "$tmp"
+      command rm -f "$tmp"
       continue
     fi
 
@@ -1579,12 +1718,12 @@ chezmoi:sync() {
     if sed 's/{{[^}]*\.chezmoi\.homeDir[^}]*}}//g' "$src" | grep -q '{{'; then
       log warning "Skipped ${rel} (has secrets/variables, use \`chezmoi merge ${target}\`)"
       (( skipped++ ))
-      rm -f "$tmp"
+      command rm -f "$tmp"
       continue
     fi
 
     cp "$tmp" "$src"
-    rm -f "$tmp"
+    command rm -f "$tmp"
     log success "Synced ${rel}"
     (( updated++ ))
   done < <(chezmoi managed --include=files --path-style=absolute)

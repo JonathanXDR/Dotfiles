@@ -1,5 +1,5 @@
 {{- /* Look up a managed secret by the configured keychain field.
        Args: (list "<id>" "<account>" "<keychain-name>" "<lookup-field>")
        The last two usually come from the caller's chezmoi data. */ -}}
-{{- $flag := index (dict "name" "-l" "where" "-s" "kind" "-D" "comment" "-j") (index . 3) -}}
-{{- output "sh" "-c" (printf "security find-generic-password %s '%s' -a '%s' -w \"$HOME/Library/Keychains/%s.keychain-db\" 2>/dev/null || true" $flag (index . 0) (index . 1) (index . 2)) | trim -}}
+{{- $flag := index (dict "name" "-l" "where" "-s" "kind" "-D" "comment" "-j") (index . 3) | default "-l" -}}
+{{- output "sh" "-c" "security find-generic-password \"$1\" \"$2\" -a \"$3\" -w \"$HOME/Library/Keychains/$4.keychain-db\" 2>/dev/null || true" "keychain" $flag (index . 0) (index . 1) (index . 2) | trim -}}

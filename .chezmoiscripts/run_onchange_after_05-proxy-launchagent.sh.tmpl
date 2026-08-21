@@ -14,13 +14,14 @@ if [[ ! -f "${PLIST_PATH}" ]]; then
   exit 0
 fi
 
-mkdir -p "${HOME}/.cache"
-
 launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "${PLIST_PATH}"
 
 _log success "Bootstrapped proxy LaunchAgent (${PLIST_LABEL})"
 {{ else -}}
-# Not a work machine, so make sure the agent is not loaded.
+# Not a work machine. bootout only unloads for the current session, and launchd
+# bootstraps every plist in ~/Library/LaunchAgents again at the next login, so
+# the plist itself has to go.
 launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
+rm -f "${PLIST_PATH}"
 {{ end -}}

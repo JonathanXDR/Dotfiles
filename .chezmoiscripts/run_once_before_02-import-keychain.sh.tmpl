@@ -24,7 +24,7 @@ if [[ ! -f "$SECRETS_TOKENS_FILE" ]]; then
   exit 0
 fi
 
-_ensure_icloud "$SECRETS_TOKENS_FILE" || true
+_ensure_icloud "$SECRETS_TOKENS_FILE"
 
 zsh -c 'source "$DOTFILES_SOURCE/dot_functions" && secrets:import' \
-  || _log warning "Detected entries needing attention (run secrets:import after apply)"
+  || _log warning "Detected entries needing attention (see the report above)"

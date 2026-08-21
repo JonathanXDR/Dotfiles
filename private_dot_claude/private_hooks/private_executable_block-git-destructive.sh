@@ -31,7 +31,7 @@ scan=$(printf '%s\n' "$cmd" | awk '
   # pairing, heredoc markers (quoted or not) survive as <<TAG, a here-string
   # <<< or a << inside quotes is not a marker. Arithmetic $(( )) spans are
   # consumed whole so their shifts never look like markers. Skipped lines
-  # are held; if the terminator never appears the parse was wrong, and the
+  # are held. If the terminator never appears the parse was wrong, and the
   # held lines are re-emitted so a live command is never silently dropped.
   function stripline(s,   out, i, c, c2, q, t, n) {
     out = ""; q = ""; n = length(s); i = 1
@@ -89,11 +89,11 @@ gitpre='(^|[^[:alnum:]_./-])git([[:space:]]+-([^[:space:]]|\\ )+([[:space:]]+(\\
 # flag and "(cd x && git reset --hard)" still terminates the token.
 end='([[:space:];&|<>)`]|$)'
 
-# Two derived views: pathview removes redirect expressions, so a redirect
-# target (./out.log, /dev/null) is never read as a pathspec and a redirect
-# before " -- " cannot hide one; flagview truncates each segment at its
-# " -- " end-of-options marker, so a pathspec resembling a flag (a file
-# named -f) is never read as one.
+# Two derived views. The pathview copy removes redirect expressions, so a
+# redirect target (./out.log, /dev/null) is never read as a pathspec and a
+# redirect before " -- " cannot hide one. The flagview copy truncates each
+# segment at its " -- " end-of-options marker, so a pathspec resembling a
+# flag (a file named -f) is never read as one.
 pathview=$(printf '%s\n' "$scan" | sed -E 's/[0-9]*[<>]{1,3}[[:space:]]*(&[0-9]*|[^[:space:];&|)]*)//g')
 flagview=$(printf '%s\n' "$scan" | sed -E 's/ -- [^;&|)]*//g')
 
@@ -112,7 +112,7 @@ elif printf '%s\n' "$scan" | grep -Eq "${gitpre}restore([^;&|]|$)"; then
   # Judge each command segment on its own flags: --staged on one restore must
   # not disarm the guard for a plain restore elsewhere in a compound command.
   # -S/-W are the short forms of --staged/--worktree, also in combined flags.
-  # Flags live before the segment's " -- " marker; pathspecs after it (a
+  # Flags live before the segment's " -- " marker. Pathspecs after it (a
   # file named --help or -SW) are not flags.
   while IFS= read -r seg; do
     printf '%s\n' "$seg" | grep -Eq "${gitpre}restore${end}" || continue

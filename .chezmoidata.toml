@@ -1,5 +1,5 @@
 # Shared non-secret data for chezmoi templates, available as {{ .editor }} and
-# so on. Most values reach the shell through dot_exports.tmpl, which assigns
+# so on. Most values reach the shell through private_dot_exports.tmpl, which assigns
 # each one to the shell variable named in its comment. Those are exported,
 # except HISTSIZE, SAVEHIST and HISTORY_IGNORE, which stay unexported because
 # zsh reads them as shell parameters.
@@ -10,7 +10,7 @@ history_size = 32768         # HISTSIZE and SAVEHIST
 autostart_ssh_agent = false  # AUTOSTART_SSH_AGENT
 
 # Command prefixes kept out of shell history, via HISTORY_IGNORE and the
-# zshaddhistory hook in dot_exports.tmpl
+# zshaddhistory hook in private_dot_exports.tmpl
 history_ignore = ["claude", "codex", "copilot", "gh copilot"]
 
 # Hostname that hostname:reset restores, exported as DEFAULT_HOSTNAME
@@ -36,6 +36,18 @@ trash_skip = ["node_modules"]
 
 # Binary that the vpn:* functions drive, exported as CISCO_VPN_BIN
 cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
+
+# Hosts serving the @swisscom npm scope. Both front the same virtual repo, but
+# only the proxied one is reachable through the corporate proxy and only the
+# direct one without it. private_dot_exports.tmpl exports them, proxy:set,
+# proxy:unset and proxy-watchd swap the active one, and .npmrc reads the result.
+# Applied on work machines only.
+npm_swisscom_registry_proxied = "https://artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
+npm_swisscom_registry_direct = "https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
+
+# Host vpn:full-refresh reconnects to when called without an argument,
+# exported as VPN_DEFAULT_HOST. Empty means the argument is required.
+vpn_default_host = ""
 
 # Dedicated keychain for managed secrets, separate from the login keychain.
 # `keychain_name` becomes ~/Library/Keychains/<name>.keychain-db.

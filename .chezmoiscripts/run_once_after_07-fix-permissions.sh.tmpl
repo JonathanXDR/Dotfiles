@@ -8,13 +8,16 @@ set -euo pipefail
 
 _ensure_brew
 
-if _cmd_exists brew; then
-  BREW_PREFIX="$(brew --prefix)"
-  for dir in "${BREW_PREFIX}/share/zsh-completions" "${BREW_PREFIX}/share/zsh/site-functions"; do
-    if [[ -d "$dir" ]]; then
-      chmod g-w "$dir" 2>/dev/null || true
-    fi
-  done
+if ! _cmd_exists brew; then
+  _log warning "Skipped zsh completion permissions (no brew)"
+  exit 0
 fi
 
-_log success "Fixed zsh completion directory permissions"
+BREW_PREFIX="$(brew --prefix)"
+for dir in "${BREW_PREFIX}/share/zsh-completions" "${BREW_PREFIX}/share/zsh/site-functions"; do
+  if [[ -d "$dir" ]]; then
+    chmod g-w "$dir" 2>/dev/null || true
+  fi
+done
+
+_log success "Verified zsh completion directory permissions"

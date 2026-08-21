@@ -1,29 +1,11 @@
 # Shared helper functions for chezmoi run scripts (bash-compatible).
 
 # Logger with a colored "<Level>:" prefix followed by an action-first message.
-# Convention:
-#   1. Every message starts with a verb, in one of four forms.
-#      a. Past tense for completed work (Imported / Skipped / Verified /
-#         Detected / Removed).
-#      b. "Failed to <verb>" for failures.
-#      c. Present participle plus a single … for work in progress
-#         (Installing… / Reading…).
-#      d. An imperative remedy hint telling the user what to do next
-#         (Add tokens manually via 'secret:set' / Run 'brew bundle cleanup'
-#         to remove them).
-#      The … belongs to form (c) alone, so a past-tense message never
-#      carries one.
-#   2. The message body MUST NOT contain a formatting colon, since the only
-#      colon in the rendered line is the one in the "<Level>:" prefix. Put
-#      the detail in parentheses instead.
-#      ✓ "Success: Imported 12 secrets"
-#      ✗ "Success: Imported: 12 secrets"      (two colons)
-#      ✗ "Warning: Detected packages:"        (trailing list-colon)
-#   Colons inside data values (URLs, function names like `secret:rename`,
-#   port numbers like `:8080`) are fine, since those aren't formatting.
+# The bash counterpart of log() in dot_functions, which documents the message
+# convention in full. Keep the convention and the levels in sync.
 _log() {
   local level="$1"; shift
-  local red green yellow blue gray reset
+  local red='' green='' yellow='' blue='' gray='' reset=''
 
   if [[ -t 2 ]]; then
     red='\033[0;31m' green='\033[0;32m' yellow='\033[0;33m'
@@ -35,7 +17,7 @@ _log() {
     success|green)  printf "${green}Success:${reset} %s\n" "$*" ;;
     warning|yellow) printf "${yellow}Warning:${reset} %s\n" "$*" >&2 ;;
     info|blue)      printf "${blue}Info:${reset}    %s\n" "$*" ;;
-    debug)          [[ -n "${DEBUG:-}" ]] && printf "${gray}Debug:${reset}   %s\n" "$*" >&2 ;;
+    debug)          [[ -z "${DEBUG:-}" ]] || printf "${gray}Debug:${reset}   %s\n" "$*" >&2 ;;
     *)              echo "$level" "$@" ;;
   esac
 }

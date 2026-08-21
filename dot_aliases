@@ -26,7 +26,7 @@ unalias rm cp mv 2>/dev/null
 # after this pass, so only plugin entries are considered.
 alias:prune-suffix
 
-# Global aliases expand anywhere on the line, so the two whose pager is missing
+# Global aliases expand anywhere on the line, so the two whose tool is missing
 # would fire on any bare M or P. The names have to be quoted, because unquoted
 # they are global aliases themselves and expand before unalias ever sees them,
 # leaving it with no arguments. zsh has no `unalias -g` either.
@@ -92,12 +92,14 @@ cmd:exists bat     && alias cat='bat --paging=never'
 # throwaway directories never pile up in ~/.local/share/Trash.
 if cmd:exists trash-put; then
   rm() {
-    local flags=() delete=() trash=()
+    local arg flags=() delete=() trash=()
     for arg in "$@"; do
       case "$arg" in
         -*) flags+=("$arg") ;;
         *)
-          if [[ -n "${TRASH_SKIP:-}" && "${arg##*/}" == @(${TRASH_SKIP}) ]]; then
+          # :t strips any trailing slash before taking the basename, which ${arg##*/}
+          # does not, so a completed `node_modules/` still matches TRASH_SKIP.
+          if [[ -n "${TRASH_SKIP:-}" && "${arg:t}" == (${~TRASH_SKIP}) ]]; then
             delete+=("$arg")
           else
             trash+=("$arg")
@@ -105,8 +107,15 @@ if cmd:exists trash-put; then
           ;;
       esac
     done
-    (( ${#delete[@]} )) && command rm "${flags[@]}" "${delete[@]}"
-    (( ${#trash[@]} ))  && trash-put "${flags[@]}" "${trash[@]}"
+    # No operands, whether the line was empty or only flags. Hand it to the real
+    # rm so the caller gets its usage error and exit status instead of a silent 0.
+    (( ${#delete[@]} + ${#trash[@]} )) || { command rm "$@"; return $? }
+    # Both branches are optional, so the exit status is collected explicitly
+    # rather than left to whichever arithmetic test happens to run last
+    local ret=0
+    (( ${#delete[@]} )) && { command rm "${flags[@]}" "${delete[@]}" || ret=$? }
+    (( ${#trash[@]} ))  && { trash-put "${flags[@]}" "${trash[@]}" || ret=$? }
+    return $ret
   }
 fi
 
@@ -116,7 +125,6 @@ alias ssh='ssh -o AddKeysToAgent=yes'
 alias bash='PERMIT_BASH=true bash'
 
 # Restart the shell in place, as a login shell
-# shellcheck disable=SC2139
 alias:safe reload="exec ${SHELL} -l"
 
 # --------------------------------- AI Tools --------------------------------- #
@@ -170,8 +178,10 @@ alias:safe pumpitup="osascript -e 'set volume output volume 100'"
 
 # -------------------------------- Networking -------------------------------- #
 
-# Local IP addresses
+# Public IP via OpenDNS
 alias:safe ip="dig +short myip.opendns.com @resolver1.opendns.com"
+
+# Local IP addresses
 alias:safe localip="ipconfig getifaddr en0"
 alias:safe ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
 
@@ -179,7 +189,7 @@ alias:safe ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\
 alias:safe myip='curl -s ifconfig.me'
 
 # Show active network interfaces
-alias:safe ifactive="ifconfig | awk '/^[^ ]/{iface=\$1} /status: active/{print iface}'"
+alias:safe ifactive="ifconfig | awk '/^[^[:space:]]/{iface=substr(\$1, 1, length(\$1)-1)} /status: active/{print iface}'"
 
 # Show listening ports
 alias:safe ports='lsof -i -P -n | grep LISTEN'
@@ -251,12 +261,12 @@ alias:safe genpw='openssl rand -base64 16'
 alias:safe uuid='uuidgen | tr A-Z a-z'
 
 # Top 20 most-used commands from history
-alias:safe myhist='history | awk "{print \$2}" | sort | uniq -c | sort -rn | head -20'
+alias:safe myhist='history 1 | awk "{print \$2}" | sort | uniq -c | sort -rn | head -20'
 
 # --------------------------- Time / Productivity ---------------------------- #
 
 # Stopwatch (press enter to stop)
-alias:safe timer='time read -p "Press enter to stop"'
+alias:safe timer='time (read "?Press enter to stop")'
 
 # Get week number
 alias:safe week='date +%V'
@@ -286,7 +296,7 @@ cmd:exists docker && {
 
 # Polite / British
 alias:safe please='sudo '
-alias:safe pretty-please='sudo !!'
+alias:safe pretty-please='sudo $(fc -ln -1)'
 alias:safe cheers='exit'
 alias:safe ta='exit'
 alias:safe gtfo='exit'
@@ -321,18 +331,15 @@ alias:safe kill-it='pkill -f'
 # ------------------------------ Editor & Config ----------------------------- #
 
 # Prefer neovim where available (deliberate shadows of vi/vim/nvim)
-if [[ ! -L "$(which "${EDITOR}")" ]]; then
-  if cmd:exists nvim.appimage; then
-    alias vi=nvim.appimage
-    alias vim=nvim.appimage
-    alias nvim=nvim.appimage
-  elif cmd:exists nvim; then
-    alias vi=nvim
-    alias vim=nvim
-  elif cmd:exists vim; then
-    alias vi=vim
-    alias vim=vim
-  fi
+if cmd:exists nvim.appimage; then
+  alias vi=nvim.appimage
+  alias vim=nvim.appimage
+  alias nvim=nvim.appimage
+elif cmd:exists nvim; then
+  alias vi=nvim
+  alias vim=nvim
+elif cmd:exists vim; then
+  alias vi=vim
 fi
 
 # Edit the shell config and the exports through their chezmoi sources
@@ -344,12 +351,14 @@ alias:safe e='$EDITOR .'
 
 # ------------------------------------ Git ----------------------------------- #
 # The git plugin defines about 200 aliases and loads first, so the names below
-# are the ones this file deliberately keeps. Each one differs from the plugin's
-# in meaning rather than in flags: gst is a contributor shortlog rather than
-# status, gpu pushes to the default remote rather than upstream, gau adds an
-# upstream remote rather than staging tracked files, gca takes the message
-# inline, and gwip keeps GPG signing, which the plugin's version disables. Four
-# more names (gba, gbd, gcl, glg) were dropped so the plugin's versions win.
+# are the ones this file deliberately keeps. Five differ from the plugin's in
+# meaning: gst is a contributor shortlog rather than status, gpu pushes to the
+# default remote rather than upstream, gau adds an upstream remote rather than
+# staging tracked files, gca takes the message inline, and gwip keeps GPG
+# signing, which the plugin's version disables. glo and gclean differ only in
+# flags, and g, gaa, gb, gco, gcb, gd and gds are restated verbatim so this
+# file stays the single place to read them. Four more names (gba, gbd, gcl,
+# glg) were dropped so the plugin's versions win.
 
 alias:safe g="git"
 alias:safe gs="git status"
@@ -373,7 +382,7 @@ alias:safe glo='git log --oneline --graph --decorate'
 alias:safe gwip='git add -A && git commit -m "wip"'
 alias:safe gclean='git clean -fd'
 
-# ------------------------------- Suffix Alias ------------------------------- #
+# ------------------------------ Suffix Aliases ------------------------------ #
 # Open these file types in $EDITOR by naming them. `alias -s` takes a different
 # syntax that alias:safe cannot wrap.
 

@@ -38,14 +38,12 @@
     "mcp-server-dev@claude-plugins-official": true,
     "microsoft-docs@claude-plugins-official": true,
     "notion@claude-plugins-official": true,
-    "nuxtseo-content@nuxt-seo-claude-plugins": true,
     "playground@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "plugin-dev@claude-plugins-official": true,
     "postman@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
     "prisma@claude-plugins-official": true,
-    "product-tracking-skills@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
     "railway@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
@@ -74,13 +72,6 @@
         "source": "directory",
         "path": "{{ .chezmoi.homeDir }}/.claude/plugins/marketplaces/gitkraken"
       }
-    },
-    "nuxt-seo-claude-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "nuxt-seo-pro/claude-plugins"
-      },
-      "autoUpdate": true
     }
   },
   "hooks": {
@@ -91,17 +82,17 @@
           {
             "type": "command",
             "if": "Bash(git *)",
-            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/block-git-push.sh"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-push.sh'"
           },
           {
             "type": "command",
             "if": "Bash(git *)",
-            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/block-git-destructive.sh"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-destructive.sh'"
           },
           {
             "type": "command",
             "if": "Bash(git *)",
-            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/check-commit-message.sh"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/check-commit-message.sh'"
           }
         ]
       },
@@ -122,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/scan-written-secrets.sh",
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/scan-written-secrets.sh'",
             "timeout": 60
           }
         ]
@@ -130,7 +121,6 @@
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
