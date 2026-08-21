@@ -134,7 +134,10 @@ Dotfiles/
 │   ├── mise/config.toml                # Language runtimes + global CLI packages
 │   └── zed/settings.json.tmpl          # Zed editor + MCP server keys (from keychain)
 ├── private_dot_claude/                 # ~/.claude/* (0700)
-│   ├── private_settings.json.tmpl      # Claude Code user settings (plugins, marketplaces)
+│   ├── private_CLAUDE.md               # Global Claude Code instructions (all projects)
+│   ├── private_settings.json.tmpl      # Claude Code user settings (plugins, marketplaces, hooks)
+│   ├── private_hooks/                  # ~/.claude/hooks/ (0700)
+│   │   └── private_executable_block-git-push.sh  # PreToolUse guard, blocks unrequested git push
 │   └── private_plugins/                # ~/.claude/plugins/ (0700)
 │       ├── installed_plugins.json.tmpl   # Claude Code plugin install state
 │       └── known_marketplaces.json.tmpl  # Claude Code marketplace registry
@@ -158,7 +161,7 @@ Dotfiles/
 chezmoi runs with `mode = "symlink"`, so plain managed files in `$HOME` are symlinks into the chezmoi source directory rather than independent copies. Anything chezmoi cannot symlink is written as a real **copy**: templates (`.tmpl` files have to be rendered first) and files with a restrictive mode (the `private_` / `0600` attribute). For a file to become a true symlink it must be plain, with no `.tmpl` suffix and no `private_` prefix. A parent `private_dot_*/` directory still keeps the folder itself at `0700`.
 
 > [!TIP]
-> Symlinked `$HOME` files point at the source directory, so you can edit them in place. Editing `~/.zshrc` and editing the source file are the same write, which makes `chezmoi edit` optional. Templates are the exception (e.g. `~/.claude/settings.json`). They are rendered copies, so when a tool such as Claude Code rewrites the target, nothing reaches the source. Run `chezmoi add` to capture those changes, or `chezmoi apply` to restore the tracked version.
+> Symlinked `$HOME` files point at the source directory, so you can edit them in place. Editing `~/.zshrc` and editing the source file are the same write, which makes `chezmoi edit` optional. Templates and `private_` files are the exception (e.g. `~/.claude/settings.json` or `~/.claude/CLAUDE.md`). They are written as copies, so when a tool such as Claude Code rewrites the target, nothing reaches the source. Run `chezmoi add` to capture those changes, or `chezmoi apply` to restore the tracked version.
 
 For sensitive directories (SSH, GPG, SSL, kube, VPN), `symlink_*` templates point `$HOME` at **iCloud Drive**. This makes iCloud the single source of truth:
 
@@ -192,6 +195,7 @@ chezmoi maps source filenames to target paths by replacing prefixes and strippin
 | `dot_exports.tmpl`                               | `~/.exports`                        | Rendered copy, because templates cannot be symlinked                            |
 | `private_dot_claude/private_settings.json.tmpl`  | `~/.claude/settings.json`           | Rendered copy, because both `.tmpl` and `private_` rule out a symlink           |
 | `private_dot_claude/private_plugins/*.json.tmpl` | `~/.claude/plugins/*.json`          | Claude Code runtime state, rendered copies with the home directory templated in |
+| `private_dot_claude/private_CLAUDE.md`           | `~/.claude/CLAUDE.md`               | Plain copy, and `private_` keeps the source name out of the global gitignore    |
 | `symlink_dot_ssh.tmpl`                           | `~/.ssh`                            | Symlink to the rendered iCloud path                                             |
 | `private_dot_gnupg/`                             | `~/.gnupg/`                         | `private_` sets the directory to `0700`                                         |
 | `Library/Application Support/...`                | `~/Library/Application Support/...` | Literal path                                                                    |
@@ -439,6 +443,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Keep a formula out of the Brewfile   | `brew tab --no-installed-on-request <formula>`                                          |
 | Refresh the Zed extension list       | `zed:dump` (Zed has no CLI for this)                                                    |
 | Add a runtime or global CLI package  | `dot_config/mise/config.toml`                                                           |
+| Edit global Claude Code instructions | `private_dot_claude/private_CLAUDE.md`                                                  |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`  |
 | Rename or update a secret            | `secret:rename <old_id> <old_a> <new_id> <new_a> [new_where] [new_kind] [new_comment]`  |
 | Inspect or audit secrets             | `secrets:list` (table view), `secrets:import` (sync + drift), `secret:copy` (clipboard) |
@@ -488,3 +493,5 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **compinit caching**                                          | Running `compinit -C` skips the full completion rebuild while `~/.zcompdump` is less than 24 hours old (checked with the zsh glob qualifier `(N.mh-24)`). A full rebuild runs once a day to pick up newly installed completions.                                                                                                                                                                                                                                         |
 | **`run:daily` update gating**                                 | The `run:daily` wrapper puts `mise:update` and `brew:check` behind a stamp file in `~/.cache/daily/`, with a `(N.mh-24)` freshness check that costs zero forks. Keeps slow update commands off every shell startup.                                                                                                                                                                                                                                                      |
 | **`/etc/hosts` symlink**                                      | chezmoi renders `dot_config/hosts.tmpl` into `~/.config/hosts` with machine-type-aware entries (work entries are dropped on personal). Script 09 symlinks `/etc/hosts` → `~/.config/hosts` and re-runs whenever the template content changes.                                                                                                                                                                                                                            |
+| **Global Claude instructions as `private_CLAUDE.md`**         | Claude Code loads `~/.claude/CLAUDE.md` at the start of every session in every project, before any repository `CLAUDE.md`, so the file carries only cross-project rules and lets repository conventions win. The `private_` prefix keeps the rendered file at `0600` like the rest of `~/.claude`, and it also keeps the source name clear of the global gitignore's `**/CLAUDE.md` rule, which would otherwise ignore the source file in this very repo. Like the settings template, the file is written as a copy, so edits made directly to the target need `chezmoi add` to reach the source. |
+| **A PreToolUse hook guards `git push`**                       | "Never push unless explicitly asked" needs mechanical enforcement, because CLAUDE.md instructions are advisory and the `claude` alias runs with `--dangerously-skip-permissions`, which skips `ask` permission rules. A `deny` rule would block requested pushes too. The settings filter narrows the hook to git commands as a fast path, and the script itself inspects the actual command, blocks any `git push` invocation (including flagged forms such as `git -C <path> push`) with exit code 2, and tells Claude to re-run the command with `CLAUDE_PUSH_OK=1` once the user has explicitly asked for the push. The `private_executable_` prefix renders the script at `0700`. |
