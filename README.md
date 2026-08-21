@@ -172,7 +172,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ├── private_dot_claude/                      # ~/.claude/* (0700)
 │   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
 │   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
-│   └── private_hooks/                       # Claude Code hook scripts (git push guard)
+│   └── private_hooks/                       # Claude Code guard hooks (push, destructive git, commit style, secrets)
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
