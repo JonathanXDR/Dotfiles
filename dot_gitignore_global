@@ -611,9 +611,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Conda
-environment.yml
-
 # ---- Scala ----
 *.class
 *.tasty
@@ -633,7 +630,6 @@ hs_err_pid*
 **/.skilld
 
 **/CLAUDE.md
-**/AGENTS.md
 
 # ---- ForgeOps ----
 forgeops
