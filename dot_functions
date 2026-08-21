@@ -507,9 +507,10 @@ dns:change() {
   fi
 
   local network_service="$1"
+  local -a nameservers
   IFS=',' read -rA nameservers <<<"$2"
 
-  sudo networksetup -setdnsservers "${network_service}" "Empty" "${nameservers[@]}"
+  sudo networksetup -setdnsservers "${network_service}" "${nameservers[@]}"
 }
 
 # Cisco VPN binary path (set via CISCO_VPN_BIN in .exports)
