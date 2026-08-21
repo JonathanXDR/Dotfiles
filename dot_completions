@@ -10,6 +10,10 @@ if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   # Let zsh-autocomplete own its fpath entries. Sourcing it below re-adds
   # Completions and z-async, so drop any copies inherited from a parent shell,
   # which may point at a version that no longer exists.
+  #
+  # zsh-completions is a Brewfile formula (180 definitions for tools Homebrew
+  # does not complete itself, including mvn, flutter and scala). It goes first
+  # so a tool's own site-functions copy, which is usually newer, still wins.
   typeset -gU FPATH fpath
   local -a clean_fpath
   clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
@@ -36,6 +40,17 @@ if (( ! has_zsh_autocomplete )); then
   fi
 fi
 
+# Replay the compdef calls the plugin bundle queued before the completion system
+# existed (see the stub in plugins:load). compinit has replaced that stub with
+# the real compdef by now, so each entry re-runs as written.
+if (( ${#COMPDEF_DEFERRED} )); then
+  local deferred
+  for deferred in "${COMPDEF_DEFERRED[@]}"; do
+    eval "compdef ${deferred}"
+  done
+fi
+unset COMPDEF_DEFERRED
+
 # Bun completions
 [[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
@@ -58,6 +73,12 @@ fi
 # Kiro CLI owns Tab, so Shift+Tab is the manual way into zsh-autocomplete's
 # menu. Clear the ghost text first, or it gets committed into the buffer
 # alongside the completion that was picked.
+#
+# This binds into the `main` keymap, which is the one actually in use.
+# zsh-autocomplete rebuilds `emacs` from a precmd hook afterwards and resets ^R
+# there to the stock incremental search, but it leaves `main` alone, so both
+# this binding and fzf's ^R survive. Verified on a real terminal. Querying
+# `bindkey -M emacs` instead of `-M main` gives a misleading answer.
 if (( $+widgets[menu-select] )); then
   _zsh_autocomplete_fallback() {
     unset POSTDISPLAY

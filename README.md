@@ -122,7 +122,9 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
         │
 PATH setup ──────── tool paths, Homebrew, conda, then mise activation (last)
         │
-~/.aliases ──────── command aliases
+plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.plugins
+        │
+~/.aliases ──────── command aliases (override the bundle where the two collide)
         │
 ~/.completions ──── completions, zsh plugins, autosuggestions, syntax highlighting
         │
@@ -156,6 +158,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ├── dot_exports.tmpl                         # Env vars, history, zsh options
 ├── dot_functions                            # Shell functions
 ├── dot_aliases                              # Command aliases
+├── dot_plugins                              # Oh My Zsh plugin list, compiled by antidote
 ├── dot_completions                          # Completions & zsh plugins
 │
 ├── dot_gitconfig.tmpl                       # Git user, GPG signing, LFS

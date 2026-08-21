@@ -22,3 +22,27 @@
 	clean = git-lfs clean -- %f
 [pull]
 	rebase = true
+# Conventional Commits subject lines, the same set the Oh My Zsh git-commit
+# plugin provides. They live here rather than in the plugin because that plugin
+# works by running `git config --global`, which rewrites this file behind
+# chezmoi's back and drifts from the source on every apply.
+#
+# `cc` is the shared implementation and each alias below binds one type to it.
+# Add a scope with -s/--scope, mark a breaking change with -a/--attention:
+#   git feat add pagination            ->  feat: add pagination
+#   git fix -s auth -a drop v1 tokens  ->  fix(auth)!: drop v1 tokens
+# `revert` is spelled `rev` because git's own subcommand takes the name.
+[alias]
+	cc = "!f() { t=$1; shift; s=; b=; m=; while [ $# -gt 0 ]; do case $1 in -s|--scope) [ $# -ge 2 ] || { echo 'Missing scope' >&2; return 1; }; s=$2; shift 2 ;; -a|--attention) b='!'; shift ;; *) m=\"$m $1\"; shift ;; esac; done; git commit -m \"$t${s:+($s)}$b:$m\"; }; f"
+	build = "!git cc build"
+	chore = "!git cc chore"
+	ci = "!git cc ci"
+	docs = "!git cc docs"
+	feat = "!git cc feat"
+	fix = "!git cc fix"
+	perf = "!git cc perf"
+	refactor = "!git cc refactor"
+	rev = "!git cc revert"
+	style = "!git cc style"
+	test = "!git cc test"
+	wip = "!git cc wip"

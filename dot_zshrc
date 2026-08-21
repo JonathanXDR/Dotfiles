@@ -46,6 +46,12 @@ cmd:exists mise && eval "$(mise activate zsh)"
 
 # ------------------------------ Plugins & Aliases --------------------------- #
 
+# Oh My Zsh plugins, listed in ~/.plugins and compiled by antidote (see
+# plugins:load in .functions). Runs before .aliases on purpose, so .aliases
+# stays the authority on any name both of them define. alias:safe still steps
+# aside for real commands, just not for plugin aliases (see alias:_taken).
+plugins:load
+
 source "${HOME}/.aliases"
 source "${HOME}/.completions"
 
@@ -70,6 +76,7 @@ fi
 
 cmd:exists mise && run:daily mise mise:update
 cmd:exists brew && run:daily brew brew:check
+[[ -f "${HOME}/.plugins" ]] && run:daily plugins plugins:update
 
 # chpwd has not fired yet, so evaluate the starting directory once
 conda:load
