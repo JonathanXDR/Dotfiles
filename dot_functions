@@ -1077,7 +1077,10 @@ secret:remove() {
 
 # Rename a managed secret and optionally update its metadata. The source must
 # exist and the target (when different) must not, which prevents silent
-# overwrites. Omit where, kind, or comment to keep the current value.
+# overwrites. It also refuses a (where, account) pair another entry already
+# owns, since `add-generic-password -U` matches on that pair and would replace
+# that entry instead of moving this one. Omit where, kind, or comment to keep
+# the current value.
 # Usage: secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]
 secret:rename() {
   (( $# >= 4 && $# <= 7 )) || {
@@ -1241,9 +1244,11 @@ _secrets:report-unread() {
 
 # Atomically rewrite the iCloud tokens file from the current keychain values.
 # Reads the keychain itself (the source of truth), so entries added outside
-# secret:set are exported too. File entries that have vanished from the keychain
-# are dropped with a warning. The write is skipped when nothing changed, so
-# iCloud only re-uploads on a real update.
+# secret:set are exported too. An entry whose password cannot be read keeps the
+# value the previous backup holds, and is dropped only when there is nothing to
+# keep. File entries that have vanished from the keychain are dropped with a
+# warning. The write is skipped when nothing changed, so iCloud only re-uploads
+# on a real update.
 secrets:export() {
   _secrets:ensure-tokens-file
 

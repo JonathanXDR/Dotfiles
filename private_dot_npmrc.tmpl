@@ -22,8 +22,8 @@ registry=https://registry.npmjs.org/
 ; reachable through the corporate proxy and only bin.swisscom.com without it.
 ; npm expands ${...} from the environment, so proxy:set, proxy:unset and the
 ; proxy-watchd LaunchAgent swap the active host as the network changes.
-; NPM_SWISSCOM_REGISTRY is exported from .exports, which sets the direct host
-; as the default.
+; NPM_SWISSCOM_REGISTRY is exported from .zshenv, which every zsh reads and
+; which defaults it to the direct host.
 @swisscom:registry=${NPM_SWISSCOM_REGISTRY}
 {{- if ne $swisscom_artifactory "" }}
 //artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
