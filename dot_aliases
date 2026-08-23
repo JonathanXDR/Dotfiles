@@ -7,29 +7,28 @@
 
 # --------------------------- Plugin Corrections ----------------------------- #
 # The Oh My Zsh bundle (~/.plugins) loads immediately before this file. Anything
-# further down overrides it simply by defining the same name again. This section
-# covers the cases that need a removal instead, so it has to run before the rest
-# of the file rather than after it.
+# further down overrides it by defining the same name again. This section covers
+# the cases that need a removal instead, which is why it runs first.
 #
 # `alias:shadows` prints every alias currently sitting on a real binary. Run it
 # after adding a plugin to see whether this list needs another entry.
 
-# common-aliases makes rm, cp and mv interactive. rm is the urgent one: the
+# common-aliases makes rm, cp and mv interactive. rm is the urgent one. Its
 # alias has to go before the trash-put wrapper below can be defined at all,
 # because zsh refuses to declare a function whose name is an existing alias and
-# fails the entire file with a parse error at that line.
+# fails the whole file with a parse error at that line.
 unalias rm cp mv 2>/dev/null
 
 # Drop common-aliases' suffix aliases whose viewer is not installed here and
 # keep the ones that work, so `.tar` still lists an archive and `.c` still opens
-# an editor. The suffix aliases this file sets are defined at the bottom, long
-# after this pass, so only plugin entries are considered.
+# an editor. This file sets its own suffix aliases at the bottom, so the only
+# suffix aliases defined when this runs are the plugin's.
 alias:prune-suffix
 
 # Global aliases expand anywhere on the line, so the two whose tool is missing
 # would fire on any bare M or P. The names have to be quoted, because unquoted
-# they are global aliases themselves and expand before unalias ever sees them,
-# leaving it with no arguments. zsh has no `unalias -g` either.
+# they expand as global aliases before unalias ever sees them, leaving it with
+# no arguments. zsh has no `unalias -g` either.
 unalias "M" "P" 2>/dev/null
 
 # Give these names back to their binaries. Every one is a tool installed on
@@ -53,7 +52,7 @@ unalias emacs 2>/dev/null
 # Number the directory stack for `cd -<n>` (deliberate shadow of the builtin)
 alias dirs='dirs -v'
 
-# Climb directories quickly (~ for home, `-` for previous)
+# Climb directories (~ for home, `-` for previous)
 alias:safe ..="cd .."
 alias:safe ...="cd ../.."
 alias:safe ....="cd ../../.."
@@ -70,8 +69,8 @@ else
 fi
 
 # l (long format) and la (long format, all but . and ..) come from the
-# common-aliases plugin, which sets the same pair plus -h for readable sizes.
-# Both still chain through the ls alias above, so lsd renders them.
+# common-aliases plugin, which also passes -h for readable sizes. Both still
+# chain through the ls alias above, so lsd renders them.
 
 # List only directories. Named lsdir to avoid colliding with lsd, the Homebrew
 # binary that `ls` aliases to when it is installed.
@@ -88,7 +87,7 @@ cmd:exists btop    && alias top='btop'
 cmd:exists bat     && alias cat='bat --paging=never'
 
 # Safer rm, moving files to the Trash when trash-put is installed. Names
-# matching TRASH_SKIP (set in .exports) are deleted outright instead, so bulky
+# matching TRASH_SKIP (set in .exports) go to the real rm instead, so bulky
 # throwaway directories never pile up in ~/.local/share/Trash.
 if cmd:exists trash-put; then
   rm() {
@@ -110,8 +109,8 @@ if cmd:exists trash-put; then
     # No operands, whether the line was empty or only flags. Hand it to the real
     # rm so the caller gets its usage error and exit status instead of a silent 0.
     (( ${#delete[@]} + ${#trash[@]} )) || { command rm "$@"; return $? }
-    # Both branches are optional, so the exit status is collected explicitly
-    # rather than left to whichever arithmetic test happens to run last
+    # Both branches are optional, so collect the exit status explicitly rather
+    # than leaving it to whichever arithmetic test runs last.
     local ret=0
     (( ${#delete[@]} )) && { command rm "${flags[@]}" "${delete[@]}" || ret=$? }
     (( ${#trash[@]} ))  && { trash-put "${flags[@]}" "${trash[@]}" || ret=$? }
@@ -218,8 +217,8 @@ alias sudo='sudo '
 # which Ruby to use.
 alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists mise && mise -C "$HOME" upgrade; cmd:exists gem && gem update --system && gem update && gem cleanup'
 
-# macOS ships no `hd`, `md5sum`, or `sha1sum`. alias:fallback stands in for them
-# quietly, and steps aside on systems that have the real binaries.
+# macOS ships no `hd`, `md5sum`, or `sha1sum`. alias:fallback supplies them
+# quietly and steps aside on systems that have the real binaries.
 alias:fallback hd="hexdump -C"
 alias:fallback md5sum="md5"
 alias:fallback sha1sum="shasum"
@@ -229,7 +228,7 @@ if [[ -e "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resourc
   alias:safe jsc="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc"
 fi
 
-# Disk usage of current dir entries (sorted) and free space
+# Disk usage of entries in the current directory (sorted) and free space
 alias:safe dud='du -sh * | sort -h'
 alias:safe duf='df -h'
 
@@ -249,7 +248,7 @@ alias:safe plistbuddy="/usr/libexec/PlistBuddy"
 # given file: find . -name .gitattributes | map dirname
 alias:safe map="xargs -n1"
 
-# Quick HTTP server in current dir
+# Quick HTTP server in the current directory
 alias:safe serve='python3 -m http.server'
 
 # Terminal weather and cheat sheets (e.g. `cheat tar`)
@@ -345,7 +344,7 @@ elif cmd:exists vim; then
   alias vi=vim
 fi
 
-# Edit the shell config and the exports through their chezmoi sources
+# Edit .zshrc and .exports through their chezmoi sources
 alias:safe es='chezmoi edit ~/.zshrc'
 alias:safe ev='chezmoi edit ~/.exports'
 
@@ -355,13 +354,13 @@ alias:safe e='$EDITOR .'
 # ------------------------------------ Git ----------------------------------- #
 # The git plugin defines about 200 aliases and loads first, so the names below
 # are the ones this file deliberately keeps. Five differ from the plugin's in
-# meaning: gst is a contributor shortlog rather than status, gpu pushes to the
+# meaning. gst is a contributor shortlog rather than status, gpu pushes to the
 # default remote rather than upstream, gau adds an upstream remote rather than
 # staging tracked files, gca takes the message inline, and gwip keeps GPG
 # signing, which the plugin's version disables. glo and gclean differ only in
-# flags, and g, gaa, gb, gco, gcb, gd and gds are restated verbatim so this
-# file stays the single place to read them. Four more names (gba, gbd, gcl,
-# glg) were dropped so the plugin's versions win.
+# flags. g, gaa, gb, gco, gcb, gd and gds are restated verbatim so this file
+# stays the single place to read them. Four more names (gba, gbd, gcl, glg) are
+# left out so the plugin's versions win.
 
 alias:safe g="git"
 alias:safe gs="git status"
@@ -386,8 +385,8 @@ alias:safe gwip='git add -A && git commit -m "wip"'
 alias:safe gclean='git clean -fd'
 
 # ------------------------------ Suffix Aliases ------------------------------ #
-# Open these file types in $EDITOR by naming them. `alias -s` takes a different
-# syntax that alias:safe cannot wrap.
+# Typing a file name with one of these extensions opens it in $EDITOR.
+# `alias -s` takes a syntax that alias:safe cannot wrap.
 
 alias -s go='$EDITOR'
 alias -s md='$EDITOR'

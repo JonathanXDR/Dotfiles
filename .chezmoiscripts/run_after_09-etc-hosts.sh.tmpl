@@ -22,8 +22,8 @@ fi
 # Silent in the steady state, so the every-apply check stays invisible.
 if [[ ! -L /etc/hosts || "$(readlink /etc/hosts)" != "$HOSTS_SRC" ]]; then
   _log info "Symlinking /etc/hosts → $HOSTS_SRC (requires sudo)…"
-  # Keep the first real file seen, so the pristine copy survives a later
-  # replacement by an installer that drops its own /etc/hosts in place.
+  # Back up only the first real file seen. If an installer later replaces the
+  # symlink with its own /etc/hosts, that file must not become the backup.
   if [[ -f /etc/hosts && ! -L /etc/hosts && ! -e /etc/hosts.chezmoi-backup ]]; then
     sudo cp /etc/hosts /etc/hosts.chezmoi-backup
     _log info "Backed up the previous /etc/hosts (/etc/hosts.chezmoi-backup)"

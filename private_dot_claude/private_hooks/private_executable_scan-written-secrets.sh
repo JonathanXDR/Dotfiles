@@ -2,8 +2,9 @@
 # PostToolUse guard: scan content Claude just wrote for hardcoded secrets.
 # Complements the SonarQube Read and prompt hooks, which never see written
 # content. Exit 2 feeds stderr back to Claude so it removes the secret.
-# Fails open when the sonar CLI or the file is missing or the scan itself
-# errors, matching the fail-open convention of the sonar-installed wrappers.
+# Fails open when sonar or jq is missing, the file does not exist, or the scan
+# itself errors, matching the fail-open convention of the sonar-installed
+# wrappers.
 
 command -v sonar >/dev/null 2>&1 || exit 0
 command -v jq >/dev/null 2>&1 || exit 0

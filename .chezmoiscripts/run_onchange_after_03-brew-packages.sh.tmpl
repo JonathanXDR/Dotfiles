@@ -7,10 +7,10 @@ set -euo pipefail
 # Brewfile content hash (triggers a re-run when the Brewfile changes):
 # {{ include $brewfile_name | sha256sum }}
 #
-# Homebrew presence is part of the trigger too. Without it a skipped run would
-# record its state and never retry, so the packages would stay uninstalled even
-# after Homebrew arrives. With it, the state key differs between the two cases
-# and the step re-runs the day brew appears.
+# Homebrew presence is part of the trigger too. Without it, a run skipped for a
+# missing brew would record its state and never retry, leaving the packages
+# uninstalled even after Homebrew arrives. With it, the state key differs
+# between the two cases, so the step re-runs once brew appears.
 # brew: {{ output "sh" "-c" "command -v brew >/dev/null 2>&1 && echo yes || echo no" | trim }}
 
 _ensure_brew
@@ -40,8 +40,8 @@ fi
 
 _log info "Checking for packages not in ${BREWFILE}…"
 if brew bundle cleanup --file="$BREWFILE" </dev/null; then
-  _log success "Verified no unused Homebrew packages"
+  _log success "Verified no packages outside the Brewfile"
 else
-  _log warning "Detected packages not in Brewfile (listed above)"
+  _log warning "Detected packages not in the Brewfile (listed above)"
   _log info "Run 'brew bundle cleanup --file=\"$BREWFILE\" --force' to remove them"
 fi

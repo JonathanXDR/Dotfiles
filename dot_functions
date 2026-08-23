@@ -8,7 +8,7 @@
 #      b. "Failed to <verb>" for failures.
 #      c. Present participle plus a single … for work in progress
 #         (Installing… / Reading…).
-#      d. An imperative remedy hint telling the user what to do next
+#      d. An imperative hint telling the user what to do next
 #         (Add tokens manually via 'secret:set' / Run 'brew bundle cleanup'
 #         to remove them).
 #      The … belongs to form (c) alone, so a past-tense message never
@@ -67,8 +67,8 @@ cmd:exists() {
 # Deliberately narrower than cmd:exists, which also resolves aliases. The Oh My
 # Zsh bundle loads before .aliases, so `command -v` would report every plugin
 # alias as an existing command and .aliases would step aside for all of them.
-# The guards exist to stop a real command being shadowed. Sitting on top of a
-# plugin alias is intended, because .aliases owns the names it sets.
+# The guards exist to stop a real command from being shadowed. Sitting on top
+# of a plugin alias is intended, because .aliases owns the names it sets.
 # Usage: alias:_taken <name>
 alias:_taken() {
   (( ${+commands[$1]} + ${+functions[$1]} + ${+builtins[$1]} ))
@@ -107,8 +107,8 @@ alias:_set() {
 
 # Drop suffix aliases whose target command is not installed. The common-aliases
 # plugin ships 35 of them for a Linux desktop (mplayer, acroread, xchm, djview,
-# xdvi, gv, unace, unrar), and the ones with no viewer here would fail the first
-# time they were used. Resolves the target the same way alias:_set does.
+# xdvi, gv, unace, unrar), and the ones whose tool is missing here would fail on
+# first use. Resolves the target the same way alias:_set does.
 # Usage: alias:prune-suffix
 alias:prune-suffix() {
   local suffix target
@@ -402,7 +402,7 @@ tre() {
 
 # ------------------------------ Open & Launch ------------------------------- #
 
-# Open the current directory, or a given path, in Finder
+# Open the current directory in Finder, or a given path in its default app
 o() {
   open "${@:-.}"
 }
@@ -459,8 +459,9 @@ ssl:bundle() {
   mkdir -p "${output:h}"
 
   local tmp="$(mktemp)"
-  # Bake the path in: a function-scoped EXIT trap runs after locals are popped,
-  # so a deferred "$tmp" would expand to the empty string and remove nothing.
+  # Bake the path in, because a function-scoped EXIT trap runs after locals are
+  # popped and a deferred "$tmp" would expand to the empty string, removing
+  # nothing.
   trap "command rm -f ${(q)tmp}" EXIT
   local cert_count=0
 
@@ -628,7 +629,7 @@ vpn:soft-refresh() {
     return 1
   fi
 
-  log success "Verified Drive works after disconnect-only soft refresh"
+  log success "Verified Drive works after soft refresh"
 }
 
 # Soft refresh, then reconnect to a named host.
@@ -906,7 +907,7 @@ _secrets:ensure-keychain() {
 }
 
 _secrets:write-header() {
-  printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secrets:export. Run secrets:import on new machines to load into the keychain\n' > "$1"
+  printf '# id\taccount\twhere\tkind\tcomment\tpassword\n# Managed by secrets:export. Run secrets:import on a new machine to load them into the keychain\n' > "$1"
 }
 
 # Ensure the tokens file exists with a header and user-only permissions.
@@ -921,8 +922,8 @@ _secrets:ensure-tokens-file() {
 # password entry in the keychain (the source of truth), sorted by id. Reads
 # metadata from `security dump-keychain`, which never emits password data.
 # Missing attributes render empty. dump-keychain hex-encodes any value holding
-# non-ASCII bytes, which awk decodes back (LC_ALL=C keeps sprintf("%c") byte
-# oriented).
+# non-ASCII bytes, which awk decodes back (LC_ALL=C keeps sprintf("%c")
+# byte-oriented).
 _secrets:entries() {
   [[ -f "$_SECRETS_KEYCHAIN" ]] || return 0
   security dump-keychain "$_SECRETS_KEYCHAIN" 2>/dev/null | LC_ALL=C awk '
@@ -1060,7 +1061,7 @@ secret:copy() {
       && printf '' | pbcopy
   ) &!
 
-  log success "Copied $1 / $2 to clipboard (auto-clears in ${ttl}s)"
+  log success "Copied $1 / $2 to the clipboard (auto-clears in ${ttl}s)"
 }
 
 # Remove a secret from the dotfiles keychain, then sync to iCloud Drive.
@@ -1229,7 +1230,7 @@ _secrets:backed-up-password() {
   return 1
 }
 
-# Summarise the entries secrets:export could not read, keeping the two outcomes
+# Summarize the entries secrets:export could not read, keeping the two outcomes
 # apart. A carried-over entry still has its value in the backup, a dropped one
 # does not, so reporting them under one heading would make real loss look
 # temporary. The status stays zero either way, because secrets:export is the
@@ -1237,8 +1238,8 @@ _secrets:backed-up-password() {
 # entry must not make an otherwise successful command report failure.
 # Usage: _secrets:report-unread <kept> <dropped>
 _secrets:report-unread() {
-  (( $1 )) && log warning "Carried $1 entry(s) over from the previous backup (failed to read them)"
-  (( $2 )) && log error "Dropped $2 entry(s) from the backup (failed to read, with no backed-up value to keep)"
+  (( $1 )) && log warning "Carried $1 secret(s) over from the previous backup (failed to read them)"
+  (( $2 )) && log error "Dropped $2 secret(s) from the backup (failed to read, with no backed-up value to keep)"
   return 0
 }
 
@@ -1473,7 +1474,11 @@ conda:load() {
 # Refresh every mise-managed tool within the ranges pinned in
 # ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which
 # would rewrite that file. It is chezmoi-tracked, so version changes belong in
-# the source. mise itself is upgraded by Homebrew, never from here.
+# the source. mise itself is upgraded by Homebrew, never from here. The
+# `auto_update` setting added in mise 2026.8.11 stays unset for the same reason,
+# and could not fire anyway. The Homebrew keg ships a .disable-self-update
+# marker, which makes mise report self_update_available as no and skip every
+# automatic update.
 #
 # Scoped to $HOME with -C, like run_onchange_after_06-install-mise-tools. This
 # fires unattended from run:daily, in whatever directory the shell started in,
@@ -1523,14 +1528,14 @@ brew:check() {
 
 # Rewrite this machine's Brewfile from what Homebrew currently has installed.
 #
-# --no-npm is why this wrapper exists. `brew bundle dump` reads `npm ls -g` from
-# the first node on PATH, which under mise is not Homebrew's, so a plain dump
-# records mise's global packages as Homebrew's. A later `brew bundle` would then
-# install them into whichever node happens to be active.
+# --no-npm is why this wrapper exists. `brew bundle dump` runs `npm ls -g`
+# against the first npm on PATH, which under mise is not Homebrew's, so a plain
+# dump records that node's global packages (today just corepack) as Homebrew's.
+# A later `brew bundle` would install them into whichever node is active then.
 #
 # Runtime formulae stay out of the Brewfile as long as Homebrew has them marked
-# as dependencies. If one reappears, it is still flagged as installed on request.
-# Clear that with `brew tab --no-installed-on-request <formula>`.
+# as dependencies. If one reappears, Homebrew still has it flagged as installed
+# on request. Clear that with `brew tab --no-installed-on-request <formula>`.
 brew:dump() {
   cmd:exists brew || { log error "Failed to find brew"; return 1; }
   cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
@@ -1630,7 +1635,8 @@ git:rebase() {
 }
 
 # Copy the full target-branch content of every file that differs between two
-# branches to the clipboard, ready to paste into a review or a chat.
+# branches. The result lands on the clipboard, ready to paste into a review or
+# a chat.
 # Usage: git:diff <source_branch> <target_branch> [exclude_pattern]
 git:diff() {
   if [[ $# -lt 2 ]]; then
@@ -1659,7 +1665,7 @@ git:diff() {
     git show "$target_branch:$file"
   done | pbcopy
 
-  log success "Copied changed file contents to clipboard"
+  log success "Copied changed file contents to the clipboard"
 }
 
 # --------------------------------- Chezmoi ---------------------------------- #
@@ -1688,8 +1694,9 @@ chezmoi:cleanup() {
 }
 
 # Copy template-managed files back into the chezmoi source. Files that only use
-# {{ .chezmoi.homeDir }} are synced automatically by substituting it back in.
-# Files with secrets or other template variables are flagged for a manual merge.
+# {{ .chezmoi.homeDir }} sync automatically, with the home path substituted
+# back in. Files with secrets or other template variables need a manual merge,
+# and are reported instead of copied.
 chezmoi:sync() {
   cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
 

@@ -49,7 +49,7 @@ fi
 # SSL: dirs 700, files 600
 _fix_dir "$ICLOUD/.ssl"
 
-# VPN: readable config
+# VPN: dir 755, files 644
 if [[ -d "$ICLOUD/.vpn" ]]; then
   _ensure_icloud "$ICLOUD/.vpn"
   chmod 755 "$ICLOUD/.vpn"

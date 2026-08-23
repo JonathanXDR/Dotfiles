@@ -7,9 +7,9 @@ set -euo pipefail
 # without prompting. Custom keychains are not auto-managed by securityd, so
 # without this every render would trigger its own unlock prompt.
 #
-# The script also re-applies the lock policy on every run (idempotent), so a
-# machine with a misconfigured keychain heals itself. Policy: lock on system
-# sleep, no idle timeout (`-l` only).
+# The script also re-applies the lock policy on every run, so a machine with a
+# misconfigured keychain heals itself. Policy: lock on system sleep, no idle
+# timeout (`-l` only).
 
 KEYCHAIN_NAME={{ .keychain_name | quote }}
 KEYCHAIN="${HOME}/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"

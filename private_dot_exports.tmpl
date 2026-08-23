@@ -3,7 +3,7 @@
 export EDITOR={{ .editor | quote }}
 export KUBE_EDITOR={{ .editor | quote }}
 
-# Build with BuildKit, for both `docker build` and `docker compose build`
+# Build with BuildKit for both `docker build` and `docker compose build`
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
@@ -19,25 +19,26 @@ export KUBECONFIG_PATH="$HOME/.kube"
 
 # ---------------------------- Proxy Configuration --------------------------- #
 
-# Read by the proxy:* functions and by .zshrc, which restores the cached proxy
-# state at startup when ALWAYS_PROXY_PROBE is true and probes only when there is
-# no usable cached state. The proxy-watchd LaunchAgent gets its own copy baked
-# in by chezmoi, so it does not read these.
+# Read by the proxy:* functions and by .zshrc. When ALWAYS_PROXY_PROBE is true,
+# .zshrc restores the cached proxy state at startup and probes only when no
+# usable cached state exists. The proxy-watchd LaunchAgent gets its own copy
+# baked in by chezmoi, so it does not read these.
 export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
 export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
 export PROXY_HOST={{ .proxy_host | quote }}
 export PROXY_PORT={{ .proxy_port | quote }}
 export PROXY_DNS={{ .proxy_dns | quote }}
-# Network service `proxy:probe dns` switches DNS on, for example "Wi-Fi". Read
-# with dig, because the key reaches chezmoi.toml only on the next `chezmoi
-# init`, and a bare reference would fail the apply on machines initialised
-# before it existed. Empty leaves DNS untouched.
+# Network service whose DNS servers `proxy:probe dns` changes, for example
+# "Wi-Fi". Read with the dig template function, because the key reaches
+# chezmoi.toml only on the next `chezmoi init`, and a bare reference would fail
+# the apply on machines initialized before it existed. Empty leaves DNS
+# untouched.
 export PROXY_NETWORK_SERVICE={{ dig "proxy_network_service" "" . | quote }}
 export NO_PROXY={{ .no_proxy | quote }}
 export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
 
 # The @swisscom npm registry variables live in ~/.zshenv, because every reader of
-# ~/.npmrc needs them and this file reaches interactive shells alone.
+# ~/.npmrc needs them and this file reaches only interactive shells.
 
 # ----------------------------------- Auth ----------------------------------- #
 

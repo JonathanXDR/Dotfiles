@@ -95,7 +95,7 @@ if (( $+widgets[menu-select] )); then
 fi
 
 # Syntax highlighting and history substring search wrap existing ZLE widgets,
-# so they must be sourced after every other widget above is defined
+# so they must be sourced after every widget above is defined
 if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
     && source "${brew_share}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
