@@ -46,6 +46,13 @@ cmd:exists mise && eval "$(mise activate zsh)"
 
 # ------------------------------ Plugins & Aliases --------------------------- #
 
+# The aws plugin prepends '$(aws_prompt_info)' to RPROMPT. Upstream relies on
+# oh-my-zsh.sh sourcing lib/theme-and-appearance.zsh for `setopt prompt_subst`,
+# and antidote loads plugin files only, so the substitution never runs and the
+# string prints literally. Opting out keeps the plugin's aliases and
+# completions without the prompt segment.
+SHOW_AWS_PROMPT=false
+
 # Oh My Zsh plugins, listed in ~/.plugins and compiled by antidote (see
 # plugins:load in .functions). Runs before .aliases on purpose, so .aliases
 # stays the authority on any name both of them define. alias:safe still steps
