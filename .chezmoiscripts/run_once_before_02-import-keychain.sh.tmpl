@@ -6,9 +6,8 @@ set -euo pipefail
 # keychain. Runs once before templates render, so secret lookups succeed on a
 # fresh machine. Delegates to the secrets zsh functions, sourced from the
 # chezmoi source directory because ~/.functions is not symlinked yet on a first
-# apply. The keychain is created even when there is no backup to import,
-# because run_before_00 and the secret-reading templates expect it to exist
-# once this script has run.
+# apply. The keychain is created even when there is nothing to import, because
+# run_before_00 and the secret-reading templates expect it to exist afterwards.
 
 export SECRETS_TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
@@ -19,7 +18,7 @@ export DOTFILES_SOURCE={{ .chezmoi.sourceDir | quote }}
 zsh -c 'source "$DOTFILES_SOURCE/dot_functions" && _secrets:ensure-keychain'
 
 if [[ ! -f "$SECRETS_TOKENS_FILE" ]]; then
-  _log warning "Skipped import (tokens file not found at $SECRETS_TOKENS_FILE)"
+  _log warning "Skipped import (no tokens file at $SECRETS_TOKENS_FILE)"
   _log info "Add tokens manually via 'secret:set <id> <account> <where> <kind> [comment]'"
   exit 0
 fi

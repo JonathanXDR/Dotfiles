@@ -6,14 +6,14 @@ set -euo pipefail
 # {{ include "dot_config/mise/config.toml" | sha256sum }}
 #
 # mise presence is part of the trigger for the same reason as in script 03. mise
-# itself arrives through Homebrew, so a run before that happened must not record
+# itself arrives through Homebrew, so a run before that happens must not record
 # its skip as final.
 # mise: {{ output "sh" "-c" "command -v mise >/dev/null 2>&1 && echo yes || echo no" | trim }}
 
 _ensure_brew
 
 if ! _cmd_exists mise; then
-  _log warning "Skipped mise-managed tool install (mise not installed)"
+  _log warning "Skipped mise-managed tools (mise not installed)"
   exit 0
 fi
 
@@ -21,7 +21,8 @@ fi
 # alone rather than on the settings that pick which build a version resolves to.
 # java.shorthand_vendor is one of those, so a vendor change keeps reading the
 # old list until the cache expires. Only java is cleared, because the bare form
-# drops every list and makes the sub-second re-run below a network re-resolve.
+# drops every list and would turn the sub-second re-run below into a full
+# network re-resolve.
 mise -C "$HOME" cache clear java >/dev/null 2>&1 || true
 
 # The `mise install` command reads ~/.config/mise/config.toml (symlinked to
@@ -42,9 +43,9 @@ else
 fi
 
 # `mise install` only ever adds, so a tool dropped from config.toml keeps its
-# install and its shims, and dot_zshenv.tmpl keeps that shim directory on PATH for
-# every zsh. Pruning is what makes the removal converge. Project toolchains are
-# safe: mise tracks every config it has seen
+# install and its shims, and dot_zshenv.tmpl keeps that shim directory on PATH
+# for every zsh. Pruning is what makes the removal converge. Project toolchains
+# stay safe, because mise tracks every config it has seen
 # (~/.local/state/mise/tracked-configs) and keeps any version one of them still
 # asks for. The same pass rebuilds the shim directory, so no reshim is needed.
 _log info "Pruning unused tool versions…"

@@ -1,5 +1,5 @@
 
-# Kiro CLI pre block. Must stay first, before anything else in this file.
+# Kiro CLI pre block. Must stay first in this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
 
 # --------------------------------- Sources ---------------------------------- #
@@ -41,7 +41,7 @@ path:append ${(s.:.)PATH_ADD}
 # writer. Activation snapshots PATH and re-derives it from that snapshot on
 # each prompt, so anything prepended later outranks the managed toolchain for
 # good. Homebrew ships its own node (a dependency of eslint, prettier, and
-# vercel), and this ordering is what keeps that copy behind mise's.
+# vercel), and this ordering keeps that copy behind mise's.
 cmd:exists mise && eval "$(mise activate zsh)"
 
 # ------------------------------ Plugins & Aliases --------------------------- #
@@ -60,7 +60,7 @@ source "${HOME}/.completions"
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd conda:load
 
-# Work machines only, since ALWAYS_PROXY_PROBE is true only there. The
+# Work machines only, since they alone set ALWAYS_PROXY_PROBE to true. The
 # proxy-watchd LaunchAgent runs on every network change and rewrites
 # .cache/proxy-state whenever the state flips, so a new shell can adopt the
 # recorded state instead of probing. Probing is the fallback for a missing or

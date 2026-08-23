@@ -14,17 +14,17 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, `.java-version`, and `environment.yml` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
-- 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, Git, plus curated aliases
+- 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
 - ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 
 ## 📋 Prerequisites
 
 > [!WARNING]
-> Turn on [Advanced Data Protection](https://support.apple.com/en-us/108756) before you bootstrap. Without it, everything this setup keeps on iCloud Drive (SSH, GPG, SSL, kube, VPN, the token backup, and `config.toml`) is encrypted under keys Apple also holds, rather than keys only your trusted devices hold.
+> Turn on [Advanced Data Protection](https://support.apple.com/en-us/108756) before you bootstrap. Without it, everything this setup keeps on iCloud Drive (SSH, GPG, SSL, kube, VPN, the tokens file, and `config.toml`) is encrypted under keys Apple also holds, rather than keys only your trusted devices hold.
 
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
-- iCloud Drive signed in (for keys, config, and the token backup)
+- iCloud Drive signed in (for keys, config, and the tokens file)
 
 ## 🚀 Quick Start
 
@@ -34,13 +34,13 @@ git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfile
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, then for a keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Everything after the machine type is resolved key by key, taken from `config.toml` on iCloud Drive when that file supplies it and prompted for when it does not. Your answers are cached, so later runs stay quiet.
+During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, and finally for an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every key after the machine type comes from `config.toml` on iCloud Drive when that file supplies it, and is prompted for when it does not. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
 1. Installs Homebrew if it is missing
 2. Imports your tokens from iCloud Drive into the `dotfiles` keychain
-3. Symlinks `~/.ssh` to its iCloud Drive copy (plus `~/.ssl` and `~/.vpn` on work machines), creates `~/.gnupg` and `~/.kube` as real directories whose entries are symlinks into iCloud Drive, and links the shell config files into `$HOME`
+3. Symlinks `~/.ssh` to its iCloud Drive copy, plus `~/.ssl` and `~/.vpn` on work machines, creates `~/.gnupg` and `~/.kube` as real directories whose entries symlink into iCloud Drive, and links the shell config files into `$HOME`
 4. Installs everything in the Brewfile for your machine type
 5. Installs language runtimes and global CLI packages with mise
 
@@ -93,17 +93,17 @@ Each entry uses five native Keychain Access fields, and the `(id, account)` pair
 | **Kind**     | Secret type (e.g. Personal Access Token)                 |
 | **Comments** | Consumer (what reads this secret)                        |
 
-Run `secrets:list` to see what the keychain currently holds. It prints the metadata for every entry and never the secrets themselves.
+Run `secrets:list` to see what the keychain holds. It prints the metadata for every entry and never the secrets themselves.
 
 > [!NOTE]
 > macOS stores generic passwords under `(Where, Account)`, so two entries cannot share that pair even when their names differ. `secret:set` and `secret:rename` refuse such a collision rather than overwrite the entry that already holds it. Run `secrets:list` to find the other entry when one is rejected.
 
 **Configuration** (`.chezmoidata.toml`):
 
-| Key                     | Default      | Purpose                                                                                                 |
-| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
-| `keychain_name`         | `"dotfiles"` | Name of the keychain file (`~/Library/Keychains/<name>.keychain-db`)                                    |
-| `keychain_lookup_field` | `"name"`     | Which field templates and the `secret:*` functions match on (only `name` works today, see ARCHITECTURE) |
+| Key                     | Default      | Purpose                                                                                                                         |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `keychain_name`         | `"dotfiles"` | Name of the keychain file (`~/Library/Keychains/<name>.keychain-db`)                                                            |
+| `keychain_lookup_field` | `"name"`     | Which field templates and the `secret:*` functions match on (only `name` works today, see [ARCHITECTURE.md](./ARCHITECTURE.md)) |
 
 You can also give the keychain a **master password** during `chezmoi init`. It is cached in the machine-local `~/.config/chezmoi/chezmoi.toml` and never committed. Leave it empty (the default) and the keychain follows your login session's unlock state instead.
 
@@ -117,21 +117,21 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
         │
 /etc/zprofile ───── macOS path_helper rebuilds PATH (login shells only)
         │
-~/.zprofile ─────── restores the mise shims to the front of PATH
+~/.zprofile ─────── Restores the mise shims to the front of PATH
         │
-~/.exports ──────── env vars, proxy, locale, history, zsh options
+~/.exports ──────── Env vars, proxy, locale, history, zsh options
         │
-~/.functions ────── utility functions
+~/.functions ────── Utility functions
         │
-PATH setup ──────── tool paths, Homebrew, conda, then mise activation (last)
+PATH setup ──────── Tool paths, Homebrew, conda, then mise activation (last)
         │
 plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.plugins
         │
-~/.aliases ──────── command aliases (override the bundle where the two collide)
+~/.aliases ──────── Command aliases (override the bundle where the two collide)
         │
-~/.completions ──── completions, zsh plugins, autosuggestions, syntax highlighting
+~/.completions ──── Completions, zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise, brew & plugin checks
+Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise, brew, and plugin checks
 ```
 
 ## 📦 Project Structure
@@ -142,7 +142,7 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 ├── .chezmoidata/                            # Generated data files (Zed extensions)
 ├── .chezmoiignore                           # Files excluded from $HOME
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
-├── .chezmoiscripts/                         # Numbered setup scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
+├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
 ├── symlink_dot_ssh.tmpl                     # ~/.ssh → iCloud
 ├── symlink_dot_ssl.tmpl                     # ~/.ssl → iCloud (work only)
@@ -157,8 +157,8 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 │
 ├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, npm registry)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
-├── dot_zshrc                                # Interactive shell entry point
-├── private_dot_exports.tmpl                 # Env vars, history, zsh options (0600, reads the keychain)
+├── dot_zshrc                                # Shell orchestrator
+├── private_dot_exports.tmpl                 # Env vars, history, locale, zsh options (0600, reads the keychain)
 ├── dot_functions                            # Shell functions
 ├── dot_aliases                              # Command aliases
 ├── dot_plugins                              # Oh My Zsh plugin list, compiled by antidote
@@ -192,4 +192,4 @@ Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily
 
 ## ⚖️ License
 
-Licensed under the [MIT license](./LICENSE) &copy; Jonathan Russ.
+Licensed under the [MIT License](./LICENSE) &copy; Jonathan Russ.

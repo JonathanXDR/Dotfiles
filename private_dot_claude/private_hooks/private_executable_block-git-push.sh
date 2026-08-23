@@ -10,7 +10,8 @@ payload=$(cat)
 # jq scopes the checks to tool_input.command, so free text elsewhere in the payload
 # (such as the tool call description) can neither trigger nor bypass the guard.
 # Without jq the raw payload is a coarser stand-in that can only over-block, because
-# the override below anchors to the start of a line and JSON never begins with it.
+# the override below must be the first word of the first line, and a JSON payload
+# never starts with it.
 if command -v jq >/dev/null 2>&1; then
   cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
 else
@@ -32,9 +33,9 @@ if ! printf '%s\n%s\n' "$cmd" "$scan" | grep -Eq '(^|[^[:alnum:]_./-])git([[:spa
   exit 0
 fi
 
-# The override only counts as the first word of the command, exactly as the
-# message below instructs. head -1 keeps a token at the start of a later line
-# of a multi-line command, or a mere mention elsewhere, from disarming the guard.
+# head -1 pins the override to the command's first word, exactly as the message
+# below instructs: a token at the start of a later line of a multi-line command,
+# or a mention elsewhere, does not disarm the guard.
 if printf '%s\n' "$cmd" | head -1 | grep -Eq '^[[:space:]]*(env[[:space:]]+)?CLAUDE_PUSH_OK=1([[:space:]]|$)'; then
   exit 0
 fi

@@ -1,8 +1,8 @@
 # Shared non-secret data for chezmoi templates, available as {{ .editor }} and
-# so on. Most values reach the shell through private_dot_exports.tmpl, which assigns
-# each one to the shell variable named in its comment. Those are exported,
-# except HISTSIZE, SAVEHIST and HISTORY_IGNORE, which stay unexported because
-# zsh reads them as shell parameters.
+# so on. Most values reach the shell through private_dot_exports.tmpl, which
+# assigns each one to the shell variable named in its comment. Those are
+# exported, except HISTSIZE, SAVEHIST and HISTORY_IGNORE, which stay unexported
+# because zsh reads them as shell parameters.
 
 # Shell defaults
 editor = "vi"                # EDITOR and KUBE_EDITOR
@@ -30,14 +30,13 @@ dock_apps = [
   "GitKraken",
 ]
 
-# Directory basenames that rm deletes outright instead of trashing, exported as
-# TRASH_SKIP
+# Basenames that rm deletes outright instead of trashing, exported as TRASH_SKIP
 trash_skip = ["node_modules"]
 
 # Binary that the vpn:* functions drive, exported as CISCO_VPN_BIN
 cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
 
-# Hosts serving the @swisscom npm scope. Both front the same virtual repo, but
+# Hosts for the @swisscom npm scope. Both serve the same virtual repo, but
 # only the proxied one is reachable through the corporate proxy and only the
 # direct one without it. dot_zshenv.tmpl exports them, proxy:set, proxy:unset
 # and proxy-watchd swap the active one, and .npmrc reads the result.

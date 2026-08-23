@@ -45,6 +45,6 @@ else
   launchctl unsetenv HTTPS_PROXY
   launchctl unsetenv ALL_PROXY
   launchctl unsetenv NO_PROXY
-  # Set rather than unset, because .npmrc has no fallback for a missing value
+  # Set rather than unset, because .npmrc has no fallback for an unset value
   launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_REGISTRY_DIRECT}"
 fi

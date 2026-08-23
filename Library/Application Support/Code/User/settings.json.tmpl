@@ -209,12 +209,12 @@
   "java.configuration.detectJdksAtStart": false,
   "java.configuration.runtimes": [
     {{- $runtimes := list }}
-    {{- /* Homebrew: resolve current openjdk@11 */ -}}
+    {{- /* Homebrew: glob for the installed openjdk@11 version */ -}}
     {{- range $path := reverse (glob "/opt/homebrew/Cellar/openjdk@11/*/libexec/openjdk.jdk/Contents/Home") }}
       {{- $runtimes = append $runtimes (dict "name" "JavaSE-11" "path" $path) }}
       {{- break }}
     {{- end }}
-    {{- /* VS Code extension: stable paths (no version in dir) */ -}}
+    {{- /* VS Code extension: fixed paths, no version in the directory */ -}}
     {{- $ext := joinPath .chezmoi.homeDir "Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java" }}
     {{- if stat (joinPath $ext "17") }}
       {{- $runtimes = append $runtimes (dict "name" "JavaSE-17" "path" (joinPath $ext "17")) }}
@@ -222,7 +222,7 @@
     {{- if stat (joinPath $ext "21") }}
       {{- $runtimes = append $runtimes (dict "name" "JavaSE-21" "path" (joinPath $ext "21")) }}
     {{- end }}
-    {{- /* System JDK: resolve temurin-25 */ -}}
+    {{- /* System JDK: temurin-25, the default runtime when installed */ -}}
     {{- range $path := reverse (glob "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home") }}
       {{- $runtimes = append $runtimes (dict "name" "JavaSE-25" "path" $path "default" true) }}
       {{- break }}

@@ -16,7 +16,8 @@ else
   exit 0
 fi
 
-# The shell removes backslash-newline entirely, so splice with nothing.
+# Splice backslash-newline continuations like the shell does: removed
+# entirely, so a continuation inside a word cannot split the subcommand.
 nl=$'\n'
 cmd=${cmd//\\$nl/}
 
@@ -131,13 +132,13 @@ trailerflag() { # $1 key regex, $2 value regex
     printf '%s\n' "$cmd" | grep -Eiq -- "--trailer[= ][[:space:]\"']*$1[[:space:]]*[:=][\"']?$2"
 }
 if msgline 'Claude-Session[[:space:]]*[:=]' || trailerflag 'Claude-Session' ''; then
-  block "remove the Claude-Session trailer from the commit message."
+  block "the message contains a Claude-Session trailer."
 fi
 if msgline 'Co-Authored-By[[:space:]]*[:=].*claude' || trailerflag 'Co-Authored-By' '.*claude'; then
-  block "remove the Co-Authored-By Claude trailer from the commit message."
+  block "the message contains a Co-Authored-By Claude trailer."
 fi
 if msgline 'Generated with \[Claude Code\]'; then
-  block "remove the Generated with Claude Code line from the commit message."
+  block "the message contains a Generated with Claude Code line."
 fi
 
 # Validate the subject of every commit invocation: its first -m/--message

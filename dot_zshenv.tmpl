@@ -18,8 +18,8 @@ typeset -gU PATH path
 {{ if eq .machine_type "work" -}}
 # The @swisscom npm scope resolves through whichever host the current network can
 # reach, and ~/.npmrc reads the active one as ${NPM_SWISSCOM_REGISTRY}. This sits
-# here rather than in .exports, because .exports reaches interactive shells alone
-# while every reader of ~/.npmrc needs the value, `zsh -c`, ssh sessions and cron
+# here rather than in .exports, because .exports reaches only interactive shells,
+# while every reader of ~/.npmrc needs the value: `zsh -c`, ssh sessions and cron
 # included. An ini file has no fallback, so a shell that left it unset would make
 # npm treat the variable name itself as the registry URL. proxy:set, proxy:unset
 # and the proxy-watchd LaunchAgent swap the active value as the network changes.

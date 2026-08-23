@@ -3,13 +3,12 @@ set -euo pipefail
 {{ template "shell-helpers" . }}
 
 # Drop group-write from the Homebrew zsh completion directories. That bit is
-# the usual cause of the compaudit warnings about insecure directories at
-# shell startup.
+# the usual cause of compaudit's insecure directory warnings at shell startup.
 
 _ensure_brew
 
 if ! _cmd_exists brew; then
-  _log warning "Skipped zsh completion permissions (no brew)"
+  _log warning "Skipped zsh completion permissions (brew not installed)"
   exit 0
 fi
 
