@@ -388,8 +388,6 @@ cask "loopback"
 cask "microsoft-auto-update"
 # Office suite
 cask "microsoft-office-businesspro"
-# Minimal installer for conda
-cask "miniconda"
 # Interactive tool for analyzing MongoDB data
 cask "mongodb-compass", args: { appdir: "/Applications" }
 # App to write, plan, collaborate, and get organised

@@ -406,8 +406,6 @@ cask "melonds"
 cask "microsoft-office-businesspro"
 # Sandbox construction video game
 cask "minecraft", args: { appdir: "/Applications" }
-# Minimal installer for conda
-cask "miniconda"
 # Interactive tool for analyzing MongoDB data
 cask "mongodb-compass", args: { appdir: "/Applications" }
 # Reverse proxy, secure introspectable tunnels to localhost

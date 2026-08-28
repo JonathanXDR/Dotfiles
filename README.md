@@ -11,7 +11,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
 - 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, proxy, SSL, VPN, npm, `/etc/hosts`
-- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, `.java-version`, and `environment.yml` detected on every `cd`
+- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
 - 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
@@ -123,7 +123,7 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
         │
 ~/.functions ────── Utility functions
         │
-PATH setup ──────── Tool paths, Homebrew, conda, then mise activation (last)
+PATH setup ──────── Tool paths, Homebrew, then mise activation (last)
         │
 plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.plugins
         │
@@ -131,7 +131,7 @@ plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.
         │
 ~/.completions ──── Completions, zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── conda auto-activate, proxy state, SSH agent, daily mise, brew, and plugin checks
+Runtime hooks ───── proxy state, SSH agent, daily mise, brew, and plugin checks
 ```
 
 ## 📦 Project Structure
