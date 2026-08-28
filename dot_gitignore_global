@@ -622,6 +622,11 @@ hs_err_pid*
 # Metals
 .metals/
 
+# ---- mise ----
+# Per-repo interpreter pins are local machine setup, not project configuration
+.mise.toml
+.mise.local.toml
+
 # ---- AI tools ----
 **/.claude/*
 **/.remember/*
