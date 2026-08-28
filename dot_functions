@@ -209,9 +209,13 @@ have:rails() {
 # fzf's setup is pure ZLE. It evaluates `fzf --zsh`, which saves the shell
 # options and restores them afterwards. A shell with no terminal has no ZLE to
 # restore, so `zsh -ic` prints "can't change option: zle" twice. Such a shell
-# has no use for key bindings anyway, so gate the plugin on a real tty.
-have:tty() {
-  [[ -t 0 ]]
+# has no use for key bindings anyway. The tool test is the second half: the
+# plugin probes eight fixed directories and then prints a setup error telling
+# the reader to set FZF_BASE, which is what a machine whose Brewfile omits fzf
+# sees on every prompt. Both tests have to pass.
+have:fzf() {
+  [[ -t 0 ]] || return 1
+  cmd:exists fzf
 }
 
 # Update the cloned plugin repositories, then rebuild the bundle from them.
