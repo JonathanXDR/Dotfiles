@@ -88,6 +88,8 @@ brew "eslint"
 brew "ffmpeg"
 # Firebase command-line tools
 brew "firebase-cli"
+# Command-line fuzzy finder written in Go
+brew "fzf"
 # GitHub command-line tool
 brew "gh"
 # Glorious Glasgow Haskell Compilation System
