@@ -129,6 +129,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/warn-denied-tools.sh'",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "tui": "fullscreen",
