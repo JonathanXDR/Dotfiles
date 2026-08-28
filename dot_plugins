@@ -25,7 +25,8 @@
 # in .functions, and antidote compiles each into a plain `if have:<x>; then ...
 # fi`, so a guarded plugin costs one test and nothing else. Most guards check a
 # tool that is not installed here, so the plugin starts working the day the tool
-# arrives. have:tty asks for a real terminal instead.
+# arrives. have:fzf asks for a real terminal on top of that, because the plugin
+# only binds keys.
 
 # ------------------------------- Shell Basics ------------------------------- #
 
@@ -121,5 +122,5 @@ ohmyzsh/ohmyzsh path:plugins/alias-finder
 #              transpose-chars and capitalize-word on those keys.
 #   globalias  SPACE expands the word to its left, Ctrl+SPACE inserts a
 #              literal space.
-ohmyzsh/ohmyzsh path:plugins/fzf conditional:have:tty
+ohmyzsh/ohmyzsh path:plugins/fzf conditional:have:fzf
 ohmyzsh/ohmyzsh path:plugins/globalias
