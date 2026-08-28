@@ -28,12 +28,6 @@ elif [[ -x "/usr/local/bin/brew" ]]; then
   eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# Conda (miniconda via Homebrew). Sourcing this only defines the `conda`
-# function. Per-project environments come from conda:load below, which
-# activates the environment named in an environment.yml when one is present.
-[[ -f "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]] \
-  && source "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
-
 # Per-machine extras from .exports, appended to stay behind everything above
 path:append ${(s.:.)PATH_ADD}
 
@@ -64,9 +58,6 @@ source "${HOME}/.completions"
 
 # --------------------------------- Runtime ---------------------------------- #
 
-autoload -Uz add-zsh-hook
-add-zsh-hook chpwd conda:load
-
 # Work machines only, since they alone set ALWAYS_PROXY_PROBE to true. The
 # proxy-watchd LaunchAgent runs on every network change and rewrites
 # .cache/proxy-state whenever the state flips, so a new shell can adopt the
@@ -84,9 +75,6 @@ fi
 cmd:exists mise && run:daily mise mise:update
 cmd:exists brew && run:daily brew brew:check
 [[ -f "${HOME}/.plugins" ]] && run:daily plugins plugins:update
-
-# chpwd has not fired yet, so evaluate the starting directory once
-conda:load
 
 # Kiro CLI post block. Must stay last, after every keybinding and widget above.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"

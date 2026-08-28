@@ -1456,21 +1456,6 @@ docker:cleanup() {
 
 # -------------------------------- Toolchain --------------------------------- #
 
-# Activate the conda env named in ./environment.yml on entering a directory,
-# and deactivate again on leaving.
-conda:load() {
-  if [[ -f "environment.yml" ]]; then
-    local env_name
-    env_name=$(grep '^name:' environment.yml | sed 's/^name:[[:space:]]*//')
-
-    if [[ -n "$env_name" && "$CONDA_DEFAULT_ENV" != "$env_name" ]]; then
-      conda activate "$env_name" 2>/dev/null || true
-    fi
-  elif [[ -n "$CONDA_DEFAULT_ENV" && "$CONDA_DEFAULT_ENV" != "base" ]]; then
-    conda deactivate
-  fi
-}
-
 # Refresh every mise-managed tool within the ranges pinned in
 # ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which
 # would rewrite that file. It is chezmoi-tracked, so version changes belong in

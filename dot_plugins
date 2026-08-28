@@ -52,7 +52,6 @@ ohmyzsh/ohmyzsh path:plugins/golang
 ohmyzsh/ohmyzsh path:plugins/python
 ohmyzsh/ohmyzsh path:plugins/ruby
 ohmyzsh/ohmyzsh path:plugins/uv
-ohmyzsh/ohmyzsh path:plugins/conda
 ohmyzsh/ohmyzsh path:plugins/flutter
 ohmyzsh/ohmyzsh path:plugins/composer
 ohmyzsh/ohmyzsh path:plugins/sbt conditional:have:sbt
