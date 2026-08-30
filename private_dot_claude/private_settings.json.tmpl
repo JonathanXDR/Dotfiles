@@ -74,6 +74,23 @@
       }
     }
   },
+  "permissions": {
+    "deny": [
+{{- $rules := list }}
+{{- range .claude_blocked_paths }}
+{{-   $p := . }}
+{{-   if not (contains "/" $p) }}{{ $p = printf "//**/%s" $p }}
+{{-   else if and (hasPrefix "/" $p) (not (hasPrefix "//" $p)) }}{{ $p = printf "/%s" $p }}
+{{-   end }}
+{{-   range $form := (list $p (printf "%s/**" $p)) }}
+{{-     $rules = append (append $rules (printf "Read(%s)" $form)) (printf "Edit(%s)" $form) }}
+{{-   end }}
+{{- end }}
+{{- range $i, $r := $rules }}{{ if $i }},{{ end }}
+      {{ $r | quote }}
+{{- end }}
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -93,6 +110,15 @@
             "type": "command",
             "if": "Bash(git *)",
             "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/check-commit-message.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-path-access.sh'"
           }
         ]
       },
