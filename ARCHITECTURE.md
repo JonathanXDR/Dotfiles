@@ -135,12 +135,14 @@ Dotfiles/
 │   └── zed/private_settings.json.tmpl                   # Zed editor + MCP server keys (0600, from keychain)
 ├── private_dot_claude/                                  # ~/.claude/ (0700)
 │   ├── private_CLAUDE.md                                # Global Claude Code instructions (all projects)
-│   ├── private_settings.json.tmpl                       # Claude Code user settings (plugins, marketplaces, hooks)
+│   ├── private_settings.json.tmpl                       # Claude Code user settings (plugins, marketplaces, permissions, hooks)
 │   ├── private_hooks/                                   # ~/.claude/hooks/ (0700)
 │   │   ├── private_executable_block-git-push.sh         # PreToolUse guard, blocks unrequested git push
 │   │   ├── private_executable_block-git-destructive.sh  # PreToolUse guard, blocks git commands that discard work
 │   │   ├── private_executable_check-commit-message.sh   # PreToolUse guard, validates the commit message
-│   │   └── private_executable_scan-written-secrets.sh   # PostToolUse guard, sonar secrets scan of written files
+│   │   ├── private_executable_block-path-access.sh.tmpl # PreToolUse guard, blocks configured paths on every tool
+│   │   ├── private_executable_scan-written-secrets.sh   # PostToolUse guard, sonar secrets scan of written files
+│   │   └── private_executable_warn-denied-tools.sh      # SessionStart notice, project settings that withdraw core tools
 │   └── private_plugins/                                 # ~/.claude/plugins/ (0700)
 │       ├── installed_plugins.json.tmpl                  # Claude Code plugin install state
 │       └── known_marketplaces.json.tmpl                 # Claude Code marketplace registry
@@ -198,6 +200,7 @@ chezmoi maps source filenames to target paths by replacing prefixes and strippin
 | `private_dot_exports.tmpl`                       | `~/.exports`                        | Rendered copy at `0600`, because it inlines keychain secrets                    |
 | `private_dot_claude/private_settings.json.tmpl`  | `~/.claude/settings.json`           | Rendered copy, because both `.tmpl` and `private_` rule out a symlink           |
 | `private_dot_claude/private_plugins/*.json.tmpl` | `~/.claude/plugins/*.json`          | Claude Code runtime state, rendered copies with the home directory templated in |
+| `private_dot_claude/private_hooks/*`             | `~/.claude/hooks/*.sh`              | Copies at `0700`, rendered where a `.tmpl` suffix bakes in chezmoi data         |
 | `private_dot_claude/private_CLAUDE.md`           | `~/.claude/CLAUDE.md`               | Plain copy, and `private_` keeps the source name out of the global gitignore    |
 | `symlink_dot_ssh.tmpl`                           | `~/.ssh`                            | Symlink to the rendered iCloud path                                             |
 | `private_dot_gnupg/`                             | `~/.gnupg/`                         | `private_` sets the directory to `0700`                                         |
@@ -222,7 +225,8 @@ chezmoi merges template data from multiple sources (later layers override earlie
 │  .chezmoidata.toml and .chezmoidata/                                                │
 │                                                                                     │
 │    editor, history_size, autostart_ssh_agent, default_hostname,                     │
-│    tree_ignore, dock_apps, cisco_vpn_bin, keychain_name, zed_extensions, ...        │
+│    tree_ignore, dock_apps, cisco_vpn_bin, keychain_name, zed_extensions,            │
+│    claude_blocked_paths, ...                                                        │
 │                                                                                     │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
@@ -451,6 +455,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Add a runtime or global CLI package  | `dot_config/mise/config.toml`                                                                      |
 | Edit global Claude Code instructions | `private_dot_claude/private_CLAUDE.md`                                                             |
 | Change a Claude Code guard hook      | `private_dot_claude/private_hooks/`                                                                |
+| Change the paths Claude cannot touch | `.chezmoidata.toml` (`claude_blocked_paths`)                                                       |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`             |
 | Rename or update a secret            | `secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]` |
 | Inspect or audit secrets             | `secrets:list` (table view), `secrets:import` (sync + drift), `secret:copy` (clipboard)            |
@@ -506,3 +511,4 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **A PreToolUse hook guards `git push`**                        | "Never push unless explicitly asked" needs mechanical enforcement, because CLAUDE.md instructions are advisory and the `claude` alias runs with `--dangerously-skip-permissions`, which skips `ask` permission rules. A `deny` rule would block requested pushes too. The settings filter narrows the hook to git commands as a fast path, and the script itself inspects the actual command, blocks any `git push` invocation (including flagged forms such as `git -C <path> push`) with exit code 2, and tells Claude to re-run the command with `CLAUDE_PUSH_OK=1` once the user has explicitly asked for the push. The `private_executable_` prefix renders the script at `0700`.                                                                                                                                                                                                             |
 | **Write-time secrets scan and destructive git guard**          | The SonarQube integration only scans files Claude reads and user prompts, so a PostToolUse hook runs `sonar analyze secrets` on every file Claude writes and feeds findings back with exit code 2. A second PreToolUse guard blocks `git reset --hard`, forced `git clean`, forced `git checkout`, and worktree-discarding `checkout` and `restore` behind the same explicit-confirmation pattern as the push guard (`CLAUDE_DESTRUCTIVE_OK=1`). The sonar-installed wrappers under `~/.claude/hooks/sonar-secrets/` stay vendor-managed and out of chezmoi, while their settings registration is templated so `chezmoi apply` cannot wipe it.                                                                                                                                                                                                                                                     |
 | **Commit style enforced by an agent hook, not a git hook**     | A global `core.hooksPath` was tried and reverted: it hijacks every repo's hook path (git-lfs and local tooling install into `.git/hooks`) and binds the human too, while the rule only needs to steer the agent. A PreToolUse hook now validates the Conventional Commits subject (lowercase type) and rejects Claude attribution trailers in commands it can parse, fails open for editor-based commits and exotic quoting, and accepts `CLAUDE_COMMIT_OK=1` when a repository's documented convention intentionally differs. Bodies and footers stay unrestricted.                                                                                                                                                                                                                                                                                                                               |
+| **A path blocklist needs a hook, not just a deny rule**        | One list in `.chezmoidata.toml` (`claude_blocked_paths`) feeds both `permissions.deny` and a PreToolUse guard, since neither alone suffices. Deny rules reach the `@` mentions no hook sees, but validate paths for only about thirty six recognised commands: before this machine's managed policy landed, a deny rule blocked `cat file` while `python3 -c` read it. That policy (`allowManagedPermissionRulesOnly`) drops every non-managed rule, so here the hook is the only enforcement. It registers for every tool, since Monitor, PowerShell and Tmux also run commands, and matches path text rather than command names, since zsh reads through hundreds of aliases and a bare `< file`. Entries are bare names, so a directory stays covered through a symlink or copy. No override: this is a confidentiality boundary. A project's `disableAllHooks` still defeats it.               |

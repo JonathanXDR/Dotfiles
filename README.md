@@ -174,8 +174,8 @@ Runtime hooks ───── proxy state, SSH agent, daily mise, brew, and plug
 │   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)
 ├── private_dot_claude/                      # ~/.claude/ (0700)
 │   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
-│   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, hooks)
-│   ├── private_hooks/                       # Claude Code guard hooks (push, destructive git, commit style, secrets)
+│   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, permissions, hooks)
+│   ├── private_hooks/                       # Claude Code guard hooks and session notices
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
 ├── Library/Application Support/Code/User/   # VS Code settings & keybindings
 │

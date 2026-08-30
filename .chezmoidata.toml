@@ -56,3 +56,31 @@ vpn_default_host = ""
 # `includeTemplate "keychain"` are matched against that attribute.
 keychain_name = "dotfiles"      # SECRETS_KEYCHAIN_NAME
 keychain_lookup_field = "name"  # SECRETS_KEYCHAIN_LOOKUP_FIELD
+
+# Paths Claude Code must never read or modify. Rendered from this one list into
+# both enforcement layers: permissions.deny in private_dot_claude/
+# private_settings.json.tmpl, and the blocklist baked into the
+# block-path-access.sh guard hook. Not exported to the shell.
+#
+# Prefer a bare name. It matches that file or directory at any depth, so it
+# still covers the file when the path is spelled another way: ~/.ssh is a
+# symlink into iCloud on this machine, and a bare .ssh guards the target and any
+# copy of it, where the entry "~/.ssh" would only guard the one spelling.
+# A bare name matches between path-component boundaries, and a dot closes a
+# component without opening one, so .env covers .env and .env.local but not
+# .envelope, and .aws does not fire on an identifier like awsRegion.
+#
+# An entry containing a slash is instead matched as a literal path, where ~
+# means the home directory. Write such an entry absolute or ~-rooted: the deny
+# layer anchors a bare relative path to the working directory, while the hook
+# matches it anywhere, and the two would disagree.
+#
+# Do not use a glob character. The hook matches entries literally and would
+# cover nothing, while the deny rules would read it as a gitignore wildcard.
+claude_blocked_paths = [
+  ".ssh",
+  ".gnupg",
+  ".aws",
+  ".kube",
+  ".env",
+]
