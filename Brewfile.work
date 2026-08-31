@@ -56,6 +56,8 @@ brew "cask"
 brew "ccache"
 # Mozilla CA bundle for Python
 brew "certifi"
+# Manage your dotfiles across multiple diverse machines, securely
+brew "chezmoi"
 # Cloudflare Tunnel client (formerly Argo Tunnel)
 brew "cloudflared"
 # Cross-platform make
@@ -330,8 +332,6 @@ cask "burp-suite"
 cask "citrix-workspace", args: { appdir: "/Applications" }
 # Anthropic's official Claude AI desktop app
 cask "claude"
-# OpenAI's Codex desktop app for managing coding agents
-cask "codex-app"
 # Disk space visualiser
 cask "daisydisk"
 # Voice and text chat software
@@ -390,6 +390,8 @@ cask "loopback"
 cask "microsoft-auto-update"
 # Office suite
 cask "microsoft-office-businesspro"
+# Minimal installer for conda
+cask "miniconda"
 # Interactive tool for analyzing MongoDB data
 cask "mongodb-compass", args: { appdir: "/Applications" }
 # App to write, plan, collaborate, and get organised
