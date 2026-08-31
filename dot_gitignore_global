@@ -246,9 +246,6 @@ tmbootpicker.efi
 hs_err_pid*
 replay_pid*
 
-# sdkman
-.sdkmanrc
-
 # ---- Node ----
 # Logs
 logs
