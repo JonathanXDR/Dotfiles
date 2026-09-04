@@ -35,8 +35,14 @@ mise -C "$HOME" cache clear java >/dev/null 2>&1 || true
 # cannot pull in undeclared tools. Leaving that config untrusted would not help:
 # mise asks for trust before running [env], [tasks], and [hooks], never before
 # reading [tools].
+#
+# No --yes here, unlike the prune below. On install it is not just prompt
+# suppression. With system_deps at its default of "prompt", it authorizes mise
+# to install missing system dependencies through Homebrew, behind the Brewfile
+# that script 03 owns. Nothing in config.toml declares one today, because only
+# vfox-backed plugins can, so this is about the tool added tomorrow.
 _log info "Installing mise-managed tools…"
-if mise -C "$HOME" install --yes; then
+if mise -C "$HOME" install; then
   _log success "Installed mise-managed tools"
 else
   _log warning "Failed to install some mise-managed tools (see above)"
@@ -48,6 +54,10 @@ fi
 # stay safe, because mise tracks every config it has seen
 # (~/.local/state/mise/tracked-configs) and keeps any version one of them still
 # asks for. The same pass rebuilds the shim directory, so no reshim is needed.
+#
+# --yes is required here, unlike on the install above. Without it mise asks
+# before every removal, and an unattended run counts as a decline, so the prune
+# would silently remove nothing.
 _log info "Pruning unused tool versions…"
 if mise -C "$HOME" prune --yes; then
   _log success "Pruned unused tool versions"
