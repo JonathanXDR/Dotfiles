@@ -119,11 +119,13 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
         │
 ~/.zprofile ─────── Restores the mise shims to the front of PATH
         │
+Kiro CLI pre ────── Launches figterm (must stay first in ~/.zshrc)
+        │
 ~/.exports ──────── Env vars, proxy, locale, history, zsh options
         │
 ~/.functions ────── Utility functions
         │
-PATH setup ──────── Tool paths, Homebrew, then mise activation (last)
+PATH setup ──────── Homebrew first, then tool paths, then mise activation (last)
         │
 plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.plugins
         │
@@ -132,7 +134,13 @@ plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.
 ~/.completions ──── Completions, zsh plugins, autosuggestions, syntax highlighting
         │
 Runtime hooks ───── proxy state, SSH agent, daily mise, brew, and plugin checks
+        │
+Kiro CLI post ───── Prompt and keybinding hooks (must stay last in ~/.zshrc)
 ```
+
+Homebrew runs before the tool paths because `brew shellenv` calls `path_helper`,
+which rebuilds `PATH` from `/etc/paths` and appends the rest. Anything prepended
+earlier lands behind `/usr/bin` instead of in front of it.
 
 ## 📦 Project Structure
 
