@@ -157,3 +157,8 @@ if [[ -n "$brew_share" ]]; then
   [[ -f "${brew_share}/zsh-history-substring-search/zsh-history-substring-search.zsh" ]] \
     && source "${brew_share}/zsh-history-substring-search/zsh-history-substring-search.zsh"
 fi
+
+# `local` outside a function is just `typeset`, so every name above would stay
+# in the interactive shell. This file is sourced from .zshrc, not called, so
+# clean them up explicitly.
+unset brew_share fpath_stamp fresh deferred ng_completion ng_fresh
