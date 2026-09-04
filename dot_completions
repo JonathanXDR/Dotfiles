@@ -2,45 +2,78 @@
 # here, so read the notes before moving a block.
 
 # Homebrew prefix (HOMEBREW_PREFIX is already set by `brew shellenv` in .zshrc)
-local brew_share=""
-local has_zsh_autocomplete=0
-if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
-  brew_share="${HOMEBREW_PREFIX}/share"
+local brew_share="${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/share}"
 
-  # Let zsh-autocomplete own its fpath entries. Sourcing it below re-adds
-  # Completions and z-async, so drop any copies inherited from a parent shell,
-  # which may point at a version that no longer exists.
-  #
-  # zsh-completions is a Brewfile formula (180 definitions for tools Homebrew
-  # does not complete itself, including mvn, flutter and scala). It goes
-  # first, as the formula's own caveats prescribe, so these definitions win
-  # over any same-named copy later on fpath.
-  typeset -gU FPATH fpath
-  local -a clean_fpath
-  clean_fpath=( ${fpath:#*/zsh-autocomplete/Completions} )
-  fpath=( "${brew_share}/zsh-completions" ${clean_fpath:#*/zsh-autocomplete/z-async} )
+# One dump file, whichever branch below ends up running compinit. Naming it
+# here rather than letting each branch pick its own keeps both on the same
+# file. zsh-autocomplete reads this variable and keeps a value already set.
+typeset -g _comp_dumpfile="${HOME}/.cache/zsh/compdump"
 
-  if [[ -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
-    # Kiro CLI compatibility. Keep zsh-autocomplete's manual widgets, but
-    # disable the async redraw loop that wipes Kiro's figterm inline
-    # suggestions.
-    zstyle ':autocomplete:async' enabled no
-    source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
-    has_zsh_autocomplete=1
-  fi
+# Let zsh-autocomplete own its fpath entries. Sourcing it below re-adds
+# Completions and z-async, so drop any copies inherited from a parent shell,
+# which may point at a version that no longer exists.
+#
+# zsh-completions is a Brewfile formula (180 definitions for tools Homebrew
+# does not complete itself, including mvn, flutter and scala). It goes first,
+# as the formula's own caveats prescribe, so these definitions win over any
+# same-named copy later on fpath.
+#
+# ~/.bun holds bun's own completion, a plain `#compdef bun` file. It belongs on
+# fpath rather than being sourced. That file ends in a `command -v compinit`
+# probe, which cannot see an autoloadable function that has not been loaded
+# yet, so sourcing it ran a full uncached compinit on every shell. That cost
+# 460 ms by itself, and left the completion system owned by something other
+# than zsh-autocomplete, which then deleted its dump and rebuilt from scratch
+# on every prompt for another 450 ms.
+typeset -gU FPATH fpath
+fpath=(
+  ${brew_share:+${brew_share}/zsh-completions}
+  ${HOME}/.bun(N/)
+  ${fpath:#*/zsh-autocomplete/(Completions|z-async)}
+)
+
+# Decide whether the dump is still good, then let compinit trust that answer.
+#
+# compinit's own freshness check globs every completion file on fpath, 1216 of
+# them across 47 directories here, and costs about 440 ms on every shell. -C
+# skips it, so the two tests below are what keep the dump honest, for well
+# under a millisecond.
+#
+#   Age. A tool installed today gets its completion tomorrow. The same 24-hour
+#   bound the mise, brew and plugin refreshes in .zshrc use.
+#
+#   The fpath list. Editing the block above changes which directories compinit
+#   would read, and no age check notices that.
+#
+# Directory mtimes would catch a new tool the same day, but they are useless
+# here: eight Oh My Zsh plugins rewrite ~/.cache/oh-my-zsh/completions in the
+# background on every shell, so that directory is always newer than the dump.
+# The age test has to glob, and [[ ]] never does: inside it the qualifier is
+# just text and the test is always true. Assign to an array instead, the same
+# way run:daily does in .functions.
+[[ -d ${_comp_dumpfile:h} ]] || mkdir -p ${_comp_dumpfile:h}
+local fpath_stamp="${_comp_dumpfile}.fpath"
+local -a fresh=( ${_comp_dumpfile}(N.mh-24) )
+if (( ! ${#fresh} )) || [[ ! -f $fpath_stamp || "$fpath" != "$(<$fpath_stamp)" ]]; then
+  command rm -f -- "$_comp_dumpfile"
+  print -r -- "$fpath" >| "$fpath_stamp"
 fi
 
-# zsh-autocomplete runs compinit itself, so only do it when the plugin is
-# missing. -C skips the security scan and the check for new completion files,
-# so a tool installed today gets completion once the dump ages past 24 hours
-# and the full compinit runs.
-if (( ! has_zsh_autocomplete )); then
+if [[ -n "$brew_share" && -f "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
+  # zsh-autocomplete runs compinit itself, from its first precmd, and its
+  # README asks that nothing else call it. Honor that: a foreign compinit makes
+  # the plugin drop the dump and rebuild it on every single shell.
+  zstyle ':autocomplete::compinit' arguments -C
+
+  # Kiro CLI compatibility. Keep zsh-autocomplete's manual widgets, but
+  # disable the async redraw loop that wipes Kiro's figterm inline
+  # suggestions.
+  zstyle ':autocomplete:async' enabled no
+
+  source "${brew_share}/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+else
   autoload -Uz compinit
-  if [[ -n ~/.zcompdump(N.mh-24) ]]; then
-    compinit -C
-  else
-    compinit
-  fi
+  compinit -C -d "$_comp_dumpfile"
 fi
 
 # Replay the compdef calls the plugin bundle queued before the completion system
@@ -55,9 +88,6 @@ if (( ${#COMPDEF_DEFERRED} )); then
   done
 fi
 unset COMPDEF_DEFERRED
-
-# Bun completions
-[[ -s "${HOME}/.bun/_bun" ]] && source "${HOME}/.bun/_bun"
 
 # Angular CLI autocompletion (zsh native, no caching needed)
 if cmd:exists ng; then
