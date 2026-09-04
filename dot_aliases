@@ -154,8 +154,10 @@ alias:safe hide="defaults write com.apple.finder AppleShowAllFiles -bool false &
 alias:safe hidedesktop="defaults write com.apple.finder CreateDesktop -bool false && killall Finder"
 alias:safe showdesktop="defaults write com.apple.finder CreateDesktop -bool true && killall Finder"
 
-# Flush Directory Service cache
-alias:safe flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
+# Flush the Directory Service cache and restart the DNS resolver. mDNSResponder
+# runs as _mdnsresponder, so the signal needs root or it fails with "No matching
+# processes belonging to you were found" and the DNS cache survives.
+alias:safe flush="sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder"
 
 # Clean up LaunchServices to remove duplicates in the "Open With" menu
 alias:safe lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
