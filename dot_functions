@@ -1380,12 +1380,16 @@ sudo:touch-id() {
   log success "Enabled Touch ID for sudo"
 }
 
+# Reveal the "App Store and known developers" alternative in System Settings >
+# Privacy & Security. macOS 26 documents only the --global-* pair, and
+# --global-disable no longer turns Gatekeeper off by itself: it unhides the
+# setting, which still has to be changed there.
 gatekeeper:disable() {
-  sudo spctl --master-disable
+  sudo spctl --global-disable
 }
 
 gatekeeper:enable() {
-  sudo spctl --master-enable
+  sudo spctl --global-enable
 }
 
 hostname:get() {
