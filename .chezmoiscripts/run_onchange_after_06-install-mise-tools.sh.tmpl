@@ -64,3 +64,14 @@ if mise -C "$HOME" prune --yes; then
 else
   _log warning "Failed to prune unused tool versions (see above)"
 fi
+
+# `mise install` treats an existing install directory as proof the tool is
+# there, and the `incomplete` marker that would say otherwise lives under the
+# java cache tree that the clear above deletes. An apply interrupted while java
+# was downloading therefore leaves an empty install directory that every later
+# run reads as installed. mise 2026.8.12 taught `mise doctor` to report exactly
+# that. Only real problems set a non-zero status, so the standing "new mise
+# version available" warning never trips this.
+if ! mise -C "$HOME" doctor >/dev/null 2>&1; then
+  _log warning "Detected mise problems (run 'mise doctor' for details)"
+fi
