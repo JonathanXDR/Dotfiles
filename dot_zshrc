@@ -1,6 +1,47 @@
 
-# Kiro CLI pre block. Must stay first in this file.
-[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
+# Kiro CLI. The two vendor stubs under ~/Library/Application Support each run
+# `kiro-cli init zsh <phase>`, about 22 ms per call, for output that changes
+# only when the binary does. Caching it against the binary's mtime turns two
+# process spawns into two file reads.
+#
+# Defined here rather than in .functions, which is not sourced yet: the pre
+# block ends in `exec kiro-cli-term`, so it has to stay first in this file and
+# everything above it runs twice. A function definition is the cheapest thing
+# that can be up here.
+kiro:block() {
+  local phase="$1"
+  local bin="${HOME}/.local/bin/kiro-cli"
+  local cache="${HOME}/.cache/kiro/${phase}.zsh"
+
+  [[ -x "$bin" ]] || return 0
+
+  # The generated block opens with the interpreter path Kiro resolved for the
+  # shell that ran it, and on Homebrew that path carries the zsh version
+  # (.../Cellar/zsh/5.9.2/bin/zsh). A `brew upgrade zsh` therefore strands a
+  # cache that is still newer than the kiro binary, so check the path too. The
+  # read is a builtin and stops after one line.
+  local cached=0 first_line=
+  if [[ "$cache" -nt "$bin" ]] && read -r first_line < "$cache" 2>/dev/null; then
+    [[ "$first_line" == Q_SHELL=* && -x "${(Q)first_line#Q_SHELL=}" ]] && cached=1
+  fi
+
+  if (( ! cached )); then
+    [[ -d "${cache:h}" ]] || mkdir -p "${cache:h}"
+    if "$bin" init zsh "$phase" --rcfile zshrc >| "${cache}.new" 2>/dev/null \
+      && [[ -s "${cache}.new" ]]; then
+      command mv -f "${cache}.new" "$cache"
+    else
+      # A cache that cannot be written must never cost the integration itself.
+      command rm -f "${cache}.new"
+      eval "$("$bin" init zsh "$phase" --rcfile zshrc 2>/dev/null)"
+      return 0
+    fi
+  fi
+
+  builtin source "$cache"
+}
+
+kiro:block pre
 
 # --------------------------------- Sources ---------------------------------- #
 
@@ -77,4 +118,4 @@ cmd:exists brew && run:daily brew brew:check
 [[ -f "${HOME}/.plugins" ]] && run:daily plugins plugins:update
 
 # Kiro CLI post block. Must stay last, after every keybinding and widget above.
-[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
+kiro:block post
