@@ -823,7 +823,12 @@ proxyd:status() {
 
   echo ""
   echo "  Configuration (static, set by chezmoi):"
-  for _v in NTLM_CREDENTIALS NODE_EXTRA_CA_CERTS NODE_TLS_REJECT_UNAUTHORIZED NODE_USE_ENV_PROXY SSL_BUNDLE_KEYCHAIN_CERTS SSL_BUNDLE_REMOTE_CERTS; do
+  # NTLM_CREDENTIALS is a live credential from the keychain, and this is the
+  # command you run while something is broken, which is when terminal output
+  # gets pasted into a ticket. Report only whether it is set. The nested form
+  # still prints <unset> for the set-but-empty value personal machines carry.
+  printf "    %-30s %s\n" "NTLM_CREDENTIALS" "${${NTLM_CREDENTIALS:+<set>}:-<unset>}"
+  for _v in NODE_EXTRA_CA_CERTS NODE_TLS_REJECT_UNAUTHORIZED NODE_USE_ENV_PROXY SSL_BUNDLE_KEYCHAIN_CERTS SSL_BUNDLE_REMOTE_CERTS; do
     printf "    %-30s %s\n" "${_v}" "${(P)_v:-<unset>}"
   done
 }
