@@ -135,11 +135,27 @@ alias:shadows() {
   done
 }
 
-# Run a command at most once every 24 hours, gated by a stamp file.
-# Usage: run:daily <name> <command...>
+# Run a command at most once every 24 hours, detached, and show what the last
+# run had to say. Usage: run:daily <name> <command...>
+#
+# The three callers in .zshrc (mise:update, brew:check, plugins:update) all
+# reach the network, and brew:check alone measured about 4.7 s. Running them in
+# front of the prompt made the first shell of each day an order of magnitude
+# slower than every other one, and slower still offline, where each command
+# sits in its own timeout first.
+#
+# So the work is detached and its output is kept for the next shell to print.
+# One shell late is fine for a daily "3 packages are outdated" notice, and it
+# beats both blocking the prompt and writing into a prompt already on screen.
 run:daily() {
   local name="$1"; shift
   local stamp="${HOME}/.cache/daily/${name}"
+  local report="${stamp}.report"
+
+  # Whatever the last detached run printed, shown once. The run writes this
+  # file only when it finishes, so there is no half-written report to catch.
+  [[ -s "$report" ]] && { cat "$report"; command rm -f "$report" }
+
   # `mh-24` also matches a stamp dated in the future (clock skew, restored
   # backup), which would gate the command off forever, so require a positive
   # age. The cost is that a second shell starting in the same wall-clock second
@@ -148,7 +164,12 @@ run:daily() {
   (( ${#fresh} )) && return 0
 
   mkdir -p "${stamp:h}"
-  "$@" && touch "$stamp"
+  # Stamp before launching rather than on success. Every caller already returns
+  # 0 unconditionally so the day gets stamped either way, and stamping first is
+  # what keeps a burst of new tabs from each starting its own copy of the same
+  # update against the same clones.
+  touch "$stamp"
+  ( "$@" >| "${report}.new" 2>&1; command mv -f "${report}.new" "$report" ) &!
 }
 
 # Prepend directories to PATH (skips missing or duplicate entries)
