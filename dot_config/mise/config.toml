@@ -81,4 +81,12 @@ status.missing_tools = "always"
 # on a build that no longer gets security patches. The freeze is silent: with no
 # newer openjdk-25 to find, the pin still looks current to mise. Temurin keeps
 # maintaining the line, so the same pin now resolves to 25.0.4.
+#
+# Temurin narrows the freeze without closing it. Adoptium sometimes respins a
+# build at the same patch level, turning 25.0.4+7 into 25.0.4+101, and mise
+# compares versions by semver precedence, which ignores everything after the
+# plus. The two builds compare equal, so `mise upgrade` calls the pin current
+# and holds the older one until the next real patch. `mise latest java@lts`
+# against `mise current java` shows the gap. Uninstalling the stale build makes
+# `lts` resolve forward again.
 java.shorthand_vendor = "temurin"
