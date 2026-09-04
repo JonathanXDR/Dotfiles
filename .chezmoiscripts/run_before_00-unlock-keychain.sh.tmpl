@@ -19,5 +19,10 @@ KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | q
 # keychain.
 [[ -f "$KEYCHAIN" ]] || exit 0
 
-security set-keychain-settings -l "$KEYCHAIN"
+# Unlock first. `security set-keychain-settings` needs an unlocked keychain and
+# blocks on the macOS GUI unlock dialog otherwise, which would hang the whole
+# apply before any template renders. The keychain is locked in exactly the two
+# cases this script exists for: a configured master password, and the `-l`
+# policy this line installs, which locks on system sleep.
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+security set-keychain-settings -l "$KEYCHAIN"
