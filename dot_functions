@@ -863,7 +863,9 @@ network:heal() {
 # Adopt a forwarded ssh-agent socket left behind in /tmp by an earlier session.
 ssh:reagent() {
   local agent
-  for agent in /tmp/ssh-*/agent.*; do
+  # (N) matters: without it an unmatched glob is fatal under NOMATCH, and the
+  # error unwinds out of ssh:agent and aborts the rest of .zshrc.
+  for agent in /tmp/ssh-*/agent.*(N=); do
     export SSH_AUTH_SOCK="${agent}"
     if ssh-add -l &>/dev/null; then
       log success "Found working SSH agent"
@@ -871,6 +873,9 @@ ssh:reagent() {
       return 0
     fi
   done
+  # Every candidate failed, so drop the last one rather than leaving
+  # SSH_AUTH_SOCK aimed at a dead socket.
+  unset SSH_AUTH_SOCK
   log warning "Found no working SSH agent (reconnect with forwarding)"
   return 1
 }
