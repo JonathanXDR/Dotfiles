@@ -729,9 +729,14 @@ proxy:set() {
 # Clear everything proxy:set exported, in the shell and in the launchd session.
 proxy:unset() {
   local var
+  # NO_PROXY and no_proxy stay. They are configuration from .exports, not proxy
+  # state, and proxy:set reads NO_PROXY back as the default for its fourth
+  # argument. Unsetting them here left a later proxy:set in the same shell
+  # exporting an empty exemption list. They are inert while nothing else here
+  # names a proxy.
   for var in http_proxy https_proxy ftp_proxy all_proxy \
              HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY \
-             PIP_PROXY no_proxy NO_PROXY MAVEN_OPTS; do
+             PIP_PROXY MAVEN_OPTS; do
     unset "$var"
   done
 
