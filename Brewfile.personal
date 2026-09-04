@@ -55,8 +55,6 @@ brew "cask"
 brew "ccache"
 # Mozilla CA bundle for Python
 brew "certifi"
-# Filter to replace numeric timestamps with a formatted date time
-brew "cf"
 # Manage your dotfiles across multiple diverse machines, securely
 brew "chezmoi"
 # Cloudflare Tunnel client (formerly Argo Tunnel)
