@@ -108,11 +108,17 @@ source "${HOME}/.completions"
 # recorded state instead of probing. Probing is the fallback for a missing or
 # unrecognized state file.
 if [[ "${ALWAYS_PROXY_PROBE}" == "true" ]]; then
-  case "$(cat "${HOME}/.cache/proxy-state" 2>/dev/null)" in
+  # $(<file) reads in-process where $(cat file) forks, but it has no way to
+  # stay quiet about a missing file, so read it only when it is there. The
+  # fall-through arm already covers the empty case.
+  local proxy_state=
+  [[ -r "${HOME}/.cache/proxy-state" ]] && proxy_state="$(<"${HOME}/.cache/proxy-state")"
+  case "$proxy_state" in
     on)  proxy:set ;;
     off) proxy:unset ;;
     *)   proxy:probe ;;
   esac
+  unset proxy_state
 fi
 [[ "${AUTOSTART_SSH_AGENT}" == "true" ]] && ssh:agent
 
