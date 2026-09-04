@@ -1406,11 +1406,31 @@ hostname:set() {
 
   local new_hostname="$1"
 
+  # LocalHostName is the Bonjour name and takes only letters, digits and
+  # hyphens, where ComputerName takes any UTF-8. Derive one the way System
+  # Settings does, because scutil rejects the rest: setting the repo's own
+  # default_hostname of "void(0)" used to set the first two names and then fail
+  # on the third, leaving the machine half-renamed.
+  local local_hostname="${new_hostname//[^a-zA-Z0-9-]/-}"
+  while [[ "$local_hostname" == *--* ]]; do
+    local_hostname="${local_hostname//--/-}"
+  done
+  local_hostname="${local_hostname#-}"
+  local_hostname="${local_hostname%-}"
+
+  if [[ -z "$local_hostname" ]]; then
+    log error "Failed to derive a local host name from \"$new_hostname\""
+    return 1
+  fi
+
   sudo scutil --set ComputerName "$new_hostname" \
     && sudo scutil --set HostName "$new_hostname" \
-    && sudo scutil --set LocalHostName "$new_hostname" \
+    && sudo scutil --set LocalHostName "$local_hostname" \
     || { log error "Failed to set hostname \"$new_hostname\""; return 1; }
 
+  if [[ "$local_hostname" != "$new_hostname" ]]; then
+    log info "Set the local host name to \"$local_hostname\" (Bonjour names allow only letters, digits and hyphens)"
+  fi
   log success "Set hostname \"$new_hostname\" (restart may be required)"
 }
 
