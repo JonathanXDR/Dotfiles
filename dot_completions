@@ -122,9 +122,16 @@ if [[ -n "$brew_share" ]]; then
     && source "${brew_share}/zsh-autosuggestions/zsh-autosuggestions.zsh"
 fi
 
-# Kiro CLI owns Tab, so Shift+Tab is the manual way into zsh-autocomplete's
-# menu. Clear the ghost text first, or it gets committed into the buffer
-# alongside the completion that was picked.
+# Shift+Tab opens the interactive menu.
+#
+# zsh-autocomplete binds Tab to `complete-word` and Shift+Tab to `expand-word`,
+# so neither reaches `menu-select`. This replaces the Shift+Tab binding with a
+# wrapper that does, after clearing zsh-autosuggestions' ghost text, which
+# otherwise gets committed into the buffer alongside the chosen completion.
+#
+# Not a Kiro workaround, despite what this comment used to say: `kiro-cli init
+# zsh pre` and `... post` contain no bindkey, `zle -N` or `zle -C` at all, and
+# Tab resolves to `complete-word` with Kiro installed and without it alike.
 #
 # This binds into the `main` keymap, which is the one actually in use.
 # zsh-autocomplete rebuilds `emacs` from a precmd hook afterwards and resets ^R
@@ -132,13 +139,13 @@ fi
 # this binding and fzf's ^R survive. Verified on a real terminal. Querying
 # `bindkey -M emacs` instead of `-M main` gives a misleading answer.
 if (( $+widgets[menu-select] )); then
-  _zsh_autocomplete_fallback() {
+  _zsh_autocomplete_menu() {
     unset POSTDISPLAY
     zle menu-select
   }
 
-  zle -N _zsh_autocomplete_fallback
-  bindkey '\e[Z' _zsh_autocomplete_fallback
+  zle -N _zsh_autocomplete_menu
+  bindkey '\e[Z' _zsh_autocomplete_menu
 fi
 
 # Syntax highlighting and history substring search wrap existing ZLE widgets,
