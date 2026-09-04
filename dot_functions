@@ -1349,37 +1349,35 @@ secrets:export() {
 
 # ----------------------- macOS System Tweaks & Utilities -------------------- #
 
-# Let Touch ID authenticate sudo by adding pam_tid to /etc/pam.d/sudo.
-# Backs the file up first and restores it if any step fails.
+# Let Touch ID authenticate sudo, by adding pam_tid to /etc/pam.d/sudo_local.
+#
+# That file is the supported place for this since macOS 14. /etc/pam.d/sudo
+# ships an `auth include sudo_local` line and is replaced on every macOS
+# update, so an edit made there is silently lost and Touch ID stops working.
+# sudo_local is left alone. Creating it needs no backup or rollback either,
+# because the file belongs to us rather than to macOS.
 sudo:touch-id() {
-  local FILE='/etc/pam.d/sudo'
-  local BACKUP
-  BACKUP="$(mktemp /tmp/sudo.pam.backup.XXXXXX)"
+  local file='/etc/pam.d/sudo_local'
+  local line='auth       sufficient     pam_tid.so'
 
-  trap "command rm -f ${(q)BACKUP}" EXIT
-
-  log info "Backing up ${FILE} → ${BACKUP}…"
-  sudo cp "$FILE" "$BACKUP" || { log error "Failed to create backup"; return 1; }
-
-  # Only enable restore-on-error after a valid backup exists
-  trap 'trap - ERR; log error "Detected an error, restoring the original file"; sudo cp "$BACKUP" "$FILE"; return 1' ERR
-
-  if ! sudo grep -q '^# sudo: auth account password session' "$FILE"; then
-    log error "Failed to find required marker comment in $FILE"
+  if [[ ! -f "${file}.template" ]]; then
+    log error "Failed to find ${file}.template (needs macOS 14 or newer)"
     return 1
   fi
 
-  if ! sudo grep -qF 'auth       sufficient     pam_tid.so' "$FILE"; then
-    log info "Inserting pam_tid line into ${FILE}…"
-    sudo sed -i '' '/^# sudo: auth account password session/a\
-auth       sufficient     pam_tid.so
-' "$FILE"
-  else
-    log info "Skipped pam_tid line (already present)"
+  if [[ -f "$file" ]] && sudo grep -qE '^[^#]*pam_tid\.so' "$file"; then
+    log info "Skipped pam_tid line (already present in ${file})"
+    return 0
   fi
 
-  trap - ERR
-  log success "Updated $FILE"
+  log info "Enabling Touch ID for sudo (${file})…"
+  if ! print -r -- "$line" | sudo tee -a "$file" >/dev/null; then
+    log error "Failed to write ${file}"
+    return 1
+  fi
+  sudo chmod 0444 "$file"
+
+  log success "Enabled Touch ID for sudo"
 }
 
 gatekeeper:disable() {
