@@ -121,9 +121,9 @@ export MANPAGER="${MANPAGER:-less -X}"
 
 # ------------------------------------ GPG ----------------------------------- #
 
-# gpg needs the controlling tty to prompt for a passphrase in the terminal
-# https://stackoverflow.com/a/42265848/96656
-export GPG_TTY="$(tty)"
+# gpg needs the controlling tty to prompt for a passphrase in the terminal.
+# $TTY is zsh's own copy of what `tty` reports, so this needs no fork.
+export GPG_TTY="$TTY"
 
 # ------------------------------ Default Values ------------------------------ #
 
