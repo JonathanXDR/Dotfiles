@@ -89,14 +89,31 @@ if (( ${#COMPDEF_DEFERRED} )); then
 fi
 unset COMPDEF_DEFERRED
 
-# Angular CLI autocompletion (zsh native, no caching needed)
+# Angular CLI autocompletion, from the wrapper the CLI generates itself.
+#
+# The hand-written version this replaces called `ng --get-yargs-completions`
+# and passed the raw output to `compadd`. yargs answers in `name:description`
+# form, so unquoted word splitting turned 17 commands into 161 candidates,
+# among them `support`, `for` and `an`, and `compadd` offered `add:Adds` as a
+# literal string. The generated wrapper sets COMP_CWORD, COMP_LINE and
+# COMP_POINT so yargs knows where the cursor is, and hands the reply to
+# `_describe`, which is the part that reads `name:description`.
+#
+# Generating it spawns Node, so keep it for a day on the same 24-hour stamp the
+# dump above uses. $SHELL is forced, because yargs emits the bash flavor unless
+# it sees a zsh $SHELL, and the header check rejects a truncated or bash reply.
 if cmd:exists ng; then
-  _ng_completion() {
-    local -a completions
-    completions=($(ng --get-yargs-completions "${words[@]}" 2>/dev/null))
-    compadd -a completions
-  }
-  compdef _ng_completion ng
+  local ng_completion="${HOME}/.cache/zsh/ng-completion.zsh"
+  local -a ng_fresh=( ${ng_completion}(N.mh-24) )
+  if (( ! ${#ng_fresh} )); then
+    if SHELL=/bin/zsh ng completion script >| "${ng_completion}.new" 2>/dev/null &&
+       [[ "$(head -n 1 "${ng_completion}.new")" == "#compdef ng" ]]; then
+      command mv -f "${ng_completion}.new" "$ng_completion"
+    else
+      command rm -f "${ng_completion}.new"
+    fi
+  fi
+  [[ -s "$ng_completion" ]] && source "$ng_completion"
 fi
 
 # zsh-autosuggestions, guarded in case it is not installed
