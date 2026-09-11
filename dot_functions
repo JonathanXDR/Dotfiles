@@ -157,10 +157,11 @@ run:daily() {
   [[ -s "$report" ]] && { cat "$report"; command rm -f "$report" }
 
   # `mh-24` also matches a stamp dated in the future (clock skew, restored
-  # backup), which would gate the command off forever, so require a positive
-  # age. The cost is that a second shell starting in the same wall-clock second
-  # repeats the run once, which is cheaper than a permanently skipped update.
-  local -a fresh=( ${stamp}(N.mh-24ms+0) )
+  # backup), which would gate the command off forever, so exclude that case
+  # with `^ms-0`. Not `ms+0`, which demands an age of at least a second and so
+  # rejects a stamp written in this very second, reopening the burst that the
+  # stamp-before-launch rule below exists to close.
+  local -a fresh=( ${stamp}(N.mh-24^ms-0) )
   (( ${#fresh} )) && return 0
 
   mkdir -p "${stamp:h}"
