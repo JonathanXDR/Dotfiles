@@ -11,9 +11,10 @@ payload=$(cat)
 # (such as the tool call description) can neither trigger nor bypass the guard.
 # Without jq the raw payload is a coarser stand-in that can only over-block, because
 # the override below must be the first word of the first line, and a JSON payload
-# never starts with it.
+# never starts with it. A jq failure falls back to that same stand-in, rather
+# than to an empty command, which would wave every push through.
 if command -v jq >/dev/null 2>&1; then
-  cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
+  cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty') || cmd=$payload
 else
   cmd=$payload
 fi
@@ -38,7 +39,12 @@ spliced=$(printf '%s\n' "$cmd" | LC_ALL=C awk '
 # quoted spans emptied, so a quoted flag argument (git -C "My Project" push) cannot
 # hide the push, while quoted text mentions still over-block by design.
 scan=$(printf '%s\n' "$cmd" | sed -E "s/(\"[^\"]*\"|'[^']*')//g")
-if ! printf '%s\n%s\n' "$cmd" "$scan" | grep -Eq '(^|[^[:alnum:]_./-])git([[:space:]]+-([^[:space:]]|\\ )+([[:space:]]+(\\ |[^-[:space:]])([^[:space:]]|\\ )*)?)*[[:space:]]+(subtree[[:space:]]+)?push([^[:alnum:]_-]|$)'; then
+# A third copy deletes the quoting characters themselves rather than the spans
+# they enclose. Emptying a span hides the push whenever the quotes sit inside
+# the invocation instead of around an argument, as in "git" push, git 'push'
+# and git pu"s"h, and a backslash inside a word splits it the same way.
+bare=$(printf '%s\n' "$cmd" | tr -d "\"'\\\\")
+if ! printf '%s\n%s\n%s\n' "$cmd" "$scan" "$bare" | grep -Eq '(^|[^[:alnum:]_./-])git([[:space:]]+-([^[:space:]]|\\ )+([[:space:]]+(\\ |[^-[:space:]])([^[:space:]]|\\ )*)?)*[[:space:]]+(subtree[[:space:]]+)?push([^[:alnum:]_-]|$)'; then
   exit 0
 fi
 

@@ -1,16 +1,26 @@
 #!/bin/bash
 # PreToolUse guard: block git commands that silently destroy uncommitted work.
-# Covered: git reset --hard, forced git clean, worktree-discarding checkout
-# and restore. Same contract as block-git-push.sh: exit 2 blocks the call,
-# stderr becomes the reason, and an explicit user request is confirmed by
-# re-running the command with CLAUDE_DESTRUCTIVE_OK=1 as its first word.
+# Covered: git reset --hard, forced git clean, forced git switch, and
+# worktree-discarding checkout and restore. Same contract as block-git-push.sh:
+# exit 2 blocks the call, stderr becomes the reason, and an explicit user
+# request is confirmed by re-running the command with CLAUDE_DESTRUCTIVE_OK=1
+# as its first word.
 
 payload=$(cat)
 
+# A jq failure falls back to the raw payload rather than to an empty command,
+# which would wave every destructive command through. JSON punctuation becomes
+# line breaks first, because the stripper below empties quoted spans and a raw
+# payload is nothing but quoted spans, which would otherwise leave the guard
+# matching "{:,:{:}}". Split that way each value ends its own line, so the flag
+# patterns still find a token boundary. The stand-in stays coarse: it over-blocks
+# a command only quoted in a description and misses one whose JSON still carries
+# \n, \t or \" escapes.
+json_view() { printf '%s' "$payload" | tr '"{},' '\n\n\n\n'; }
 if command -v jq >/dev/null 2>&1; then
-  cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
+  cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty') || cmd=$(json_view)
 else
-  cmd=$payload
+  cmd=$(json_view)
 fi
 
 # Splice backslash-newline continuations like the shell does: removed
@@ -111,6 +121,10 @@ elif printf '%s\n' "$flagview" | grep -Eq "${gitpre}clean[^;&|]*([[:space:]]-[a-
   reason="forced git clean deletes untracked files"
 elif printf '%s\n' "$flagview" | grep -Eq "${gitpre}checkout[^;&|]*([[:space:]]-[a-zA-Z]*f[a-zA-Z]*|--force)${end}"; then
   reason="forced git checkout discards uncommitted changes"
+# git switch -f is --discard-changes under another name. --force-create (-C)
+# only forces the branch creation, so --force has to end the token here.
+elif printf '%s\n' "$flagview" | grep -Eq "${gitpre}switch[^;&|]*([[:space:]]-[a-zA-Z]*f[a-zA-Z]*|--force|--discard-changes)${end}"; then
+  reason="forced git switch discards uncommitted changes"
 elif printf '%s\n' "$pathview" | grep -Eq "${gitpre}checkout[^;&|]*[[:space:]]--([[:space:]]|$)" ||
      printf '%s\n' "$pathview" | grep -Eq "${gitpre}checkout[^;&|]*[[:space:]]\.\.?(/[^[:space:];&|)]*)?${end}"; then
   reason="git checkout with a pathspec overwrites uncommitted changes"
