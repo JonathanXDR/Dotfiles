@@ -24,5 +24,11 @@ KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | q
 # apply before any template renders. The keychain is locked in exactly the two
 # cases this script exists for: a configured master password, and the `-l`
 # policy this line installs, which locks on system sleep.
-security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+# Passing the password with `-p` puts it in the process table, which any local
+# account can read, and security's own usage text calls the flag insecure.
+# Interactive mode takes the same command on stdin instead and still exits
+# non-zero on a wrong password. The two substitutions escape backslashes and
+# then double quotes for the interactive parser.
+escaped="${KEYCHAIN_PASSWORD//\\/\\\\}"
+printf 'unlock-keychain -p "%s" "%s"\n' "${escaped//\"/\\\"}" "$KEYCHAIN" | security -i
 security set-keychain-settings -l "$KEYCHAIN"
