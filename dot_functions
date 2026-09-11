@@ -543,12 +543,15 @@ ssl:bundle() {
 
   local -a remote_certs
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
-  local -a curl_args=(-fsSL)
+  # Bounded the way the vpn:* probes below are. These URLs are corporate hosts
+  # reached over a VPN that is often only partly up, where a plain curl sits on
+  # the connect for more than a minute per certificate.
+  local -a curl_args=(-fsSL --connect-timeout 5 --max-time 30)
   [[ -n "${http_proxy:-}" ]] && curl_args+=(--proxy "$http_proxy")
 
   local url raw
   for url in "${remote_certs[@]}"; do
-    url="${url## }"; url="${url%% }"
+    read -r url <<< "$url"
     [[ -z "$url" ]] && continue
     raw="$(mktemp)"
 
@@ -573,7 +576,13 @@ ssl:bundle() {
     return 1
   fi
 
-  mv "$tmp" "$output"
+  # Checked, because the EXIT trap removes the assembled bundle on the way out.
+  # An unchecked mv reported success while NODE_EXTRA_CA_CERTS still pointed at
+  # a missing or stale file, which surfaces much later as an opaque TLS error.
+  if ! command mv -f "$tmp" "$output"; then
+    log error "Failed to write the bundle to ${output}"
+    return 1
+  fi
   log success "Bundled $cert_count certificate(s) into $output"
 }
 
