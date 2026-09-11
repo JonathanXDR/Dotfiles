@@ -19,9 +19,18 @@ else
 fi
 
 # Splice backslash-newline continuations like the shell does: removed
-# entirely, so a continuation inside a word cannot split the subcommand.
-nl=$'\n'
-cmd=${cmd//\\$nl/}
+# entirely, so a continuation inside a word cannot split the subcommand. awk
+# does it rather than a bash parameter substitution, which is super-quadratic
+# in bash 3.2: a few hundred continuations stall the hook for seconds, and a
+# few hundred more outlast the hook timeout, which fails open.
+# LC_ALL=C, because awk aborts with a multibyte conversion failure on bytes
+# that are not valid UTF-8, and the guarded assignment keeps the unspliced
+# command rather than an empty one, which would wave every push through.
+spliced=$(printf '%s\n' "$cmd" | LC_ALL=C awk '
+  { if (pend != "") { $0 = pend $0; pend = "" }
+    if ($0 ~ /\\$/) { pend = substr($0, 1, length($0) - 1); next }
+    print }
+  END { if (pend != "") print pend }') && cmd=$spliced
 
 # Match a git push invocation in any part of a compound command, including flagged
 # forms such as git -C <path> push and the subtree porcelain. git stash push stays
