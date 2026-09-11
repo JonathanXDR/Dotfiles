@@ -1663,8 +1663,9 @@ mise:update() {
   if ! output=$(mise -C "$HOME" upgrade 2>&1 </dev/null); then
     log warning "Failed to update mise-managed tools"
     print -r -- "$output" >&2
-    # Return 0 so run:daily still stamps the day. An offline laptop then
-    # retries tomorrow rather than on every new shell.
+    # Warn rather than fail, so a hand run offline does not look broken.
+    # run:daily ignores the status anyway. It stamps the day before it
+    # launches, so an offline laptop retries tomorrow, not on every new shell.
     return 0
   fi
 
@@ -1676,7 +1677,8 @@ mise:update() {
   (( ${#lines} )) && print -rl -- "${lines[@]}"
 
   # Not redundant. The `&&` above leaves status 1 whenever there is nothing to
-  # print, which is the common no-op path, and run:daily only stamps on success.
+  # print, which is the common no-op path, and a hand run of this function
+  # should not look like it failed.
   return 0
 }
 
