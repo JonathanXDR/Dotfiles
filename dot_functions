@@ -239,7 +239,12 @@ mkd() {
 
 # Change to the directory of the frontmost Finder window
 cdf() {
-  cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
+  local dir
+  # osascript reports its failure on stderr and prints nothing on stdout, and
+  # `cd ""` is a no-op that still returns 0, so the guard has to sit on the
+  # command substitution instead of on cd.
+  dir="$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
+  cd "$dir"
 }
 
 # -------------------------------- Zsh Plugins ------------------------------- #
@@ -401,7 +406,9 @@ targz() {
   fi
 
   log info "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
-  "${cmd}" -v "${tmpFile}" || return 1
+  # Drop the intermediate if compression fails, so a write error does not
+  # strand a full-size uncompressed copy next to the source.
+  "${cmd}" -v "${tmpFile}" || { command rm -f "${tmpFile}"; return 1; }
   [[ -f "${tmpFile}" ]] && command rm -f "${tmpFile}"
 
   local zippedSize
@@ -445,6 +452,7 @@ gz() {
   [[ -f "${1:-}" ]] || { log error "Failed to compare (needs an existing file, run 'gz <file>')"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
+  (( origsize )) || { log error "Failed to compare (${1} is empty)"; return 1; }
   local gzipsize
   gzipsize=$(gzip -c "$1" | wc -c)
   local ratio
@@ -1806,6 +1814,13 @@ git:diff() {
     return 1
   }
 
+  # pbcopy with nothing on stdin clears the clipboard, so an empty diff has to
+  # stop here instead of reporting a successful copy of nothing.
+  if (( ! ${#files} )); then
+    log info "Found no differing files between '${source_branch}' and '${target_branch}'"
+    return 0
+  fi
+
   local file
   for file in "${files[@]}"; do
     printf '\n%s:\n\n' "$file"
@@ -1823,11 +1838,16 @@ git:diff() {
 chezmoi:cleanup() {
   # Silence zsh completion warnings by dropping group-write permissions
   if cmd:exists compaudit; then
-    local dirs
-    dirs="$(compaudit 2>/dev/null)"
-    if [[ -n "$dirs" ]]; then
-      echo "$dirs" | xargs chmod g-w 2>/dev/null
-      log success "Fixed insecure zsh completion directories"
+    # One path per array element, because xargs splits a directory name that
+    # holds a space and leaves that directory group-writable. chmod also fails
+    # on anything this user does not own, so the message follows its status.
+    local -a dirs=( ${(f)"$(compaudit 2>/dev/null)"} )
+    if (( ${#dirs} )); then
+      if chmod g-w "${dirs[@]}" 2>/dev/null; then
+        log success "Fixed insecure zsh completion directories"
+      else
+        log warning "Failed to fix some insecure zsh completion directories (run 'compaudit' to list them)"
+      fi
     fi
   fi
 
@@ -1893,5 +1913,9 @@ chezmoi:sync() {
     (( updated > 0 )) && log info "Synced ${updated} file(s) back to source"
     (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates"
   fi
+
+  # Not redundant. The `&&` above leaves status 1 whenever there is nothing to
+  # skip, which made an otherwise successful sync report failure.
+  return 0
 }
 
