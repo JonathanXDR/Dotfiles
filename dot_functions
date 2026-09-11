@@ -1034,9 +1034,19 @@ _secrets:password() {
 _secrets:install() {
   local id="$1" acct="$2" where="$3" kind="$4" password="$5" comment="${6:-}"
   _secrets:ensure-keychain
-  local -a flags=(-U -A -s "$where" -a "$acct" -l "$id" -D "$kind" -w "$password" "$_SECRETS_KEYCHAIN")
-  [[ -n "$comment" ]] && flags=( -j "$comment" "${flags[@]}" )
-  if ! security add-generic-password "${flags[@]}"; then
+  # `security -i` takes the command on stdin, so the secret never reaches the
+  # process table, which security's own usage text calls insecure for -w. Its
+  # interactive parser reads the line itself, so every value is double quoted
+  # with backslashes escaped first and then double quotes, exactly as the
+  # keychain unlock script escapes the master password.
+  local -a args=(-U -A -s "$where" -a "$acct" -l "$id" -D "$kind" -w "$password" "$_SECRETS_KEYCHAIN")
+  [[ -n "$comment" ]] && args=( -j "$comment" "${args[@]}" )
+  local line="add-generic-password" arg escaped
+  for arg in "${args[@]}"; do
+    escaped="${arg//\\/\\\\}"
+    line+=" \"${escaped//\"/\\\"}\""
+  done
+  if ! print -r -- "$line" | security -i; then
     log error "Failed to update keychain"
     return 1
   fi
