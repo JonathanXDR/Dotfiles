@@ -666,7 +666,11 @@ vpn:refresh() {
   log info "Reading Cisco state after disconnect…"
   vpn:state || true
 
-  if ! vpn:google-broken; then
+  # Ask vpn:google-ok, not vpn:google-broken. "Broken" detects one narrow state,
+  # the plain check still answering while Drive does not, so it is equally false
+  # when nothing answers at all. Read as a success test it reported the repair
+  # finished whenever the disconnect had left the machine with no route out.
+  if vpn:google-ok; then
     log success "Cleared broken TLS state (after disconnect)"
     return 0
   fi
@@ -903,8 +907,8 @@ network:heal() {
       vpn:reset-filter
       sleep 3
 
-      if vpn:google-broken; then
-        log warning "Failed to recover Drive (still broken after UI restart, run 'vpn:refresh' manually)"
+      if ! vpn:google-ok; then
+        log warning "Failed to recover Drive (still unreachable after UI restart, run 'vpn:refresh' manually)"
         return 1
       fi
 
