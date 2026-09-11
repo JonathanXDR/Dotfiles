@@ -1029,6 +1029,14 @@ _secrets:password() {
   security find-generic-password "$_SECRETS_LOOKUP_FLAG" "$1" -a "$2" -w "$_SECRETS_KEYCHAIN" 2>/dev/null
 }
 
+# True when an entry already occupies a (Service, Account) pair. macOS keys
+# generic passwords by that pair, not by the Label this setup uses as the id,
+# so `add-generic-password -U` replaces whatever entry already holds it.
+# Usage: _secrets:storage-taken <where> <account>
+_secrets:storage-taken() {
+  security find-generic-password -s "$1" -a "$2" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1
+}
+
 # Write a secret to the dotfiles keychain, adding it or updating it in place.
 # Usage: _secrets:install <id> <account> <where> <kind> <password> [comment]
 _secrets:install() {
@@ -1068,7 +1076,7 @@ secret:set() {
     return 1
   fi
 
-  if security find-generic-password -s "$where" -a "$account" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+  if _secrets:storage-taken "$where" "$account"; then
     log error "Rejected $id / $account (another entry already holds this where and account, run secrets:list to find it)"
     return 1
   fi
@@ -1165,8 +1173,7 @@ secret:rename() {
 
   # Writing a (Service, Account) pair that belongs to another entry would
   # replace that entry instead of moving this one.
-  if (( ! same_storage )) \
-    && security find-generic-password -s "$new_where" -a "$new_acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+  if (( ! same_storage )) && _secrets:storage-taken "$new_where" "$new_acct"; then
     log error "Rejected $new_id / $new_acct (another entry already holds this where and account, run secrets:list to find it)"
     return 1
   fi
@@ -1231,7 +1238,7 @@ secrets:import() {
       # Absent under the lookup field is not the same as absent in storage.
       # macOS keys generic passwords by (Service, Account), so importing a row
       # whose pair another entry already owns would overwrite that entry.
-      elif security find-generic-password -s "$where" -a "$acct" "$_SECRETS_KEYCHAIN" >/dev/null 2>&1; then
+      elif _secrets:storage-taken "$where" "$acct"; then
         state="conflict"; (( ++drift ))
       elif _secrets:install "$id" "$acct" "$where" "$kind" "$file_pw" "$comment"; then
         state="imported"; (( ++imported ))
