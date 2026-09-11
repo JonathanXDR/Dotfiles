@@ -919,12 +919,19 @@ ssh:reagent() {
 }
 
 # Point SSH_AUTH_SOCK at a working agent, starting a fresh one if needed.
+#
+# Test the inherited socket first, because ssh:reagent's /tmp glob only ever
+# matches a socket that sshd created for a forwarded agent. launchd's agent
+# lives under /var/run and a locally started one lands where ssh-agent(1)
+# FILES says, so on macOS that glob never matches. Deciding with `pgrep`
+# instead found the launchd agent, ssh:reagent then unset a working
+# SSH_AUTH_SOCK, and every call forked another agent that nothing reaps.
+# `ssh-add -l` exits 2 only when it cannot reach an agent at all, and 1 for
+# one that answers but holds no keys.
 ssh:agent() {
-  if pgrep -x ssh-agent &>/dev/null; then
-    ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
-  else
-    eval "$(ssh-agent)" &>/dev/null
-  fi
+  ssh-add -l &>/dev/null
+  (( $? == 2 )) || return 0
+  ssh:reagent &>/dev/null || eval "$(ssh-agent)" &>/dev/null
 }
 
 # --------------------------------- Secrets ---------------------------------- #
