@@ -23,6 +23,15 @@
   <key>ThrottleInterval</key>
   <integer>5</integer>
 
+  <!-- WatchPaths is race-prone by Apple's own admission (man 5 launchd.plist),
+       and a missed change leaves .cache/proxy-state holding the previous
+       answer. A stale file is neither missing nor unrecognized, so the
+       proxy:probe fallback in .zshrc cannot catch it and every new shell
+       adopts the wrong proxy. The timer re-probes whether or not an event
+       arrives. -->
+  <key>StartInterval</key>
+  <integer>300</integer>
+
   <key>ProcessType</key>
   <string>Background</string>
 
