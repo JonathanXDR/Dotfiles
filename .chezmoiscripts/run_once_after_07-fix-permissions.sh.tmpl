@@ -13,10 +13,17 @@ if ! _cmd_exists brew; then
 fi
 
 BREW_PREFIX="$(brew --prefix)"
+failed=0
 for dir in "${BREW_PREFIX}/share/zsh-completions" "${BREW_PREFIX}/share/zsh/site-functions"; do
   if [[ -d "$dir" ]]; then
-    chmod g-w "$dir" 2>/dev/null || true
+    # chmod fails on a directory this user does not own. That must not abort the
+    # apply, so the status is carried to the closing message instead.
+    chmod g-w "$dir" || failed=1
   fi
 done
 
-_log success "Verified zsh completion directory permissions"
+if (( failed )); then
+  _log warning "Failed to drop group-write from the zsh completion directories"
+else
+  _log success "Verified zsh completion directory permissions"
+fi
