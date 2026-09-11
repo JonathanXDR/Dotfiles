@@ -34,7 +34,7 @@ git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfile
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, and finally for an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every key after the machine type comes from `config.toml` on iCloud Drive when that file supplies it, and is prompted for when it does not. Your answers are cached, so later runs stay quiet.
+During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, and finally for an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every key after the machine type comes from `config.toml` on iCloud Drive when that file supplies it, and is prompted for when it does not. The keychain password is the exception. It is never read from `config.toml`. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
