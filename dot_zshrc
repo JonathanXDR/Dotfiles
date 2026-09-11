@@ -54,10 +54,14 @@ source "${HOME}/.functions"
 # PATH from /etc/paths and /etc/paths.d and appends everything else. Anything
 # prepended before this line lands behind /usr/bin rather than in front of it,
 # which is the opposite of what the block below asks for.
+#
+# Name the shell, because `brew shellenv` otherwise forks `ps` to guess it and
+# its own help warns that guess "may not be correct". Only the zsh reply puts
+# share/zsh/site-functions, where Homebrew's completions live, on fpath.
 if [[ -x "/opt/homebrew/bin/brew" ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 elif [[ -x "/usr/local/bin/brew" ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
+  eval "$(/usr/local/bin/brew shellenv zsh)"
 fi
 
 # Tool directories. Each is prepended, so the last one listed takes priority.
