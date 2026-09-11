@@ -8,7 +8,7 @@ set -euo pipefail
 # mise presence is part of the trigger for the same reason as in script 03. mise
 # itself arrives through Homebrew, so a run before that happens must not record
 # its skip as final.
-# mise: {{ output "sh" "-c" "command -v mise >/dev/null 2>&1 && echo yes || echo no" | trim }}
+# mise: {{ output "sh" "-c" "if command -v mise >/dev/null 2>&1 || [ -x /opt/homebrew/bin/mise ] || [ -x /usr/local/bin/mise ]; then echo yes; else echo no; fi" | trim }}
 
 _ensure_brew
 
@@ -20,10 +20,16 @@ fi
 # mise caches each tool's remote version list for an hour, keyed on the tool
 # alone rather than on the settings that pick which build a version resolves to.
 # java.shorthand_vendor is one of those, so a vendor change keeps reading the
-# old list until the cache expires. Only java is cleared, because the bare form
-# drops every list and would turn the sub-second re-run below into a full
+# old list until the cache expires. Only java's list is dropped, because
+# dropping every tool's would turn the sub-second re-run below into a full
 # network re-resolve.
-mise -C "$HOME" cache clear java >/dev/null 2>&1 || true
+#
+# One level deep rather than `mise cache clear java`, which takes the whole
+# subtree. The per-version directories below it hold the `incomplete` marker
+# that tells `mise install` an interrupted install still has to be redone, and
+# removing that along with the version list is what leaves a half-downloaded
+# java as an empty install directory every later run reads as already there.
+find "$(mise -C "$HOME" cache path)/java" -maxdepth 1 -type f -delete 2>/dev/null || true
 
 # The `mise install` command reads ~/.config/mise/config.toml (symlinked to
 # this repo) and installs whatever is missing. It never writes back, unlike
