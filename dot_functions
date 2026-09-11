@@ -1838,11 +1838,16 @@ git:diff() {
 chezmoi:cleanup() {
   # Silence zsh completion warnings by dropping group-write permissions
   if cmd:exists compaudit; then
-    local dirs
-    dirs="$(compaudit 2>/dev/null)"
-    if [[ -n "$dirs" ]]; then
-      echo "$dirs" | xargs chmod g-w 2>/dev/null
-      log success "Fixed insecure zsh completion directories"
+    # One path per array element, because xargs splits a directory name that
+    # holds a space and leaves that directory group-writable. chmod also fails
+    # on anything this user does not own, so the message follows its status.
+    local -a dirs=( ${(f)"$(compaudit 2>/dev/null)"} )
+    if (( ${#dirs} )); then
+      if chmod g-w "${dirs[@]}" 2>/dev/null; then
+        log success "Fixed insecure zsh completion directories"
+      else
+        log warning "Failed to fix some insecure zsh completion directories (run 'compaudit' to list them)"
+      fi
     fi
   fi
 
@@ -1908,5 +1913,9 @@ chezmoi:sync() {
     (( updated > 0 )) && log info "Synced ${updated} file(s) back to source"
     (( skipped > 0 )) && log info "Skipped ${skipped} file(s) with complex templates"
   fi
+
+  # Not redundant. The `&&` above leaves status 1 whenever there is nothing to
+  # skip, which made an otherwise successful sync report failure.
+  return 0
 }
 
