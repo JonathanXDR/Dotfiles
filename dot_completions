@@ -40,7 +40,12 @@ fpath=(
 # under a millisecond.
 #
 #   Age. A tool installed today gets its completion tomorrow. The same 24-hour
-#   bound the mise, brew and plugin refreshes in .zshrc use.
+#   bound the mise, brew and plugin refreshes in .zshrc use. `^ms-0` drops a
+#   dump dated in the future (clock skew, restored backup), which `mh-24`
+#   alone reads as fresh forever. Not `ms+0`, which demands an age of at least
+#   a second and so throws away a dump written in this very second. Rebuilding
+#   costs 400 ms and resets the mtime, so a window plus two tabs opened
+#   together used to rebuild three times instead of once.
 #
 #   The fpath list. Editing the block above changes which directories compinit
 #   would read, and no age check notices that.
@@ -53,7 +58,7 @@ fpath=(
 # way run:daily does in .functions.
 [[ -d ${_comp_dumpfile:h} ]] || mkdir -p ${_comp_dumpfile:h}
 local fpath_stamp="${_comp_dumpfile}.fpath"
-local -a fresh=( ${_comp_dumpfile}(N.mh-24) )
+local -a fresh=( ${_comp_dumpfile}(N.mh-24^ms-0) )
 if (( ! ${#fresh} )) || [[ ! -f $fpath_stamp || "$fpath" != "$(<$fpath_stamp)" ]]; then
   command rm -f -- "$_comp_dumpfile"
   print -r -- "$fpath" >| "$fpath_stamp"
@@ -104,13 +109,20 @@ unset COMPDEF_DEFERRED
 # it sees a zsh $SHELL, and the header check rejects a truncated or bash reply.
 if cmd:exists ng; then
   local ng_completion="${HOME}/.cache/zsh/ng-completion.zsh"
-  local -a ng_fresh=( ${ng_completion}(N.mh-24) )
+  local -a ng_fresh=( ${ng_completion}(N.mh-24^ms-0) )
   if (( ! ${#ng_fresh} )); then
     if SHELL=/bin/zsh ng completion script >| "${ng_completion}.new" 2>/dev/null &&
        [[ "$(head -n 1 "${ng_completion}.new")" == "#compdef ng" ]]; then
       command mv -f "${ng_completion}.new" "$ng_completion"
     else
+      # Stamp the attempt even when it failed, the way run:daily does. The gate
+      # above is an age test on this file, so leaving it untouched means a
+      # broken ng respawns Node in front of every later prompt (1 to 2 s here,
+      # against a whole startup of about 1 s), and 2>/dev/null hides the reason.
+      # touch on a missing file leaves an empty one, which fails the -s test
+      # below, so nothing broken gets sourced.
       command rm -f "${ng_completion}.new"
+      command touch "$ng_completion"
     fi
   fi
   [[ -s "$ng_completion" ]] && source "$ng_completion"
