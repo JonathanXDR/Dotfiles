@@ -1362,7 +1362,10 @@ secrets:export() {
     return 0
   fi
 
-  mv "$tmp" "$_SECRETS_TOKENS_FILE"
+  if ! command mv "$tmp" "$_SECRETS_TOKENS_FILE"; then
+    log error "Failed to write the tokens file (${_SECRETS_TOKENS_FILE})"
+    return 1
+  fi
   trap - EXIT
   _secrets:report-unread "$kept" "$dropped"
   log success "Exported $count secret(s) to iCloud Drive"
