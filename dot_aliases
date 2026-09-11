@@ -63,6 +63,12 @@ alias -- -="cd -"
 # Prefer lsd if available, otherwise colorize ls (deliberate shadow of /bin/ls)
 if cmd:exists lsd; then
   alias ls='lsd'
+  # common-aliases builds lS, lart and lrt on BSD ls flags lsd does not
+  # implement (-s for block sizes, -c for ctime ordering), so routed through
+  # the alias above all three answer with a usage error and exit 2 instead of
+  # listing anything. Drop them rather than leave three dead names in the
+  # table. Without lsd the plugin's own ls serves them, so there they stay.
+  unalias lS lart lrt 2>/dev/null
 else
   alias ls='command ls -G'
   export LSCOLORS='BxBxhxDxfxhxhxhxhxcxcx'
