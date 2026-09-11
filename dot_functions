@@ -595,8 +595,16 @@ dns:change() {
   fi
 
   local network_service="$1"
-  local -a nameservers
-  IFS=',' read -rA nameservers <<<"$2"
+  # networksetup takes each address verbatim, so " 8.8.8.8" out of a spaced
+  # list is rejected as an invalid parameter. Trim the fields and drop empties.
+  local -a fields nameservers
+  IFS=',' read -rA fields <<<"$2"
+  local ns
+  for ns in "${fields[@]}"; do
+    read -r ns <<< "$ns"
+    [[ -n "$ns" ]] && nameservers+=("$ns")
+  done
+  (( ${#nameservers} )) || { echo "dns:change: no DNS servers in '$2'" >&2; return 1; }
 
   sudo networksetup -setdnsservers "${network_service}" "${nameservers[@]}"
 }
