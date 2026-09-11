@@ -239,7 +239,12 @@ mkd() {
 
 # Change to the directory of the frontmost Finder window
 cdf() {
-  cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
+  local dir
+  # osascript reports its failure on stderr and prints nothing on stdout, and
+  # `cd ""` is a no-op that still returns 0, so the guard has to sit on the
+  # command substitution instead of on cd.
+  dir="$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')" || return
+  cd "$dir"
 }
 
 # -------------------------------- Zsh Plugins ------------------------------- #
@@ -401,7 +406,9 @@ targz() {
   fi
 
   log info "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
-  "${cmd}" -v "${tmpFile}" || return 1
+  # Drop the intermediate if compression fails, so a write error does not
+  # strand a full-size uncompressed copy next to the source.
+  "${cmd}" -v "${tmpFile}" || { command rm -f "${tmpFile}"; return 1; }
   [[ -f "${tmpFile}" ]] && command rm -f "${tmpFile}"
 
   local zippedSize
@@ -445,6 +452,7 @@ gz() {
   [[ -f "${1:-}" ]] || { log error "Failed to compare (needs an existing file, run 'gz <file>')"; return 1; }
   local origsize
   origsize=$(wc -c < "$1")
+  (( origsize )) || { log error "Failed to compare (${1} is empty)"; return 1; }
   local gzipsize
   gzipsize=$(gzip -c "$1" | wc -c)
   local ratio
