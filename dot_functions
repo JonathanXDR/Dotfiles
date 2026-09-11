@@ -169,10 +169,50 @@ run:daily() {
   # what keeps a burst of new tabs from each starting its own copy of the same
   # update against the same clones.
   touch "$stamp"
-  ( "$@" >| "${report}.new" 2>&1; command mv -f "${report}.new" "$report" ) &!
+  # Bound the run. Every caller reaches the network and two drive a third-party
+  # tool, so a wedged update is a question of when, not if. Detached means
+  # nothing blocks the prompt to reveal it, so a hang just spins until reboot
+  # (seen once: 18 h of antidote at 100% CPU). timeout(1) is no use here because
+  # the callers are functions, not binaries, so watchdog the forked job. TERM
+  # first, since antidote traps it to remove its tmpdir.
+  #
+  # The job is only a wrapper. Every caller runs its slow command inside $(...),
+  # and antidote forks a git worker per bundle below that, so the process that
+  # actually wedges sits one to three levels down. Signalling the job alone
+  # orphans it to keep spinning under launchd. Collect the tree before
+  # signalling, because killing a parent reparents its children beyond the reach
+  # of pgrep, and signal the job last, because the waiting parent kills this
+  # watchdog as soon as the job dies.
+  local timeout="${RUN_DAILY_TIMEOUT:-300}"
+  ( "$@" >| "${report}.new" 2>&1 &
+    local job=$! watchdog
+    ( sleep "$timeout"
+      local -a tree=( $job ) level=( $job )
+      while level=( ${(f)"$(pgrep -P ${(j:,:)level} 2>/dev/null)"} ); do tree=( $level $tree ); done
+      # Into the report, because this runs detached and log writes to stderr,
+      # which here is the terminal of whatever shell happened to start it. With
+      # nothing recorded, a command that times out every day looks exactly like
+      # one that had nothing to say, which is the invisibility this watchdog
+      # exists to end.
+      log warning "Timed out ${name} after ${timeout}s (killed it, run it by hand to see why)" 2>>"${report}.new"
+      # Detached, because the parent kills this watchdog the moment the job
+      # dies, which is the same instant the TERM below lands. Left inline, the
+      # escalation never runs and a descendant that ignores TERM keeps
+      # spinning, which is the hang this watchdog exists to end.
+      ( sleep 5; kill -KILL $tree 2>/dev/null ) &!
+      kill -TERM $tree 2>/dev/null ) & watchdog=$!
+    wait $job
+    kill $watchdog 2>/dev/null
+    command mv -f "${report}.new" "$report" ) &!
 }
 
-# Prepend directories to PATH (skips missing or duplicate entries)
+# Prepend directories to PATH, skipping the ones that do not exist.
+#
+# A directory already on PATH is prepended again rather than left alone.
+# Something earlier in startup may have appended it (kiro:block does exactly
+# that with ~/.local/bin), and skipping would leave the entry behind /usr/bin
+# instead of in front of it. `typeset -gU PATH path` in .zshenv drops the older
+# copy, so the entry moves rather than repeating.
 path:add() {
   local dir
   for dir in "$@"; do
