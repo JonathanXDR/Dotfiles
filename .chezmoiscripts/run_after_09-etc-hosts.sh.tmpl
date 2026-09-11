@@ -26,8 +26,11 @@ fi
 
 # Back up only the first real file seen. A symlink is the previous design's
 # work, and a regular file written later by an installer must not become the
-# backup either, so the marker file is what makes this once-only.
-if [[ -f /etc/hosts && ! -L /etc/hosts && ! -e /etc/hosts.chezmoi-backup ]]; then
+# backup either, so the marker file is what makes this once-only. Content this
+# script already installed is a backup of nothing, the state the symlink-era
+# migration left behind here, so skip that case too.
+if [[ -f /etc/hosts && ! -L /etc/hosts && ! -e /etc/hosts.chezmoi-backup ]] \
+  && ! cmp -s "$HOSTS_SRC" /etc/hosts; then
   _log info "Backing up the current /etc/hosts…"
   sudo cp /etc/hosts /etc/hosts.chezmoi-backup
   _log success "Backed up the previous /etc/hosts (/etc/hosts.chezmoi-backup)"
