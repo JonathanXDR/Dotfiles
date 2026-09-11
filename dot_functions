@@ -101,7 +101,7 @@ alias:_set() {
   local -a parts=( ${(z)${1#*=}} )
   local target="${(eQ)parts[1]}"
   [[ -n "$target" ]] && ! cmd:exists "$target" \
-    && log warning "Skipped alias '${1%%=*}' (target '${target}' is not available)"
+    && log warning "Defined alias '${1%%=*}' (target '${target}' is not available)"
   alias "$1"
 }
 
@@ -122,16 +122,32 @@ alias:prune-suffix() {
   done
 }
 
-# List every alias currently sitting on top of a real binary. The plugin bundle
-# has no equivalent of alias:safe, so this is how a plugin update that claims a
-# new command name stays visible. Deliberate shadows from .aliases appear here
-# too, so read the output rather than acting on it directly.
+# List every alias and function currently sitting on top of a real binary. The
+# plugin bundle has no equivalent of alias:safe, so this is how a plugin update
+# that claims a command name stays visible. Functions have to be covered too:
+# the aws plugin ships asr as a function rather than an alias, so it lands on
+# Apple Software Restore, and log() above sits on /usr/bin/log. Deliberate
+# shadows appear here as well, so read the output rather than acting on it.
+#
+# $commands reads the command hash table, which rehash refreshes so a package
+# installed earlier in this session still shows up. whence -p forks a subshell
+# per name instead, which across the 872 aliases loaded here costs four seconds
+# a call, and it answers from the filesystem, so on the case-insensitive boot
+# volume it reports /bin/lS for the lS alias, which is only ls under another
+# spelling.
 # Usage: alias:shadows
 alias:shadows() {
-  local name binary
+  local name
+  rehash
   for name in ${(ko)aliases}; do
-    binary="$(whence -p -- "$name" 2>/dev/null)" || continue
-    printf '%-14s %-44s %s\n' "$name" "${aliases[$name]}" "$binary"
+    [[ -n "${commands[$name]}" ]] \
+      && printf '%-14s %-44s %s\n' "$name" "${aliases[$name]}" "${commands[$name]}"
+  done
+  # Names starting with _ are completion functions and plugin internals. Nobody
+  # types them, so a binary behind one of them is not a shadow.
+  for name in ${(ko)functions}; do
+    [[ "$name" == _* || -z "${commands[$name]}" ]] && continue
+    printf '%-14s %-44s %s\n' "$name" '(function)' "${commands[$name]}"
   done
 }
 
