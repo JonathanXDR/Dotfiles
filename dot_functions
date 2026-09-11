@@ -217,10 +217,7 @@ run:daily() {
 path:add() {
   local dir
   for dir in "$@"; do
-    [[ -d "$dir" ]] && case ":$PATH:" in
-      *":$dir:"*) ;;
-      *) export PATH="$dir:$PATH" ;;
-    esac
+    [[ -d "$dir" ]] && export PATH="$dir:$PATH"
   done
 }
 
