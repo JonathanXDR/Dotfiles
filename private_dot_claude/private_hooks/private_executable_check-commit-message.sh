@@ -17,9 +17,15 @@ else
 fi
 
 # Splice backslash-newline continuations like the shell does: removed
-# entirely, so a continuation inside a word cannot split the subcommand.
-nl=$'\n'
-cmd=${cmd//\\$nl/}
+# entirely, so a continuation inside a word cannot split the subcommand. awk
+# does it because bash 3.2 rebuilds the whole string on every match, so a few
+# hundred continuations cost the guard most of a second and every doubling
+# after that multiplies it by eight.
+cmd=$(printf '%s\n' "$cmd" | awk '
+  { if (pend != "") { $0 = pend $0; pend = "" }
+    if ($0 ~ /\\$/) { pend = substr($0, 1, length($0) - 1); next }
+    print }
+  END { if (pend != "") print pend }')
 
 # Gate on a copy with heredoc bodies dropped and quoted spans emptied: the
 # command's structure, not message or documentation text, decides whether
@@ -81,7 +87,6 @@ stripper='
   }
   END { if (skip != "") for (j = 1; j <= h; j++) print (raw ? held[j] : stripline(held[j])) }'
 scan=$(printf '%s\n' "$cmd" | awk "$stripper")
-body=$(printf '%s\n' "$cmd" | awk -v raw=1 "$stripper")
 
 # Only inspect actual git commit invocations. Backslash-escaped spaces stay
 # inside a token, so "git -C My\ Repo commit" is still one prefix chain.
@@ -108,7 +113,10 @@ REASON
 # a ; & or | inside message text does not truncate a segment. Extracted from
 # the heredoc-less body view, so a commit example inside the message text of
 # a heredoc-fed commit is not read as another invocation. Falls back to the
-# whole command when quoting defeats the match (quoted -C paths).
+# whole command when quoting defeats the match (quoted -C paths). Built here
+# rather than beside $scan so the two gates above skip its second pass over
+# the command.
+body=$(printf '%s\n' "$cmd" | awk -v raw=1 "$stripper")
 segs=$(printf '%s\n' "$body" | grep -oE "${gitpre}commit((\"[^\"]*\")|('[^']*')|[^;&|\"'])*")
 [ -n "$segs" ] || segs=$cmd
 
