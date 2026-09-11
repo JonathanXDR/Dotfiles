@@ -7,7 +7,6 @@ tap "go-task/tap", trusted: true
 tap "hashicorp/tap", trusted: true
 tap "hpedrorodrigues/tools", trusted: true
 tap "infisical/get-cli"
-tap "majd/repo", trusted: true
 tap "minio/stable", trusted: true
 tap "mongodb/brew", trusted: true
 tap "samuong/alpaca", trusted: true
@@ -135,6 +134,8 @@ brew "ifstat"
 brew "iftop"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
+# CLI tool for searching and downloading app packages from the iOS App Store
+brew "ipatool"
 # Command-line interface for JFrog products
 brew "jfrog-cli"
 # Lightweight and flexible command-line JSON processor
@@ -373,8 +374,6 @@ cask "insomnia"
 cask "intellij-idea", args: { appdir: "/Applications" }
 # App to manage access to corporate apps, data, and resources
 cask "intune-company-portal", args: { appdir: "/Applications" }
-# CLI tool for searching and downloading iOS app packages from the App Store
-cask "majd/repo/ipatool"
 # JetBrains tools manager
 cask "jetbrains-toolbox"
 # Menu bar manager
