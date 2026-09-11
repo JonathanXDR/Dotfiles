@@ -8,6 +8,13 @@ set -euo pipefail
 # chezmoi source directory because ~/.functions is not symlinked yet on a first
 # apply. The keychain is created even when there is nothing to import, because
 # run_before_00 and the secret-reading templates expect it to exist afterwards.
+#
+# The tokens file's presence is part of the trigger. Without it, a first apply
+# that runs before iCloud Drive has synced the backup down skips the import
+# below, records the run, and never retries, so every managed secret stays
+# empty. With it, the state key differs between the two cases, so the step
+# re-runs once the file arrives.
+# tokens: {{ if stat (printf "%s/.keychain/tokens" .icloud_secrets) }}yes{{ else }}no{{ end }}
 
 export SECRETS_TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
