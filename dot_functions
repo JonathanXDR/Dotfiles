@@ -1814,6 +1814,13 @@ git:diff() {
     return 1
   }
 
+  # pbcopy with nothing on stdin clears the clipboard, so an empty diff has to
+  # stop here instead of reporting a successful copy of nothing.
+  if (( ! ${#files} )); then
+    log info "Found no differing files between '${source_branch}' and '${target_branch}'"
+    return 0
+  fi
+
   local file
   for file in "${files[@]}"; do
     printf '\n%s:\n\n' "$file"
