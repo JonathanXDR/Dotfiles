@@ -11,7 +11,12 @@ set -euo pipefail
 # missing brew would record its state and never retry, leaving the packages
 # uninstalled even after Homebrew arrives. With it, the state key differs
 # between the two cases, so the step re-runs once brew appears.
-# brew: {{ output "sh" "-c" "command -v brew >/dev/null 2>&1 && echo yes || echo no" | trim }}
+# brew: {{ output "sh" "-c" "if command -v brew >/dev/null 2>&1 || [ -x /opt/homebrew/bin/brew ] || [ -x /usr/local/bin/brew ]; then echo yes; else echo no; fi" | trim }}
+#
+# A failed install belongs in the trigger too. The install below warns rather
+# than exiting non-zero, so without this line chezmoi would record the run and
+# never retry the missing packages against an unchanged Brewfile.
+# failed: {{ output "sh" "-c" (printf "cat '%s/brew-bundle-failed' 2>/dev/null || true" .chezmoi.cacheDir) | trim }}
 
 _ensure_brew
 
@@ -25,19 +30,38 @@ if ! _cmd_exists brew; then
 fi
 
 BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
+FAILED_MARKER="{{ .chezmoi.cacheDir }}/brew-bundle-failed"
 
 if [[ ! -f "$BREWFILE" ]]; then
   _log error "Failed to find Brewfile ($BREWFILE)"
   exit 1
 fi
 
-_log info "Installing Homebrew packages from ${BREWFILE}…"
-if brew bundle --file="$BREWFILE" --no-upgrade; then
-  _log success "Installed Homebrew packages"
+# brew bundle buffers each package manager's output and prints it only on
+# failure, so without --verbose a multi-GB download is indistinguishable from a
+# hang. Checking first keeps a satisfied run quiet, because --verbose also adds
+# a "Skipping install" line for every one of the several hundred entries.
+if brew bundle check --file="$BREWFILE" --no-upgrade >/dev/null 2>&1; then
+  _log success "Verified all Homebrew packages are installed"
 else
-  _log warning "Failed to install some Homebrew packages (see above)"
+  _log info "Installing missing Homebrew packages from ${BREWFILE}…"
+  if brew bundle --file="$BREWFILE" --no-upgrade --verbose; then
+    _log success "Installed Homebrew packages"
+  else
+    _log warning "Failed to install some Homebrew packages (see above)"
+    # Record the failure so the marker in the trigger header changes and the
+    # next apply retries. Exiting non-zero would retry too, but it would also
+    # abort the apply and skip every later script, which is the thing the
+    # missing-brew branch above already refuses to do.
+    mkdir -p "${FAILED_MARKER%/*}"
+    date +%s > "$FAILED_MARKER"
+  fi
 fi
 
+# The </dev/null is what keeps this a report. Without --force, `brew bundle
+# cleanup` still offers to uninstall and re-runs itself with --force on a yes.
+# Homebrew only shows that prompt on a TTY, so closing stdin is the whole
+# guard, and what is left exits 1 when it found something to remove.
 _log info "Checking for packages not in ${BREWFILE}…"
 if brew bundle cleanup --file="$BREWFILE" </dev/null; then
   _log success "Verified no packages outside the Brewfile"
