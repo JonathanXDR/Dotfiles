@@ -63,6 +63,12 @@ alias -- -="cd -"
 # Prefer lsd if available, otherwise colorize ls (deliberate shadow of /bin/ls)
 if cmd:exists lsd; then
   alias ls='lsd'
+  # common-aliases builds lS, lart and lrt on BSD ls flags lsd does not
+  # implement (-s for block sizes, -c for ctime ordering), so routed through
+  # the alias above all three answer with a usage error and exit 2 instead of
+  # listing anything. Drop them rather than leave three dead names in the
+  # table. Without lsd the plugin's own ls serves them, so there they stay.
+  unalias lS lart lrt 2>/dev/null
 else
   alias ls='command ls -G'
   export LSCOLORS='BxBxhxDxfxhxhxhxhxcxcx'
@@ -167,8 +173,17 @@ alias:safe spotoff="sudo mdutil -a -i off"
 alias:safe spoton="sudo mdutil -a -i on"
 
 # Empty every Trash (mounted volumes, macOS, freedesktop), delete the Apple
-# System Log archives, and clear the LaunchServices quarantine event database
-alias:safe emptytrash="sudo /bin/rm -rfv /Volumes/*/.Trashes; sudo /bin/rm -rfv ~/.Trash; /bin/rm -rfv ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*; sudo /bin/rm -rfv /private/var/log/asl/*.asl; sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
+# System Log archives, and clear the LaunchServices quarantine event database.
+#
+# (D) is what makes the freedesktop step complete. A bare * never matches a
+# leading dot, so every trashed name starting with one survived the sweep and
+# piled up. (N) lets a pattern that matches nothing expand to nothing instead
+# of failing its command with "no matches found", which is the normal state of
+# /Volumes with no external disk mounted and of the asl directory right after
+# a rotation. `rm -f` with no operands exits 0 quietly, so the empty case stays
+# silent. The sqlite3 glob keeps the default on purpose. Expanding to nothing
+# there would hand the SQL to sqlite3 as a database name and open a prompt.
+alias:safe emptytrash="sudo /bin/rm -rfv /Volumes/*/.Trashes(N); sudo /bin/rm -rfv ~/.Trash; /bin/rm -rfv ~/.local/share/Trash/files/*(DN) ~/.local/share/Trash/info/*(DN); sudo /bin/rm -rfv /private/var/log/asl/*.asl(N); sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
 
 # Recursively delete `.DS_Store` files
 alias:safe cleanup="find . -type f -name '*.DS_Store' -ls -delete"
@@ -186,8 +201,9 @@ alias:safe ip="dig +short myip.opendns.com @resolver1.opendns.com"
 alias:safe localip="ipconfig getifaddr en0"
 alias:safe ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
 
-# Public IP via ifconfig.me
-alias:safe myip='curl -s ifconfig.me'
+# Public IP via ifconfig.me. A bare -s mutes curl errors along with the
+# progress meter, and without -f an HTTP error page prints as if it were the IP.
+alias:safe myip='curl -fsS --max-time 10 ifconfig.me'
 
 # Show active network interfaces
 alias:safe ifactive="ifconfig | awk '/^[^[:space:]]/{iface=substr(\$1, 1, length(\$1)-1)} /status: active/{print iface}'"
@@ -219,8 +235,9 @@ alias sudo='sudo '
 # which Ruby to use.
 alias:safe update='sudo softwareupdate -i -a; brew update && brew upgrade && brew cleanup; cmd:exists mise && mise -C "$HOME" upgrade; cmd:exists gem && gem update --system && gem update && gem cleanup'
 
-# macOS ships no `hd`, `md5sum`, or `sha1sum`. alias:fallback supplies them
-# quietly and steps aside on systems that have the real binaries.
+# macOS ships no `hd`, and only recent releases ship `md5sum` and `sha1sum` in
+# /sbin, so those two fallbacks are no-ops here. alias:fallback supplies each
+# quietly and steps aside where the real binary already exists.
 alias:fallback hd="hexdump -C"
 alias:fallback md5sum="md5"
 alias:fallback sha1sum="shasum"
@@ -230,8 +247,11 @@ if [[ -e "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resourc
   alias:safe jsc="/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Resources/jsc"
 fi
 
-# Disk usage of entries in the current directory (sorted) and free space
-alias:safe dud='du -sh * | sort -h'
+# Disk usage of entries in the current directory (sorted) and free space. dud
+# delegates to fs from .functions, which counts dotfiles (a bare * hides .git,
+# usually the largest entry) and survives an empty directory, where an
+# unmatched * is fatal under NOMATCH.
+alias:safe dud='fs | sort -h'
 alias:safe duf='df -h'
 
 # Make a file executable
