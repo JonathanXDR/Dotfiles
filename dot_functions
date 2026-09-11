@@ -576,7 +576,13 @@ ssl:bundle() {
     return 1
   fi
 
-  mv "$tmp" "$output"
+  # Checked, because the EXIT trap removes the assembled bundle on the way out.
+  # An unchecked mv reported success while NODE_EXTRA_CA_CERTS still pointed at
+  # a missing or stale file, which surfaces much later as an opaque TLS error.
+  if ! command mv -f "$tmp" "$output"; then
+    log error "Failed to write the bundle to ${output}"
+    return 1
+  fi
   log success "Bundled $cert_count certificate(s) into $output"
 }
 
