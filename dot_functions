@@ -849,7 +849,17 @@ proxyd:reload() {
 
   [[ -f "${plist}" ]] || { log error "Failed to find plist (${plist})"; return 1; }
 
+  # bootout returns before launchd has finished tearing the service down, and a
+  # bootstrap that lands in that window fails with "Bootstrap failed: 5:
+  # Input/output error", which the message below would then blame on the plist.
+  # Waiting for the service to disappear closes that window, the same way
+  # run_onchange_after_05-proxy-launchagent does for the unattended path.
   launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
+  local attempt
+  for attempt in {1..50}; do
+    launchctl print "gui/$(id -u)/${label}" &>/dev/null || break
+    sleep 0.1
+  done
   launchctl bootstrap "gui/$(id -u)" "${plist}" \
     || { log error "Failed to bootstrap ${label} (check the plist and retry)"; return 1; }
   log success "Reloaded ${label}"

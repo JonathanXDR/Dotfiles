@@ -14,7 +14,15 @@ if [[ ! -f "${PLIST_PATH}" ]]; then
   exit 0
 fi
 
+# bootout returns before launchd has finished tearing the service down, and a
+# bootstrap that lands in that window fails with "Bootstrap failed: 5:
+# Input/output error", which would abort the rest of the apply. Waiting for the
+# service to disappear closes that window.
 launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
+for _ in {1..50}; do
+  launchctl print "gui/$(id -u)/${PLIST_LABEL}" &>/dev/null || break
+  sleep 0.1
+done
 launchctl bootstrap "gui/$(id -u)" "${PLIST_PATH}"
 
 _log success "Bootstrapped proxy LaunchAgent (${PLIST_LABEL})"
