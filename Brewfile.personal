@@ -448,7 +448,8 @@ cask "tor-browser"
 cask "unity"
 # Management tool for Unity
 cask "unity-hub", args: { appdir: "/Applications" }
-cask "updatest@beta"
+# Your home for Mac updates
+cask "updatest/tap/updatest"
 # Virtual machines UI using QEMU
 cask "utm"
 # Open-source code editor

@@ -421,7 +421,8 @@ cask "temurin@25"
 cask "tg-pro"
 # Unpacks archive files
 cask "the-unarchiver"
-cask "updatest@beta"
+# Your home for Mac updates
+cask "updatest/tap/updatest"
 # Virtual machines UI using QEMU
 cask "utm"
 # Open-source code editor
