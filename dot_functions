@@ -101,7 +101,7 @@ alias:_set() {
   local -a parts=( ${(z)${1#*=}} )
   local target="${(eQ)parts[1]}"
   [[ -n "$target" ]] && ! cmd:exists "$target" \
-    && log warning "Skipped alias '${1%%=*}' (target '${target}' is not available)"
+    && log warning "Defined alias '${1%%=*}' (target '${target}' is not available)"
   alias "$1"
 }
 
