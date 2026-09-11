@@ -5,7 +5,7 @@
 {{- $icloudConfigPath := joinPath $icloudSecrets "config.toml" -}}
 {{- $machineConfig := dict -}}
 {{- if stat $icloudConfigPath -}}
-{{-   $allConfig := output "cat" $icloudConfigPath | fromToml -}}
+{{-   $allConfig := include $icloudConfigPath | fromToml -}}
 {{-   if hasKey $allConfig $machine_type -}}
 {{-     $machineConfig = index $allConfig $machine_type -}}
 {{-   end -}}
