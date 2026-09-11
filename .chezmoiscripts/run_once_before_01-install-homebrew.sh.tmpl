@@ -12,5 +12,5 @@ fi
 _log info "Installing Homebrew…"
 # Download first, so a failed fetch aborts here instead of running an empty
 # installer and marking this run_once script as done.
-installer="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+installer="$(curl -fsSL --connect-timeout 10 --max-time 120 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 /bin/bash -c "$installer"

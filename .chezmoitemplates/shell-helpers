@@ -34,11 +34,15 @@ _ensure_brew() {
 
 _ensure_icloud() {
   local path="$1"
-  if [[ ! -e "$path" ]]; then
-    return 1
-  fi
-  if command -v brctl &>/dev/null; then
-    brctl download "$path" 2>/dev/null || true
-    sleep 2
+  [[ -e "$path" ]] || return 1
+  _cmd_exists brctl || return 0
+
+  # brctl returns once the downloads are queued and offers no wait flag, so
+  # there is nothing to sleep for. An evicted file keeps its name and mode as a
+  # dataless placeholder, so the callers' chmod reaches it either way, and
+  # reading one materializes it on demand.
+  local err
+  if ! err="$(brctl download "$path" 2>&1)"; then
+    _log warning "Failed to start the iCloud download of $path ($err)"
   fi
 }
