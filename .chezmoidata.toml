@@ -78,6 +78,9 @@ keychain_lookup_field = "name"  # SECRETS_KEYCHAIN_LOOKUP_FIELD
 # Do not use a glob character. The hook matches entries literally and would
 # cover nothing, while the deny rules would read it as a gitignore wildcard.
 claude_blocked_paths = [
+  # The iCloud backup directory whose tokens file holds every managed
+  # secret in cleartext.
+  ".keychain",
   ".ssh",
   ".gnupg",
   ".aws",
