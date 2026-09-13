@@ -61,9 +61,10 @@ fi
 # (~/.local/state/mise/tracked-configs) and keeps any version one of them still
 # asks for. The same pass rebuilds the shim directory, so no reshim is needed.
 #
-# --yes is required here, unlike on the install above. Without it mise asks
-# before every removal, and an unattended run counts as a decline, so the prune
-# would silently remove nothing.
+# --yes is required here, unlike on the install above. Interactively mise asks
+# before every removal, and since mise 2026.9.4 an unattended run with nobody to
+# ask fails outright rather than counting as a decline. Either way nothing gets
+# pruned without the flag, so it stays.
 _log info "Pruning unused tool versions…"
 if mise -C "$HOME" prune --yes; then
   _log success "Pruned unused tool versions"
