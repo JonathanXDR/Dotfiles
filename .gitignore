@@ -220,6 +220,13 @@ MobileBackups.trash
 tmbootpicker.efi
 
 # ---- chezmoi ----
+# The fallback archive every skill external falls back to, which the global
+# gitignore would otherwise drop for matching *.tar.gz. Without it in the
+# repository a fresh machine has no fallback, and one deleted upstream would go
+# back to failing every `chezmoi apply`. Rebuild it with:
+#   tar --uid 0 --gid 0 --numeric-owner -cf - skill-unavailable | gzip -n -9
+!skill-unavailable.tar.gz
+
 # Rendered forms of the four templates that inline a keychain secret. Saying yes
 # to `chezmoi add` on one of those targets, or passing --force, drops the
 # template attribute and replaces the .tmpl with the rendered file, tokens and

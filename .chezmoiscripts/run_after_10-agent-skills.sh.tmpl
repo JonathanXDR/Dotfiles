@@ -38,6 +38,23 @@ declared=(
 {{- end }}
 )
 
+# Where each declared skill is supposed to come from, in the same order, so the
+# health check at the end can name the source rather than only the skill.
+# chezmoi's own download error names a URL and nothing else.
+sources=(
+{{- range $name, $skill := .agent_skills }}
+{{-   if hasKey $skill "git" }}
+  {{ $skill.git | quote }}
+{{-   else if hasKey $skill "url" }}
+  {{ $skill.url | quote }}
+{{-   else if hasKey $skill "repo" }}
+  {{ printf "%s (%s)" $skill.repo (default "repository root" (get $skill "path")) | quote }}
+{{-   else }}
+  {{ printf "dot_agents/skills/%s in this repository" $name | quote }}
+{{-   end }}
+{{- end }}
+)
+
 # Skipped unless the agent's own directory already exists, so an agent this
 # machine does not have gets no empty skills directory invented for it.
 link_dirs=(
@@ -126,10 +143,19 @@ for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
     target="${SKILLS_HOME}/${name}"
     link="${link_dir}/${name}"
 
-    # A skill whose download failed has no target yet. Linking to it would
-    # leave a broken link the pruning below then removes, so wait for a later
-    # apply to fetch it instead.
-    [[ -d "$target" ]] || continue
+    # Only a directory holding a SKILL.md is a skill. A download that failed
+    # leaves nothing, and one that fell back to skill-unavailable.tar.gz leaves
+    # a directory without one, so the test is the file rather than the
+    # directory. Either way, take back the link if this run already had one:
+    # the skill was installed on an earlier apply and has since gone away.
+    if [[ ! -f "${target}/SKILL.md" ]]; then
+      if [[ -L "$link" && "$(readlink "$link")" == "$target" ]]; then
+        command rm -f "$link"
+        _log success "Removed the ${name} link from ${link_dir} (the skill is no longer installed)"
+      fi
+      continue
+    fi
+
     [[ -L "$link" && "$(readlink "$link")" == "$target" ]] && continue
 
     # Only ever replace a link. A real directory of the same name is somebody
@@ -182,3 +208,28 @@ done
 
 mkdir -p "${LEDGER%/*}"
 printf '%s\n' "$declared_list" >|"$LEDGER"
+
+# ------------------------------- Health check ------------------------------- #
+
+# A declared skill with no SKILL.md is a skill no agent can load, and nothing
+# else on this machine will say so. It happens when the upstream repository is
+# gone or renamed and the download fell through to skill-unavailable.tar.gz,
+# when the source moved the skill and `path` no longer points at one, or when a
+# licensed download has been failing. chezmoi reports the first case as one line
+# naming a URL, on the apply where it happens and never again, so the check
+# below is what keeps a quietly dead skill from staying dead.
+broken=0
+i=0
+while [[ $i -lt ${#declared[@]} ]]; do
+  name="${declared[$i]}"
+  origin="${sources[$i]}"
+  i=$((i + 1))
+
+  [[ -f "${SKILLS_HOME}/${name}/SKILL.md" ]] && continue
+  broken=$((broken + 1))
+  _log error "Failed to install the ${name} skill from ${origin}"
+done
+
+if ((broken)); then
+  _log info "Check the source of each skill above, then fix or drop its entry in .chezmoidata/skills.toml"
+fi

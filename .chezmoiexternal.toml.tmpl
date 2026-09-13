@@ -8,12 +8,22 @@
        declared, because run_after_10-agent-skills installs the first kind and
        links every kind, and both read the same inventory.
 
+       Every archive lists skill-unavailable.tar.gz as a second URL. chezmoi
+       tries URLs in order and takes the first that answers, and a failure to
+       read any external fails the whole source state, not just that entry. So
+       without a fallback one deleted upstream repository would stop `chezmoi
+       apply` from applying anything at all, on this machine and on a new one.
+       The fallback unpacks a directory holding a single .unavailable marker and
+       no SKILL.md, which no agent loads, and run_after_10-agent-skills reports
+       every skill that ended up in that state.
+
        stripComponents is derived rather than declared: one component for the
        archive's own root directory, plus one per component of `path`. A GitHub
        branch tarball wraps everything in <repo>-<branch>/, and the vendor
        tarballs wrap everything in ./, so the count is the same for both. */ -}}
 {{- $home := .agent_skills_home -}}
 {{- $refresh := .agent_skills_refresh -}}
+{{- $fallback := printf "file://%s/skill-unavailable.tar.gz" .chezmoi.sourceDir -}}
 {{- range $name, $skill := .agent_skills -}}
 {{-   if hasKey $skill "git" }}
 
@@ -41,7 +51,7 @@
 
 ["{{ $home }}/{{ $name }}"]
   type = "archive"
-  url = {{ $url | quote }}
+  urls = [{{ $url | quote }}, {{ $fallback | quote }}]
   {{- /* exact makes the directory converge: a file upstream deletes is deleted
          here too, rather than lingering as a file nothing declares. */}}
   exact = true

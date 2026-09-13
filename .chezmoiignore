@@ -2,6 +2,7 @@ README.md
 ARCHITECTURE.md
 LICENSE
 Brewfile.*
+skill-unavailable.tar.gz
 
 {{ if ne .machine_type "work" }}
 .ssl
