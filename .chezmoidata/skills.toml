@@ -98,6 +98,10 @@ agent_skill_owners = [
 repo = "Imbad0202/academic-research-skills"
 path = "academic-paper"
 
+[agent_skills.academy-guide]
+repo = "anthropics/skills"
+path = "skills/academy-guide"
+
 [agent_skills.adaptive]
 repo = "android/skills"
 path = "jetpack-compose/adaptive"
@@ -105,6 +109,16 @@ path = "jetpack-compose/adaptive"
 [agent_skills.add-community-extension]
 repo = "github/spec-kit"
 path = ".github/skills/add-community-extension"
+
+[agent_skills.add-new-model]
+repo = "ggml-org/llama.cpp"
+path = "skills/add-new-model"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.add-or-fix-type-checking]
+repo = "huggingface/transformers"
+path = ".ai/skills/add-or-fix-type-checking"
 
 [agent_skills.adding-a-skill]
 repo = "BuilderIO/skills"
@@ -122,6 +136,26 @@ path = ".agents/skills/afk"
 repo = "vercel-labs/agent-browser"
 path = "skills/agent-browser"
 
+[agent_skills.agent-builder]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/agent-builder"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.agent-development]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/agent-development"
+
+[agent_skills.agents-sdk]
+repo = "anomalyco/opencode"
+path = "packages/opencode/test/fixture/skills/agents-sdk"
+ref = "dev"
+refresh = "2160h"
+
+[agent_skills.algorithmic-art]
+repo = "anthropics/skills"
+path = "skills/algorithmic-art"
+
 [agent_skills.alpha]
 repo = "garrytan/gstack"
 path = "test/fixtures/context-bill/tree-a/alpha"
@@ -137,6 +171,12 @@ path = ".agents/skills/animate"
 [agent_skills.api-and-interface-design]
 repo = "addyosmani/agent-skills"
 path = "skills/api-and-interface-design"
+
+[agent_skills.app]
+repo = "ggml-org/llama.cpp"
+path = "tools/ui/src/lib/components/app"
+ref = "master"
+refresh = "2160h"
 
 [agent_skills.archify]
 repo = "tt-a1i/archify"
@@ -161,19 +201,45 @@ path = ".agents/skills/authoring-skills"
 ref = "canary"
 refresh = "2160h"
 
+[agent_skills.autoplan]
+repo = "garrytan/gstack"
+path = "autoplan"
+
 [agent_skills.babysit]
 repo = "thedotmack/claude-mem"
 path = "plugin/skills/babysit"
 refresh = "2160h"
+
+[agent_skills.babysit-pr]
+repo = "openai/codex"
+path = ".codex/skills/babysit-pr"
 
 [agent_skills.backend-code-review]
 repo = "langgenius/dify"
 path = ".agents/skills/backend-code-review"
 refresh = "2160h"
 
+[agent_skills.backport-pr]
+repo = "vercel/next.js"
+path = ".agents/skills/backport-pr"
+ref = "canary"
+refresh = "2160h"
+
 [agent_skills.banner-design]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/banner-design"
+
+[agent_skills.benchmark]
+repo = "garrytan/gstack"
+path = "benchmark"
+
+[agent_skills.benchmark-models]
+repo = "garrytan/gstack"
+path = "benchmark-models"
+
+[agent_skills.beta]
+repo = "garrytan/gstack"
+path = "test/fixtures/context-bill/tree-a/beta"
 
 [agent_skills.book-study]
 repo = "sanyuan0704/sanyuan-skills"
@@ -192,6 +258,18 @@ refresh = "2160h"
 repo = "obra/superpowers"
 path = "skills/brainstorming"
 
+[agent_skills.brand]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/brand"
+
+[agent_skills.brand-guidelines]
+repo = "anthropics/skills"
+path = "skills/brand-guidelines"
+
+[agent_skills.browse]
+repo = "garrytan/gstack"
+path = "browse"
+
 [agent_skills.browser-use]
 repo = "browser-use/browser-use"
 path = "skills/browser-use"
@@ -201,14 +279,34 @@ repo = "THU-MAIC/OpenMAIC"
 path = "skills/agent-runtime/build-personal-skill"
 refresh = "2160h"
 
+[agent_skills.canary]
+repo = "garrytan/gstack"
+path = "canary"
+
+[agent_skills.canvas-design]
+repo = "anthropics/skills"
+path = "skills/canvas-design"
+
 [agent_skills.capabilities]
 repo = "chaitanyagiri/munder-difflin"
 path = "resources/skills/capabilities"
 refresh = "2160h"
 
+[agent_skills.careful]
+repo = "garrytan/gstack"
+path = "careful"
+
 [agent_skills.check-understanding]
 repo = "rohitg00/ai-engineering-from-scratch"
 path = "skills/check-understanding"
+
+[agent_skills.claude-api]
+repo = "anthropics/skills"
+path = "skills/claude-api"
+
+[agent_skills.claude-opus-4-5-migration]
+repo = "anthropics/claude-code"
+path = "plugins/claude-opus-4-5-migration/skills/claude-opus-4-5-migration"
 
 [agent_skills.clean-copy]
 repo = "tldraw/tldraw"
@@ -219,6 +317,40 @@ refresh = "2160h"
 repo = "clerk/skills"
 path = "skills/frameworks/clerk-nuxt-patterns"
 
+[agent_skills.cloudflare]
+repo = "anomalyco/opencode"
+path = "packages/opencode/test/fixture/skills/cloudflare"
+ref = "dev"
+refresh = "2160h"
+
+[agent_skills.code-review-breaking-changes]
+repo = "openai/codex"
+path = ".codex/skills/code-review-breaking-changes"
+
+[agent_skills.code-review-change-size]
+repo = "openai/codex"
+path = ".codex/skills/code-review-change-size"
+
+[agent_skills.code-review-context]
+repo = "openai/codex"
+path = ".codex/skills/code-review-context"
+
+[agent_skills.code-review-testing]
+repo = "openai/codex"
+path = ".codex/skills/code-review-testing"
+
+[agent_skills.codex]
+repo = "garrytan/gstack"
+path = "codex"
+
+[agent_skills.codex-pr-body]
+repo = "openai/codex"
+path = ".codex/skills/codex-pr-body"
+
+[agent_skills.command-development]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/command-development"
+
 # An 825 MB tarball, by far the largest source here, for one commit-message skill.
 # Worth dropping if the quarterly download ever gets in the way.
 [agent_skills.commit]
@@ -226,18 +358,180 @@ repo = "ToolJet/ToolJet"
 path = ".agents/skills/commit"
 refresh = "2160h"
 
+[agent_skills.community-pr-readiness-check]
+repo = "n8n-io/n8n"
+path = ".agents/skills/community-pr-readiness-check"
+ref = "master"
+refresh = "2160h"
+
 [agent_skills.compiler-commit]
 repo = "react/react"
 path = "compiler/.claude/skills/compiler-commit"
+
+[agent_skills.compiler-orchestrator]
+repo = "react/react"
+path = "compiler/.claude/skills/compiler-orchestrator"
+
+[agent_skills.compiler-port]
+repo = "react/react"
+path = "compiler/.claude/skills/compiler-port"
+
+[agent_skills.compiler-review]
+repo = "react/react"
+path = "compiler/.claude/skills/compiler-review"
+
+[agent_skills.compiler-verify]
+repo = "react/react"
+path = "compiler/.claude/skills/compiler-verify"
+
+[agent_skills.component-refactoring]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/component-refactoring"
+refresh = "2160h"
 
 [agent_skills.computer-use]
 repo = "stablyai/orca"
 path = "skills/computer-use"
 refresh = "2160h"
 
+[agent_skills.config-evals]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/config-evals"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.content-design]
+repo = "n8n-io/n8n"
+path = ".agents/skills/content-design"
+ref = "master"
+refresh = "2160h"
+
 [agent_skills.context-mode]
 repo = "mksglu/context-mode"
 path = "skills/context-mode"
+
+[agent_skills.context-restore]
+repo = "garrytan/gstack"
+path = "context-restore"
+
+[agent_skills.context-save]
+repo = "garrytan/gstack"
+path = "context-save"
+
+[agent_skills.conventions]
+repo = "n8n-io/n8n"
+path = ".agents/skills/conventions"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.cordis-plugin-development]
+repo = "deepseek-ai/deepseek-harness"
+path = "packages/preset/agent-presets/presets/cordis/skills/cordis-plugin-development"
+ref = "master"
+
+[agent_skills.create-community-node-lint-rule]
+repo = "n8n-io/n8n"
+path = ".agents/skills/create-community-node-lint-rule"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.create-instance-ai-eval]
+repo = "n8n-io/n8n"
+path = ".agents/skills/create-instance-ai-eval"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.create-issue]
+repo = "n8n-io/n8n"
+path = ".agents/skills/create-issue"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.create-pr]
+repo = "vercel/next.js"
+path = ".agents/skills/create-pr"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.create-skill]
+repo = "n8n-io/n8n"
+path = ".agents/skills/create-skill"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.credential-recipe-research]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/credential-recipe-research"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.credential-setup-with-computer-use]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/credential-setup-with-computer-use"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.cso]
+repo = "garrytan/gstack"
+path = "cso"
+
+[agent_skills.data-table-manager]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/data-table-manager"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.db-migrations]
+repo = "n8n-io/n8n"
+path = ".agents/skills/db-migrations"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.dce-edge]
+repo = "vercel/next.js"
+path = ".agents/skills/dce-edge"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.debugging-executions]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/debugging-executions"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.deploy-release-test]
+repo = "vercel/next.js"
+path = ".agents/skills/deploy-release-test"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.design]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/design"
+
+[agent_skills.design-consultation]
+repo = "garrytan/gstack"
+path = "design-consultation"
+
+[agent_skills.design-html]
+repo = "garrytan/gstack"
+path = "design-html"
+
+[agent_skills.design-review]
+repo = "garrytan/gstack"
+path = "design-review"
+
+[agent_skills.design-shotgun]
+repo = "garrytan/gstack"
+path = "design-shotgun"
+
+[agent_skills.design-system]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/design-system"
+
+[agent_skills.devex-review]
+repo = "garrytan/gstack"
+path = "devex-review"
 
 [agent_skills.diagnose-crash]
 repo = "omacom/omarchy"
@@ -245,21 +539,115 @@ path = "default/agents/skills/diagnose-crash"
 ref = "quattro"
 refresh = "2160h"
 
+[agent_skills.diagram]
+repo = "garrytan/gstack"
+path = "diagram"
+
 [agent_skills.diagram-design]
 repo = "cathrynlavery/diagram-design"
 path = "skills/diagram-design"
+
+[agent_skills.discernment-nudge]
+repo = "anthropics/skills"
+path = "skills/discernment-nudge"
+
+[agent_skills.dispatching-parallel-agents]
+repo = "obra/superpowers"
+path = "skills/dispatching-parallel-agents"
+
+[agent_skills.doc-coauthoring]
+repo = "anthropics/skills"
+path = "skills/doc-coauthoring"
 
 [agent_skills.docs-writing]
 repo = "typescript-eslint/typescript-eslint"
 path = ".agents/skills/docs-writing"
 
+[agent_skills.document-generate]
+repo = "garrytan/gstack"
+path = "document-generate"
+
+[agent_skills.document-release]
+repo = "garrytan/gstack"
+path = "document-release"
+
 [agent_skills.document-writer]
 repo = "onmax/nuxt-skills"
 path = "skills/document-writer"
 
+[agent_skills.docx]
+repo = "anthropics/skills"
+path = "skills/docx"
+
 [agent_skills.drawio-skill]
 repo = "Agents365-ai/drawio-skill"
 path = "skills/drawio-skill"
+
+[agent_skills.dsh-archive-agent-notes]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-archive-agent-notes"
+ref = "master"
+
+[agent_skills.dsh-code-review]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-code-review"
+ref = "master"
+
+[agent_skills.dsh-find-simplifications]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-find-simplifications"
+ref = "master"
+
+[agent_skills.dsh-merging-stacked-prs]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-merging-stacked-prs"
+ref = "master"
+
+[agent_skills.dsh-pre-push-checks]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-pre-push-checks"
+ref = "master"
+
+[agent_skills.dsh-prose-standard]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-prose-standard"
+ref = "master"
+
+[agent_skills.dsh-translate-docs]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-translate-docs"
+ref = "master"
+
+[agent_skills.dsh-trim-cot-leakage]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/dsh-trim-cot-leakage"
+ref = "master"
+
+[agent_skills.e2e-cucumber-playwright]
+repo = "langgenius/dify"
+path = ".agents/skills/e2e-cucumber-playwright"
+refresh = "2160h"
+
+[agent_skills.e2e-summary-skill]
+repo = "langgenius/dify"
+path = "e2e/fixtures/test-materials/e2e-summary-skill"
+refresh = "2160h"
+
+[agent_skills.e2e-testing]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/e2e-testing"
+refresh = "2160h"
+
+[agent_skills.editing-cordis-compositions]
+repo = "deepseek-ai/deepseek-harness"
+path = "packages/preset/agent-presets/presets/cordis/skills/editing-cordis-compositions"
+ref = "master"
+
+[agent_skills.effect]
+repo = "anomalyco/opencode"
+path = ".opencode/skills/effect"
+ref = "dev"
+refresh = "2160h"
 
 [agent_skills.ego-browser]
 repo = "citrolabs/ego-lite"
@@ -269,17 +657,85 @@ path = "skills/ego-browser"
 repo = "emilkowalski/skills"
 path = "skills/emil-design-eng"
 
+[agent_skills.executing-plans]
+repo = "obra/superpowers"
+path = "skills/executing-plans"
+
+[agent_skills.experiments]
+repo = "n8n-io/n8n"
+path = ".agents/skills/experiments"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.extract-errors]
+repo = "react/react"
+path = ".claude/skills/extract-errors"
+
+[agent_skills.feature-flags]
+repo = "react/react"
+path = ".claude/skills/feature-flags"
+
 [agent_skills.find-skills]
 repo = "vercel-labs/skills"
 path = "skills/find-skills"
+
+[agent_skills.finishing-a-development-branch]
+repo = "obra/superpowers"
+path = "skills/finishing-a-development-branch"
+
+[agent_skills.fix]
+repo = "react/react"
+path = ".claude/skills/fix"
+
+[agent_skills.flags]
+repo = "react/react"
+path = ".claude/skills/flags"
+
+[agent_skills.flow]
+repo = "react/react"
+path = ".claude/skills/flow"
 
 [agent_skills.freehire-search]
 repo = "MadsLorentzen/ai-job-search"
 path = ".agents/skills/freehire-search"
 ref = "master"
 
+[agent_skills.freeze]
+repo = "garrytan/gstack"
+path = "freeze"
+
+[agent_skills.frontend-code-review]
+repo = "langgenius/dify"
+path = ".agents/skills/frontend-code-review"
+refresh = "2160h"
+
+[agent_skills.frontend-design]
+repo = "anthropics/skills"
+path = "skills/frontend-design"
+
+[agent_skills.frontend-i18n]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/frontend-i18n"
+refresh = "2160h"
+
+[agent_skills.frontend-query-mutation]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/frontend-query-mutation"
+refresh = "2160h"
+
 [agent_skills.frontend-slides]
 repo = "zarazhangrui/frontend-slides"
+
+[agent_skills.frontend-testing]
+repo = "langgenius/dify"
+path = ".agents/skills/frontend-testing"
+refresh = "2160h"
+
+[agent_skills.gate-tests]
+repo = "vercel/next.js"
+path = ".agents/skills/gate-tests"
+ref = "canary"
+refresh = "2160h"
 
 [agent_skills.gh-stack]
 repo = "vercel/next.js"
@@ -306,9 +762,40 @@ path = ".claude"
 repo = "greensock/gsap-skills"
 path = "skills/gsap-core"
 
+[agent_skills.gstack]
+repo = "garrytan/gstack"
+
+[agent_skills.gstack-openclaw-ceo-review]
+repo = "garrytan/gstack"
+path = "openclaw/skills/gstack-openclaw-ceo-review"
+
+[agent_skills.gstack-openclaw-investigate]
+repo = "garrytan/gstack"
+path = "openclaw/skills/gstack-openclaw-investigate"
+
+[agent_skills.gstack-openclaw-office-hours]
+repo = "garrytan/gstack"
+path = "openclaw/skills/gstack-openclaw-office-hours"
+
 [agent_skills.gstack-openclaw-retro]
 repo = "garrytan/gstack"
 path = "openclaw/skills/gstack-openclaw-retro"
+
+[agent_skills.gstack-upgrade]
+repo = "garrytan/gstack"
+path = "gstack-upgrade"
+
+[agent_skills.guard]
+repo = "garrytan/gstack"
+path = "guard"
+
+[agent_skills.hackernews-frontpage]
+repo = "garrytan/gstack"
+path = "browser-skills/hackernews-frontpage"
+
+[agent_skills.health]
+repo = "garrytan/gstack"
+path = "health"
 
 [agent_skills.heroui-native]
 repo = "heroui-inc/heroui"
@@ -338,6 +825,21 @@ token = "HeroUI Pro"
 account = "jonathan"
 header = "x-heroui-personal-token"
 
+[agent_skills.hook-development]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/hook-development"
+
+[agent_skills.how-to-write-component]
+repo = "langgenius/dify"
+path = ".agents/skills/how-to-write-component"
+refresh = "2160h"
+
+[agent_skills.human-like-code-review]
+repo = "n8n-io/n8n"
+path = ".agents/skills/human-like-code-review"
+ref = "master"
+refresh = "2160h"
+
 [agent_skills.humanizer]
 repo = "blader/humanizer"
 
@@ -345,13 +847,95 @@ repo = "blader/humanizer"
 repo = "ayghri/i-have-adhd"
 path = "skills/i-have-adhd"
 
+[agent_skills.ibm-a11y-level1-audit]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/ibm-a11y-level1-audit"
+refresh = "2160h"
+
+[agent_skills.ibm-a11y-pr-remediation]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/ibm-a11y-pr-remediation"
+refresh = "2160h"
+
+[agent_skills.ibm-a11y-route-scan]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/ibm-a11y-route-scan"
+refresh = "2160h"
+
+[agent_skills.ibm-a11y-testing-guide]
+repo = "langflow-ai/langflow"
+path = ".agents/skills/ibm-a11y-testing-guide"
+refresh = "2160h"
+
+[agent_skills.imagegen]
+repo = "openai/codex"
+path = "codex-rs/skills/src/assets/samples/imagegen"
+
+[agent_skills.insight-error-page]
+repo = "vercel/next.js"
+path = ".agents/skills/insight-error-page"
+ref = "canary"
+refresh = "2160h"
+
 [agent_skills.install-anti-slop]
 repo = "dmmulroy/anti-slop"
 path = "skills/install-anti-slop"
 
+[agent_skills.instance-awareness]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/instance-awareness"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.intent-recognition]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/intent-recognition"
+ref = "master"
+refresh = "2160h"
+
 [agent_skills.interface-design]
 repo = "Dammyjay93/interface-design"
 path = ".claude/skills/interface-design"
+
+[agent_skills.internal-comms]
+repo = "anthropics/skills"
+path = "skills/internal-comms"
+
+[agent_skills.investigate]
+repo = "garrytan/gstack"
+path = "investigate"
+
+[agent_skills.ios-clean]
+repo = "garrytan/gstack"
+path = "ios-clean"
+
+[agent_skills.ios-design-review]
+repo = "garrytan/gstack"
+path = "ios-design-review"
+
+[agent_skills.ios-fix]
+repo = "garrytan/gstack"
+path = "ios-fix"
+
+[agent_skills.ios-qa]
+repo = "garrytan/gstack"
+path = "ios-qa"
+
+[agent_skills.ios-sync]
+repo = "garrytan/gstack"
+path = "ios-sync"
+
+[agent_skills.karpathy-guidelines]
+repo = "multica-ai/andrej-karpathy-skills"
+path = "skills/karpathy-guidelines"
+
+[agent_skills.land-and-deploy]
+repo = "garrytan/gstack"
+path = "land-and-deploy"
+
+[agent_skills.landing-report]
+repo = "garrytan/gstack"
+path = "landing-report"
 
 [agent_skills.last30days]
 repo = "mvanhorn/last30days-skill"
@@ -359,6 +943,39 @@ path = "skills/last30days"
 
 [agent_skills.lean-comments]
 repo = "JonathanXDR/lean-comments"
+
+[agent_skills.learn]
+repo = "garrytan/gstack"
+path = "learn"
+
+[agent_skills.linear-issue]
+repo = "n8n-io/n8n"
+path = ".agents/skills/linear-issue"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.loom-transcript]
+repo = "n8n-io/n8n"
+path = ".agents/skills/loom-transcript"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.make-pdf]
+repo = "garrytan/gstack"
+path = "make-pdf"
+
+[agent_skills.mcp-builder]
+repo = "anthropics/skills"
+path = "skills/mcp-builder"
+
+[agent_skills.mcp-integration]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/mcp-integration"
+
+[agent_skills.model-only-skill]
+repo = "deepseek-ai/deepseek-harness"
+path = "snapshots/session/skill-load/workspace/.dsh/skills/model-only-skill"
+ref = "master"
 
 # Named for the skill's own frontmatter rather than its upstream directory,
 # which is just "skill".
@@ -371,9 +988,69 @@ refresh = "2160h"
 repo = "onmax/nuxt-skills"
 path = "skills/motion"
 
+[agent_skills.n8n-cli]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/cli/skills/n8n-cli"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.n8n-docs-assistant]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/n8n-docs-assistant"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.nathan]
+repo = "n8n-io/n8n"
+path = ".agents/skills/nathan"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.next-cache-components-adoption]
+repo = "vercel/next.js"
+path = "skills/next-cache-components-adoption"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.next-cache-components-optimizer]
+repo = "vercel/next.js"
+path = "skills/next-cache-components-optimizer"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.next-dev-loop]
+repo = "vercel/next.js"
+path = "skills/next-dev-loop"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.next-partial-prefetching-adoption]
+repo = "vercel/next.js"
+path = "skills/next-partial-prefetching-adoption"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.next-partial-prefetching-optimizer]
+repo = "vercel/next.js"
+path = "skills/next-partial-prefetching-optimizer"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.next-rspack]
+repo = "vercel/next.js"
+path = ".agents/skills/next-rspack"
+ref = "canary"
+refresh = "2160h"
+
 [agent_skills.no-ai-slop]
 repo = "petergyang/no-ai-slop"
 path = "skills/no-ai-slop"
+
+[agent_skills.node-add-oauth]
+repo = "n8n-io/n8n"
+path = ".agents/skills/node-add-oauth"
+ref = "master"
+refresh = "2160h"
 
 [agent_skills.nuxt-content]
 repo = "onmax/nuxt-skills"
@@ -397,12 +1074,78 @@ path = "skills/nuxt-ui"
 ref = "v4"
 refresh = "2160h"
 
+[agent_skills.office-hours]
+repo = "garrytan/gstack"
+path = "office-hours"
+
+[agent_skills.one-off-operations]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/one-off-operations"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.open-gstack-browser]
+repo = "garrytan/gstack"
+path = "open-gstack-browser"
+
+[agent_skills.openai-docs]
+repo = "openai/codex"
+path = "codex-rs/skills/src/assets/samples/openai-docs"
+
 # Named for the skill's own frontmatter rather than its upstream directory, so
 # every agent shows the same name.
 [agent_skills.openclaw-memory-tencentdb-setup]
 repo = "TencentCloud/TencentDB-Agent-Memory"
 path = "MemoryCore"
 ref = "feat/server_team"
+refresh = "2160h"
+
+[agent_skills.pair-agent]
+repo = "garrytan/gstack"
+path = "pair-agent"
+
+[agent_skills.path-types]
+repo = "openai/codex"
+path = ".codex/skills/path-types"
+
+[agent_skills.pdf]
+repo = "anthropics/skills"
+path = "skills/pdf"
+
+[agent_skills.plan-ceo-review]
+repo = "garrytan/gstack"
+path = "plan-ceo-review"
+
+[agent_skills.plan-design-review]
+repo = "garrytan/gstack"
+path = "plan-design-review"
+
+[agent_skills.plan-devex-review]
+repo = "garrytan/gstack"
+path = "plan-devex-review"
+
+[agent_skills.plan-eng-review]
+repo = "garrytan/gstack"
+path = "plan-eng-review"
+
+[agent_skills.plan-tune]
+repo = "garrytan/gstack"
+path = "plan-tune"
+
+[agent_skills.plan-update]
+repo = "react/react"
+path = "compiler/.claude/skills/plan-update"
+
+[agent_skills.planned-task-runtime]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/planned-task-runtime"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.planning]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/planning"
+ref = "master"
 refresh = "2160h"
 
 [agent_skills.planning-with-files]
@@ -415,12 +1158,176 @@ repo = "microsoft/playwright"
 path = "packages/playwright-core/src/tools/skills/playwright-cli"
 refresh = "2160h"
 
+[agent_skills.plugin-creator]
+repo = "openai/codex"
+path = "codex-rs/skills/src/assets/samples/plugin-creator"
+
+[agent_skills.plugin-settings]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/plugin-settings"
+
+[agent_skills.plugin-structure]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/plugin-structure"
+
 [agent_skills.ponytail]
 repo = "DietrichGebert/ponytail"
 path = "skills/ponytail"
 
+[agent_skills.ponytail-audit]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail-audit"
+
+[agent_skills.ponytail-debt]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail-debt"
+
+[agent_skills.ponytail-gain]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail-gain"
+
+[agent_skills.ponytail-help]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail-help"
+
+[agent_skills.ponytail-review]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail-review"
+
+[agent_skills.post-build-flow]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/post-build-flow"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.pptx]
+repo = "anthropics/skills"
+path = "skills/pptx"
+
+[agent_skills.pr-status-triage]
+repo = "vercel/next.js"
+path = ".agents/skills/pr-status-triage"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.preview-verdicts]
+repo = "vinta/awesome-python"
+path = ".claude/skills/preview-verdicts"
+ref = "master"
+
+[agent_skills.progressive-building]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/progressive-building"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.prompt-lookup]
+repo = "f/prompts.chat"
+path = "plugins/claude/prompts.chat/skills/prompt-lookup"
+refresh = "2160h"
+
 [agent_skills.prompt-master]
 repo = "nidhinjs/prompt-master"
+
+[agent_skills.protect-endpoints]
+repo = "n8n-io/n8n"
+path = ".agents/skills/protect-endpoints"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.public-api]
+repo = "n8n-io/n8n"
+path = ".agents/skills/public-api"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.qa]
+repo = "garrytan/gstack"
+path = "qa"
+
+[agent_skills.qa-only]
+repo = "garrytan/gstack"
+path = "qa-only"
+
+[agent_skills.react-sync]
+repo = "vercel/next.js"
+path = ".agents/skills/react-sync"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.react-vendoring]
+repo = "vercel/next.js"
+path = ".agents/skills/react-vendoring"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.receiving-code-review]
+repo = "obra/superpowers"
+path = "skills/receiving-code-review"
+
+[agent_skills.record-browser-gif]
+repo = "deepseek-ai/deepseek-harness"
+path = ".agents/skills/record-browser-gif"
+ref = "master"
+
+[agent_skills.remote-tests]
+repo = "openai/codex"
+path = ".codex/skills/remote-tests"
+
+[agent_skills.reproduce-bug]
+repo = "n8n-io/n8n"
+path = ".agents/skills/reproduce-bug"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.requesting-code-review]
+repo = "obra/superpowers"
+path = "skills/requesting-code-review"
+
+[agent_skills.review]
+repo = "garrytan/gstack"
+path = "review"
+
+[agent_skills.review-agent]
+repo = "openai/codex"
+path = "codex-rs/skills/src/assets/samples/review-agent"
+
+[agent_skills.review-prs]
+repo = "vinta/awesome-python"
+path = ".claude/skills/review-prs"
+ref = "master"
+
+[agent_skills.router-act]
+repo = "vercel/next.js"
+path = ".agents/skills/router-act"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.rtl-aware-development]
+repo = "anomalyco/opencode"
+path = ".opencode/skills/rtl-aware-development"
+ref = "dev"
+refresh = "2160h"
+
+[agent_skills.runtime-debug]
+repo = "vercel/next.js"
+path = ".agents/skills/runtime-debug"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.rust-port-status]
+repo = "react/react"
+path = "compiler/.claude/skills/rust-port-status"
+
+[agent_skills.sandbox-bench]
+repo = "vercel/next.js"
+path = ".agents/skills/sandbox-bench"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.scrape]
+repo = "garrytan/gstack"
+path = "scrape"
 
 [agent_skills.security-advisory]
 repo = "colinhacks/zod"
@@ -430,17 +1337,75 @@ path = ".claude/skills/security-advisory"
 repo = "AgriciDaniel/claude-seo"
 path = "skills/seo"
 
+[agent_skills.setup-browser-cookies]
+repo = "garrytan/gstack"
+path = "setup-browser-cookies"
+
+[agent_skills.setup-deploy]
+repo = "garrytan/gstack"
+path = "setup-deploy"
+
+[agent_skills.setup-gbrain]
+repo = "garrytan/gstack"
+path = "setup-gbrain"
+
+[agent_skills.setup-mcps]
+repo = "n8n-io/n8n"
+path = ".opencode/skills/setup-mcps"
+ref = "master"
+refresh = "2160h"
+
 [agent_skills.shadcn]
 repo = "shadcn-ui/ui"
 path = "skills/shadcn"
+
+[agent_skills.ship]
+repo = "garrytan/gstack"
+path = "ship"
+
+[agent_skills.skill-creator]
+repo = "anthropics/skills"
+path = "skills/skill-creator"
+
+[agent_skills.skill-development]
+repo = "anthropics/claude-code"
+path = "plugins/plugin-dev/skills/skill-development"
+
+[agent_skills.skill-lookup]
+repo = "f/prompts.chat"
+path = "plugins/claude/prompts.chat/skills/skill-lookup"
+refresh = "2160h"
+
+[agent_skills.skillify]
+repo = "garrytan/gstack"
+path = "skillify"
 
 [agent_skills.slack-gif-creator]
 repo = "anthropics/skills"
 path = "skills/slack-gif-creator"
 
+[agent_skills.slides]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/slides"
+
 [agent_skills.slidev]
 repo = "slidevjs/slidev"
 path = "skills/slidev"
+
+[agent_skills.snapshot-skill]
+repo = "deepseek-ai/deepseek-harness"
+path = "snapshots/session/skill-load/workspace/.dsh/skills/snapshot-skill"
+ref = "master"
+
+[agent_skills.spec]
+repo = "garrytan/gstack"
+path = "spec"
+
+[agent_skills.spec-driven-development]
+repo = "n8n-io/n8n"
+path = ".agents/skills/spec-driven-development"
+ref = "master"
+refresh = "2160h"
 
 # Written here rather than published, because it documents an employer's
 # internal stack. This repository is public, so the contents live in a private
@@ -454,14 +1419,66 @@ git = "git@github.com:JonathanXDR/stake-engine-slot-development-skill.git"
 [agent_skills.stop-slop]
 repo = "hardikpandya/stop-slop"
 
+[agent_skills.subagent-driven-development]
+repo = "obra/superpowers"
+path = "skills/subagent-driven-development"
+
 [agent_skills.supermemory]
 repo = "supermemoryai/supermemory"
 path = "skills/supermemory"
 refresh = "2160h"
 
+[agent_skills.sync-gbrain]
+repo = "garrytan/gstack"
+path = "sync-gbrain"
+
+[agent_skills.systematic-debugging]
+repo = "obra/superpowers"
+path = "skills/systematic-debugging"
+
+[agent_skills.telemetry]
+repo = "n8n-io/n8n"
+path = ".agents/skills/telemetry"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.template]
+repo = "anthropics/skills"
+path = "template"
+
+[agent_skills.test]
+repo = "react/react"
+path = ".claude/skills/test"
+
+[agent_skills.test-driven-development]
+repo = "obra/superpowers"
+path = "skills/test-driven-development"
+
+[agent_skills.theme-factory]
+repo = "anthropics/skills"
+path = "skills/theme-factory"
+
 [agent_skills.ts-library]
 repo = "onmax/nuxt-skills"
 path = "skills/ts-library"
+
+[agent_skills.ui-design]
+repo = "n8n-io/n8n"
+path = ".agents/skills/ui-design"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.ui-styling]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = "cli/assets/skills/ui-styling"
+
+[agent_skills.ui-ux-pro-max]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/ui-ux-pro-max"
+
+[agent_skills.unfreeze]
+repo = "garrytan/gstack"
+path = "unfreeze"
 
 [agent_skills.unlazy]
 repo = "Leonxlnx/unlazy"
@@ -470,9 +1487,30 @@ repo = "Leonxlnx/unlazy"
 repo = "cursor/plugins"
 path = "pstack/skills/unslop"
 
+[agent_skills.update-docs]
+repo = "vercel/next.js"
+path = ".agents/skills/update-docs"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.user-only-skill]
+repo = "deepseek-ai/deepseek-harness"
+path = "snapshots/session/skill-load/workspace/.dsh/skills/user-only-skill"
+ref = "master"
+
 [agent_skills.using-git-worktrees]
 repo = "obra/superpowers"
 path = "skills/using-git-worktrees"
+
+[agent_skills.using-superpowers]
+repo = "obra/superpowers"
+path = "skills/using-superpowers"
+
+[agent_skills.v8-jit]
+repo = "vercel/next.js"
+path = ".agents/skills/v8-jit"
+ref = "canary"
+refresh = "2160h"
 
 # An 18 MB tarball for one small skill. The npm package ships the same skill in
 # 1 MB, but only at a pinned version, and a pin would have to be bumped by hand.
@@ -483,6 +1521,14 @@ path = "skills/varlock"
 [agent_skills.vercel-optimize]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-optimize"
+
+[agent_skills.verification-before-completion]
+repo = "obra/superpowers"
+path = "skills/verification-before-completion"
+
+[agent_skills.verify]
+repo = "react/react"
+path = ".claude/skills/verify"
 
 [agent_skills.visual-explainer]
 repo = "nicobailon/visual-explainer"
@@ -496,3 +1542,49 @@ path = "skills/vueuse-functions"
 repo = "bradautomates/claude-video"
 path = "skills/watch"
 
+[agent_skills.web-artifacts-builder]
+repo = "anthropics/skills"
+path = "skills/web-artifacts-builder"
+
+[agent_skills.webapp-testing]
+repo = "anthropics/skills"
+path = "skills/webapp-testing"
+
+[agent_skills.widget-generator]
+repo = "f/prompts.chat"
+path = ".windsurf/skills/widget-generator"
+refresh = "2160h"
+
+[agent_skills.workflow-builder]
+repo = "n8n-io/n8n"
+path = "packages/@n8n/instance-ai/skills/workflow-builder"
+ref = "master"
+refresh = "2160h"
+
+[agent_skills.write-api-reference]
+repo = "vercel/next.js"
+path = ".agents/skills/write-api-reference"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.write-guide]
+repo = "vercel/next.js"
+path = ".agents/skills/write-guide"
+ref = "canary"
+refresh = "2160h"
+
+[agent_skills.writing-plans]
+repo = "obra/superpowers"
+path = "skills/writing-plans"
+
+[agent_skills.writing-rules]
+repo = "anthropics/claude-code"
+path = "plugins/hookify/skills/writing-rules"
+
+[agent_skills.writing-skills]
+repo = "obra/superpowers"
+path = "skills/writing-skills"
+
+[agent_skills.xlsx]
+repo = "anthropics/skills"
+path = "skills/xlsx"

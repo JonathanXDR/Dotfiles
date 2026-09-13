@@ -14,7 +14,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
-- 🧠 **Agent Skills:** 132 skills declared in one file, fetched once, read by Claude Code, Codex, Copilot, and Gemini
+- 🧠 **Agent Skills:** 404 skills declared in one file, fetched once, read by Claude Code, Codex, Copilot, and Gemini
 - 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
 - ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 

@@ -366,7 +366,7 @@ For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
 Skills are fetched **once**, into `~/.agents/skills`, and shared from there. That path is the ecosystem's convention for a personal skill directory every agent can read, and OpenAI Codex, GitHub Copilot CLI and Gemini CLI each find it with no configuration at all. Claude Code reads only `~/.claude/skills`, so it gets a symlink per skill, which is the mechanism [its own documentation](https://code.claude.com/docs/en/skills) describes.
 
 ```text
-.chezmoidata/skills.toml            the inventory (132 skills)
+.chezmoidata/skills.toml            the inventory (404 skills)
         │
         ├──> .chezmoiexternal.toml.tmpl ──> chezmoi external ──┐
         │      every skill but the licensed ones               │
@@ -411,7 +411,7 @@ Info:    Check the source of each skill above, then fix or drop its entry in .ch
 
 That covers a repository that was deleted or renamed, a skill the upstream moved so `path` no longer finds it, and a licensed download that has started failing. chezmoi's own message names a URL once, on the apply where the download broke. This one names the skill every apply until it is fixed.
 
-**The listing has a budget too.** 132 skills is about 42 KB of names and descriptions. Claude Code and Gemini CLI list all of them, Codex caps its listing at the smaller of 2% of the context window and 8,000 characters and shortens or drops the rest, and every agent spends that text on every session. Trimming means removing entries here, or disabling per agent: `[[skills.config]]` with `enabled = false` in `~/.codex/config.toml`, `disabledSkills` in `~/.copilot/settings.json`, and `skillListingMaxDescChars` in Claude Code's settings.
+**The listing has a budget too.** 404 skills is about 115 KB of names and descriptions, roughly 29,000 tokens. Claude Code and Gemini CLI list all of them, Codex caps its listing at the smaller of 2% of the context window and 8,000 characters and shortens or drops the rest, and every agent spends that text on every session. Trimming means removing entries here, or disabling per agent: `[[skills.config]]` with `enabled = false` in `~/.codex/config.toml`, `disabledSkills` in `~/.copilot/settings.json`, and `skillListingMaxDescChars` in Claude Code's settings.
 
 **Bandwidth is bounded by `refresh`.** Refreshing every source weekly would move about 2.1 GB a week, because a few of these repositories are enormous next to the skill they carry, one of them 825 MB. Any entry whose tarball is 25 MB or more sets `refresh = "2160h"`, which splits the load into 270 MB weekly and 1.9 GB quarterly. A first apply on a new machine still fetches everything once, so budget about 2 GB and twenty minutes for it, and about 4 GB of `~/.cache/chezmoi` afterwards, since chezmoi keeps both the download and the unpacked copy. That cache can be deleted at any time.
 
