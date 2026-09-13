@@ -7,7 +7,8 @@
 # agent_skills_refresh. Two kinds of entry need no external: a licensed one,
 # which run_after_10-agent-skills downloads because chezmoi cannot send the
 # token header, and a repository-owned one, which is already in the source tree.
-# That same script links every skill into the agents that need a link.
+# That same script links every skill into the agents that need a link, and
+# reports any skill that did not arrive.
 #
 # To add a skill, add an entry. To remove one, delete its entry. Either way the
 # next `chezmoi apply` converges. See ARCHITECTURE.md for the full picture.
@@ -33,14 +34,16 @@ agent_skills_link_dirs = [
   ".claude/skills", # Claude Code
 ]
 
-# How often chezmoi re-downloads a skill. Applied to every external below, so
-# `chezmoi update` refreshes the whole set on one schedule. Pass
-# `--refresh-externals` to force a download before the period is up.
+# How often chezmoi re-downloads a skill, unless its entry overrides it. Any
+# apply past this age refreshes, so keeping skills current needs no separate
+# workflow. Pass `--refresh-externals` to force a download before it is due.
 agent_skills_refresh = "168h"
 
 # One entry per skill, keyed by the directory name it gets under
-# agent_skills_home. That name is also what every agent shows in its skill
-# list, so keep it equal to the `name` in the skill's own SKILL.md.
+# agent_skills_home, sorted by that name. It is also what every agent shows in
+# its skill list, so keep it equal to the `name` in the skill's own SKILL.md.
+# Two skills cannot share a name, so where two sources offer the same one, the
+# project's own repository wins over a third-party copy.
 #
 # Exactly one source key per entry decides where the contents come from:
 #
@@ -59,22 +62,165 @@ agent_skills_refresh = "168h"
 #          no appropriate upstream that is small enough and safe enough to
 #          commit here, remembering that this repository is public.
 #
-# A `token` key names a managed keychain entry (see `secrets:list`) and marks
-# the skill as licensed: run_after_10-agent-skills downloads `url` with the
-# token in the `header` request header. Nothing about the license reaches git.
+# Two optional keys apply to any entry:
+#
+#   refresh  Overrides agent_skills_refresh for one entry. Set on every source
+#            whose tarball is 25 MB or more, because a `repo` entry downloads
+#            the whole repository to extract one directory, and a handful of
+#            these are hundreds of megabytes, one of them 825 MB. Refreshing
+#            every source weekly would move about 2.1 GB a week. This splits it
+#            into 270 MB weekly and 1.9 GB quarterly.
+#   token    Names a managed keychain entry (see `secrets:list`) and marks the
+#            skill as licensed: run_after_10-agent-skills downloads `url` with
+#            the token in the `header` request header, because chezmoi
+#            externals cannot send one. Nothing about the license reaches git.
 #
 # Every entry is declared here whatever its source, because the same list also
 # decides what gets linked into each agent and what gets removed when it goes.
 
-[agent_skills]
+[agent_skills.academic-paper]
+repo = "Imbad0202/academic-research-skills"
+path = "academic-paper"
 
-# ------------------------------- mattpocock -------------------------------- #
-# One repository, one download, twenty-two skills: chezmoi caches the tarball
-# by URL, so the entries below share a single fetch.
+[agent_skills.adaptive]
+repo = "android/skills"
+path = "jetpack-compose/adaptive"
+
+[agent_skills.add-community-extension]
+repo = "github/spec-kit"
+path = ".github/skills/add-community-extension"
+
+[agent_skills.adding-a-skill]
+repo = "BuilderIO/skills"
+path = ".agents/skills/adding-a-skill"
+
+[agent_skills.adhd]
+repo = "UditAkhourii/adhd"
+path = "skills/adhd"
+
+[agent_skills.afk]
+repo = "kunchenguid/firstmate"
+path = ".agents/skills/afk"
+
+[agent_skills.agent-browser]
+repo = "vercel-labs/agent-browser"
+path = "skills/agent-browser"
+
+[agent_skills.alpha]
+repo = "garrytan/gstack"
+path = "test/fixtures/context-bill/tree-a/alpha"
+
+[agent_skills.analyzing-git-sessions]
+repo = "bitwarden/ai-plugins"
+path = "plugins/claude-retrospective/skills/analyzing-git-sessions"
+
+[agent_skills.animate]
+repo = "usekaneo/kaneo"
+path = ".agents/skills/animate"
+
+[agent_skills.antfu]
+repo = "antfu/skills"
+path = "skills/antfu"
+
+[agent_skills.antfu-design]
+repo = "antfu/skills"
+path = "skills/antfu-design"
+
+[agent_skills.api-and-interface-design]
+repo = "addyosmani/agent-skills"
+path = "skills/api-and-interface-design"
+
+[agent_skills.archify]
+repo = "tt-a1i/archify"
+path = "archify"
+
+[agent_skills.architect]
+repo = "cursor/plugins"
+path = "pstack/skills/architect"
 
 [agent_skills.ask-matt]
 repo = "mattpocock/skills"
 path = "skills/engineering/ask-matt"
+
+[agent_skills.audit]
+repo = "pbakaus/impeccable"
+path = "tests/oracle/workspaces/ctx-pin/.claude/skills/audit"
+
+[agent_skills.audit-the-list]
+repo = "vinta/awesome-python"
+path = ".claude/skills/audit-the-list"
+ref = "master"
+
+[agent_skills.authoring-skills]
+repo = "vercel/next.js"
+path = ".agents/skills/authoring-skills"
+ref = "canary"
+refresh = "2160h"  # 48 MB tarball, too big to re-download weekly
+
+[agent_skills.babysit]
+repo = "thedotmack/claude-mem"
+path = "plugin/skills/babysit"
+refresh = "2160h"  # 130 MB tarball, too big to re-download weekly
+
+[agent_skills.backend-code-review]
+repo = "langgenius/dify"
+path = ".agents/skills/backend-code-review"
+refresh = "2160h"  # 32 MB tarball, too big to re-download weekly
+
+[agent_skills.banner-design]
+repo = "nextlevelbuilder/ui-ux-pro-max-skill"
+path = ".claude/skills/banner-design"
+
+[agent_skills.book-study]
+repo = "sanyuan0704/sanyuan-skills"
+path = "skills/book-study"
+
+[agent_skills.book-to-skill]
+repo = "virgiliojr94/book-to-skill"
+ref = "master"
+
+[agent_skills.book-translation]
+repo = "f/prompts.chat"
+path = ".windsurf/skills/book-translation"
+refresh = "2160h"  # 81 MB tarball, too big to re-download weekly
+
+[agent_skills.brainstorming]
+repo = "obra/superpowers"
+path = "skills/brainstorming"
+
+[agent_skills.browser-use]
+repo = "browser-use/browser-use"
+path = "skills/browser-use"
+
+[agent_skills.build-personal-skill]
+repo = "THU-MAIC/OpenMAIC"
+path = "skills/agent-runtime/build-personal-skill"
+refresh = "2160h"  # 88 MB tarball, too big to re-download weekly
+
+[agent_skills.capabilities]
+repo = "chaitanyagiri/munder-difflin"
+path = "resources/skills/capabilities"
+refresh = "2160h"  # 75 MB tarball, too big to re-download weekly
+
+[agent_skills.check-understanding]
+repo = "rohitg00/ai-engineering-from-scratch"
+path = "skills/check-understanding"
+
+# The upstream directory is named claude, but the skill's own frontmatter calls
+# it gpt-researcher. The spec wants the directory to match the name, agents key
+# on one or the other, and Anthropic reserves the word claude in a skill name.
+[agent_skills.gpt-researcher]
+repo = "assafelovic/gpt-researcher"
+path = ".claude"
+
+[agent_skills.clean-copy]
+repo = "tldraw/tldraw"
+path = "skills/clean-copy"
+refresh = "2160h"  # 38 MB tarball, too big to re-download weekly
+
+[agent_skills.clerk-nuxt-patterns]
+repo = "clerk/skills"
+path = "skills/frameworks/clerk-nuxt-patterns"
 
 [agent_skills.code-review]
 repo = "mattpocock/skills"
@@ -84,13 +230,98 @@ path = "skills/engineering/code-review"
 repo = "mattpocock/skills"
 path = "skills/engineering/codebase-design"
 
+# An 825 MB tarball, by far the largest source here, for one commit-message skill.
+# Worth dropping if the quarterly download ever gets in the way.
+[agent_skills.commit]
+repo = "ToolJet/ToolJet"
+path = ".agents/skills/commit"
+refresh = "2160h"  # 825 MB tarball, too big to re-download weekly
+
+[agent_skills.compiler-commit]
+repo = "react/react"
+path = "compiler/.claude/skills/compiler-commit"
+
+[agent_skills.computer-use]
+repo = "stablyai/orca"
+path = "skills/computer-use"
+refresh = "2160h"  # 68 MB tarball, too big to re-download weekly
+
+[agent_skills.context-mode]
+repo = "mksglu/context-mode"
+path = "skills/context-mode"
+
+# block/buzz keeps this skill's SKILL.md as a symlink out to
+# desktop/src-tauri/src/managed_agents/screenshot_skill.md, outside the skills
+# tree, so an archive external that filters to the skill directory extracts the
+# link and not the file it points at. There is no stripComponents that reaches
+# both paths. Left out rather than left declared and permanently broken.
+# [agent_skills.desktop-screenshot]
+# repo = "block/buzz"
+# path = ".goose/skills/desktop-screenshot"
+
+[agent_skills.diagnose-crash]
+repo = "omacom/omarchy"
+path = "default/agents/skills/diagnose-crash"
+ref = "quattro"
+refresh = "2160h"  # 68 MB tarball, too big to re-download weekly
+
 [agent_skills.diagnosing-bugs]
 repo = "mattpocock/skills"
 path = "skills/engineering/diagnosing-bugs"
 
+[agent_skills.diagram-design]
+repo = "cathrynlavery/diagram-design"
+path = "skills/diagram-design"
+
+[agent_skills.docs-writing]
+repo = "typescript-eslint/typescript-eslint"
+path = ".agents/skills/docs-writing"
+
+[agent_skills.document-writer]
+repo = "onmax/nuxt-skills"
+path = "skills/document-writer"
+
 [agent_skills.domain-modeling]
 repo = "mattpocock/skills"
 path = "skills/engineering/domain-modeling"
+
+[agent_skills.drawio-skill]
+repo = "Agents365-ai/drawio-skill"
+path = "skills/drawio-skill"
+
+[agent_skills.ego-browser]
+repo = "citrolabs/ego-lite"
+path = "skills/ego-browser"
+
+[agent_skills.emil-design-eng]
+repo = "emilkowalski/skills"
+path = "skills/emil-design-eng"
+
+[agent_skills.find-skills]
+repo = "vercel-labs/skills"
+path = "skills/find-skills"
+
+[agent_skills.freehire-search]
+repo = "MadsLorentzen/ai-job-search"
+path = ".agents/skills/freehire-search"
+ref = "master"
+
+[agent_skills.frontend-slides]
+repo = "zarazhangrui/frontend-slides"
+
+[agent_skills.gh-stack]
+repo = "vercel/next.js"
+path = ".agents/skills/gh-stack"
+ref = "canary"
+refresh = "2160h"  # 48 MB tarball, too big to re-download weekly
+
+[agent_skills.git-commit-formatter]
+repo = "rominirani/antigravity-skills"
+path = "skills_tutorial/git-commit-formatter"
+
+[agent_skills.github-issue-creator]
+repo = "google-gemini/gemini-cli"
+path = ".gemini/skills/github-issue-creator"
 
 [agent_skills.grill-me]
 repo = "mattpocock/skills"
@@ -104,9 +335,52 @@ path = "skills/engineering/grill-with-docs"
 repo = "mattpocock/skills"
 path = "skills/productivity/grilling"
 
+[agent_skills.gsap-core]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-core"
+
+[agent_skills.gstack-openclaw-retro]
+repo = "garrytan/gstack"
+path = "openclaw/skills/gstack-openclaw-retro"
+
 [agent_skills.handoff]
 repo = "mattpocock/skills"
 path = "skills/productivity/handoff"
+
+[agent_skills.heroui-native]
+repo = "heroui-inc/heroui"
+path = "skills/heroui-native"
+ref = "v3"
+
+[agent_skills.heroui-pro-design-taste]
+url = "https://docs.heroui.pro/docs/skills/heroui-pro-design-taste.tar.gz"
+token = "HeroUI Pro"
+account = "jonathan"
+header = "x-heroui-personal-token"
+
+# The vendor's own tarball, the one https://heroui.com/install downloads. It is
+# 11 KB against 3 MB for a tarball of the heroui repository, which carries the
+# whole component library to extract one skill.
+[agent_skills.heroui-react]
+url = "https://heroui.com/skills/heroui-react.tar.gz"
+
+# Licensed, and the license forbids redistributing any part of the package, so
+# these two can only ever be fetched from HeroUI with a personal token. The
+# token lives in the dotfiles keychain under the (`token`, `account`) pair
+# below, the same lookup key `secret:set` uses, and reaches the download as a
+# request header.
+[agent_skills.heroui-react-pro]
+url = "https://docs.heroui.pro/docs/skills/heroui-react-pro.tar.gz"
+token = "HeroUI Pro"
+account = "jonathan"
+header = "x-heroui-personal-token"
+
+[agent_skills.humanizer]
+repo = "blader/humanizer"
+
+[agent_skills.i-have-adhd]
+repo = "ayghri/i-have-adhd"
+path = "skills/i-have-adhd"
 
 [agent_skills.implement]
 repo = "mattpocock/skills"
@@ -115,6 +389,108 @@ path = "skills/engineering/implement"
 [agent_skills.improve-codebase-architecture]
 repo = "mattpocock/skills"
 path = "skills/engineering/improve-codebase-architecture"
+
+[agent_skills.improve-ts-pkg-architecture]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/improve-ts-pkg-architecture"
+
+[agent_skills.install-anti-slop]
+repo = "dmmulroy/anti-slop"
+path = "skills/install-anti-slop"
+
+[agent_skills.interface-design]
+repo = "Dammyjay93/interface-design"
+path = ".claude/skills/interface-design"
+
+[agent_skills.last30days]
+repo = "mvanhorn/last30days-skill"
+path = "skills/last30days"
+
+[agent_skills.lean-comments]
+repo = "JonathanXDR/lean-comments"
+
+# Named for the skill's own frontmatter rather than its upstream directory, so
+# every agent shows the same name.
+[agent_skills.openclaw-memory-tencentdb-setup]
+repo = "TencentCloud/TencentDB-Agent-Memory"
+path = "MemoryCore"
+ref = "feat/server_team"
+refresh = "2160h"  # 34 MB tarball, too big to re-download weekly
+
+[agent_skills.motion]
+repo = "onmax/nuxt-skills"
+path = "skills/motion"
+
+[agent_skills.nitro]
+repo = "antfu/skills"
+path = "skills/nitro"
+
+[agent_skills.no-ai-slop]
+repo = "petergyang/no-ai-slop"
+path = "skills/no-ai-slop"
+
+[agent_skills.nuxt]
+repo = "antfu/skills"
+path = "skills/nuxt"
+
+[agent_skills.nuxt-content]
+repo = "onmax/nuxt-skills"
+path = "skills/nuxt-content"
+
+[agent_skills.nuxt-frontend-design]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-frontend-design"
+
+[agent_skills.nuxt-frontend-review]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-frontend-review"
+
+[agent_skills.nuxt-i18n]
+repo = "onmax/nuxt-skills"
+path = "skills/nuxt-i18n"
+
+[agent_skills.nuxt-improve-codebase-architecture]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-improve-codebase-architecture"
+
+[agent_skills.nuxt-seo]
+repo = "onmax/nuxt-skills"
+path = "skills/nuxt-seo"
+
+[agent_skills.nuxt-style-readme]
+repo = "JonathanXDR/nuxt-style-readme-skill"
+path = "nuxt-style-readme"
+
+[agent_skills.nuxt-ui]
+repo = "nuxt/ui"
+path = "skills/nuxt-ui"
+ref = "v4"
+refresh = "2160h"  # 49 MB tarball, too big to re-download weekly
+
+[agent_skills.pinia]
+repo = "antfu/skills"
+path = "skills/pinia"
+
+[agent_skills.planning-with-files]
+repo = "OthmanAdi/planning-with-files"
+path = "skills/planning-with-files"
+ref = "master"
+
+[agent_skills.playwright-cli]
+repo = "microsoft/playwright"
+path = "packages/playwright-core/src/tools/skills/playwright-cli"
+refresh = "2160h"  # 39 MB tarball, too big to re-download weekly
+
+[agent_skills.pnpm]
+repo = "antfu/skills"
+path = "skills/pnpm"
+
+[agent_skills.ponytail]
+repo = "DietrichGebert/ponytail"
+path = "skills/ponytail"
+
+[agent_skills.prompt-master]
+repo = "nidhinjs/prompt-master"
 
 [agent_skills.prototype]
 repo = "mattpocock/skills"
@@ -128,9 +504,54 @@ path = "skills/engineering/research"
 repo = "mattpocock/skills"
 path = "skills/engineering/resolving-merge-conflicts"
 
+[agent_skills.security-advisory]
+repo = "colinhacks/zod"
+path = ".claude/skills/security-advisory"
+
+[agent_skills.seo]
+repo = "AgriciDaniel/claude-seo"
+path = "skills/seo"
+
 [agent_skills.setup-matt-pocock-skills]
 repo = "mattpocock/skills"
 path = "skills/engineering/setup-matt-pocock-skills"
+
+[agent_skills.shadcn]
+repo = "shadcn-ui/ui"
+path = "skills/shadcn"
+
+# Named for the skill's own frontmatter rather than its upstream directory,
+# which is just "skill".
+[agent_skills.moneyprinterturbo-video]
+repo = "harry0703/MoneyPrinterTurbo"
+path = "docs/skill"
+refresh = "2160h"  # 134 MB tarball, too big to re-download weekly
+
+[agent_skills.slack-gif-creator]
+repo = "BerriAI/litellm"
+path = "tests/llm_translation/test_skills_data/slack-gif-creator"
+refresh = "2160h"  # 57 MB tarball, too big to re-download weekly
+
+[agent_skills.slidev]
+repo = "slidevjs/slidev"
+path = "skills/slidev"
+
+# Written here rather than published, because it documents an employer's
+# internal stack. This repository is public, so the contents live in a private
+# repository and chezmoi clones them. Edit the clone in place under
+# agent_skills_home and push from there. Any later apply fast-forwards it, and
+# refuses rather than guesses if the clone has uncommitted work or has diverged
+# from the remote.
+[agent_skills.stake-engine-slot-development]
+git = "git@github.com:JonathanXDR/stake-engine-slot-development-skill.git"
+
+[agent_skills.stop-slop]
+repo = "hardikpandya/stop-slop"
+
+[agent_skills.supermemory]
+repo = "supermemoryai/supermemory"
+path = "skills/supermemory"
+refresh = "2160h"  # 71 MB tarball, too big to re-download weekly
 
 [agent_skills.tdd]
 repo = "mattpocock/skills"
@@ -152,80 +573,96 @@ path = "skills/engineering/to-tickets"
 repo = "mattpocock/skills"
 path = "skills/engineering/triage"
 
+[agent_skills.ts-library]
+repo = "onmax/nuxt-skills"
+path = "skills/ts-library"
+
+[agent_skills.tsdown]
+repo = "antfu/skills"
+path = "skills/tsdown"
+
+[agent_skills.turborepo]
+repo = "antfu/skills"
+path = "skills/turborepo"
+
+[agent_skills.unlazy]
+repo = "Leonxlnx/unlazy"
+
+[agent_skills.unocss]
+repo = "antfu/skills"
+path = "skills/unocss"
+
+[agent_skills.unslop]
+repo = "cursor/plugins"
+path = "pstack/skills/unslop"
+
+[agent_skills.using-git-worktrees]
+repo = "obra/superpowers"
+path = "skills/using-git-worktrees"
+
+# An 18 MB tarball for one small skill. The npm package ships the same skill in
+# 1 MB, but only at a pinned version, and a pin would have to be bumped by hand.
+[agent_skills.varlock]
+repo = "dmno-dev/varlock"
+path = "skills/varlock"
+
+[agent_skills.vercel-optimize]
+repo = "vercel-labs/agent-skills"
+path = "skills/vercel-optimize"
+
+[agent_skills.visual-explainer]
+repo = "nicobailon/visual-explainer"
+path = "plugins/visual-explainer"
+
+[agent_skills.vite]
+repo = "antfu/skills"
+path = "skills/vite"
+
+[agent_skills.vitepress]
+repo = "antfu/skills"
+path = "skills/vitepress"
+
+[agent_skills.vitest]
+repo = "antfu/skills"
+path = "skills/vitest"
+
+[agent_skills.vue]
+repo = "antfu/skills"
+path = "skills/vue"
+
+[agent_skills.vue-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-best-practices"
+
+[agent_skills.vue-router-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-router-best-practices"
+
+[agent_skills.vue-testing-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-testing-best-practices"
+
+[agent_skills.vueuse-functions]
+repo = "vueuse/skills"
+path = "skills/vueuse-functions"
+
+[agent_skills.watch]
+repo = "bradautomates/claude-video"
+path = "skills/watch"
+
 [agent_skills.wayfinder]
 repo = "mattpocock/skills"
 path = "skills/engineering/wayfinder"
+
+[agent_skills.web-design-guidelines]
+repo = "antfu/skills"
+path = "skills/web-design-guidelines"
 
 # Upstream renamed writing-great-skills to writing-for-agents in a clean rename
 # with no alias, and widened it from skills to any document an agent reads.
 [agent_skills.writing-for-agents]
 repo = "mattpocock/skills"
 path = "skills/productivity/writing-for-agents"
+[agent_skills]
 
-# ---------------------------------- Other ---------------------------------- #
 
-[agent_skills.find-skills]
-repo = "vercel-labs/skills"
-path = "skills/find-skills"
-
-[agent_skills.lean-comments]
-repo = "JonathanXDR/lean-comments"
-
-[agent_skills.nuxt-style-readme]
-repo = "JonathanXDR/nuxt-style-readme-skill"
-path = "nuxt-style-readme"
-
-[agent_skills.unlazy]
-repo = "Leonxlnx/unlazy"
-
-[agent_skills.unslop]
-repo = "cursor/plugins"
-path = "pstack/skills/unslop"
-
-# The varlock monorepo is an 18 MB tarball for one small skill. The npm package
-# ships the same skill in 1 MB, but only at a pinned version, and a pin would
-# have to be bumped by hand. Tracking the branch keeps the skill current on its
-# own, which is worth more here than the bandwidth.
-[agent_skills.varlock]
-repo = "dmno-dev/varlock"
-path = "skills/varlock"
-
-[agent_skills.vueuse-functions]
-repo = "vueuse/skills"
-path = "skills/vueuse-functions"
-
-# --------------------------------- HeroUI ---------------------------------- #
-
-# The vendor's own tarball, the one https://heroui.com/install downloads. It is
-# 11 KB against 3 MB for a tarball of the heroui repository, which carries the
-# whole component library to extract one skill.
-[agent_skills.heroui-react]
-url = "https://heroui.com/skills/heroui-react.tar.gz"
-
-# Licensed, and the license forbids redistributing any part of the package, so
-# these two can only ever be fetched from HeroUI with a personal token. The
-# token lives in the dotfiles keychain under the (`token`, `account`) pair
-# below, the same lookup key `secret:set` uses, and reaches the download as a
-# request header.
-[agent_skills.heroui-react-pro]
-url = "https://docs.heroui.pro/docs/skills/heroui-react-pro.tar.gz"
-token = "HeroUI Pro"
-account = "jonathan"
-header = "x-heroui-personal-token"
-
-[agent_skills.heroui-pro-design-taste]
-url = "https://docs.heroui.pro/docs/skills/heroui-pro-design-taste.tar.gz"
-token = "HeroUI Pro"
-account = "jonathan"
-header = "x-heroui-personal-token"
-
-# ---------------------------------- Own ------------------------------------ #
-
-# Written here rather than published, because it documents an employer's
-# internal stack. This repository is public, so the contents live in a private
-# repository and chezmoi clones them. Edit the clone in place under
-# agent_skills_home and push from there. Any later apply fast-forwards it, and
-# refuses rather than guesses if the clone has uncommitted work or has diverged
-# from the remote.
-[agent_skills.stake-engine-slot-development]
-git = "git@github.com:JonathanXDR/stake-engine-slot-development-skill.git"

@@ -22,9 +22,10 @@
        branch tarball wraps everything in <repo>-<branch>/, and the vendor
        tarballs wrap everything in ./, so the count is the same for both. */ -}}
 {{- $home := .agent_skills_home -}}
-{{- $refresh := .agent_skills_refresh -}}
 {{- $fallback := printf "file://%s/skill-unavailable.tar.gz" .chezmoi.sourceDir -}}
 {{- range $name, $skill := .agent_skills -}}
+{{-   $refresh := $.agent_skills_refresh -}}
+{{-   if hasKey $skill "refresh" }}{{ $refresh = $skill.refresh }}{{ end -}}
 {{-   if hasKey $skill "git" }}
 
 ["{{ $home }}/{{ $name }}"]

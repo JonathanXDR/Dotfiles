@@ -14,7 +14,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
-- 🧠 **Agent Skills:** one declared set, fetched once, read by Claude Code, Codex, Copilot, and Gemini
+- 🧠 **Agent Skills:** 132 skills declared in one file, fetched once, read by Claude Code, Codex, Copilot, and Gemini
 - 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
 - ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 
@@ -128,17 +128,26 @@ url = "https://heroui.com/skills/heroui-react.tar.gz"
 git = "git@github.com:you/some-private-skill.git"
 ```
 
-`chezmoi apply` fetches each one into `~/.agents/skills` and re-downloads it once a week, so the normal apply keeps every skill current with nothing copied by hand. No skill contents are committed here, except a skill this repository owns, which goes in `dot_agents/skills/<name>/` and is symlinked into the same directory.
+`chezmoi apply` fetches each one into `~/.agents/skills` and re-downloads it weekly, so the normal apply keeps every skill current with nothing copied by hand. A `repo` entry pulls the whole repository to extract one directory, so the handful of sources over 25 MB carry a `refresh` of their own and come round quarterly instead. No skill contents are committed here, except a skill this repository owns, which goes in `dot_agents/skills/<name>/` and is symlinked into the same directory.
 
 | Task                   | Do this                                                                         |
 | ---------------------- | ------------------------------------------------------------------------------- |
 | Add a skill            | Add an entry, run `chezmoi apply`                                               |
 | Remove a skill         | Delete its entry, run `chezmoi apply`                                           |
-| Update every skill     | Nothing. Any apply refreshes them weekly, and `--refresh-externals` does it now |
+| Update every skill     | Nothing. Any apply refreshes what is due, `--refresh-externals` does it now     |
 | Add a repo-owned skill | Drop the directory in `dot_agents/skills/<name>/`, run `chezmoi apply`          |
 | Support another agent  | Add its skills directory to `agent_skills_link_dirs`, if it needs one at all    |
 
-OpenAI Codex, GitHub Copilot CLI, and Gemini CLI read `~/.agents/skills` natively. Claude Code reads only `~/.claude/skills`, so it gets one symlink per skill. A skill that needs a license key names a keychain entry instead of carrying the key, so nothing licensed and nothing secret is committed. See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
+OpenAI Codex, GitHub Copilot CLI, and Gemini CLI read `~/.agents/skills` natively. Claude Code reads only `~/.claude/skills`, so it gets one symlink per skill. A skill that needs a license key names a keychain entry instead of carrying the key, so nothing licensed and nothing secret is committed.
+
+When an upstream repository disappears or moves its skill, the download falls back to a placeholder rather than failing the apply, and every apply then prints the skill and the source it could not reach:
+
+```text
+Error:   Failed to install the some-skill skill from someone/their-repo (skills/some-skill)
+Info:    Check the source of each skill above, then fix or drop its entry in .chezmoidata/skills.toml
+```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
 
 ## 🐚 Shell Loading Order
 
@@ -180,6 +189,7 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── .chezmoidata/                            # Agent Skills inventory, Zed extension list
 ├── .chezmoiexternal.toml.tmpl               # Agent Skills as chezmoi externals
 ├── .chezmoiignore                           # Files excluded from $HOME
+├── skill-unavailable.tar.gz                 # Fallback for a skill source that has gone away
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
