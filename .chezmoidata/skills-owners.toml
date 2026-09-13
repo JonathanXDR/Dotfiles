@@ -1,0 +1,336 @@
+# Agent Skills belonging to the people listed in agent_skill_owners, resolved
+# from the skilld.dev registry. GENERATED FILE: every entry here is rewritten by
+# `skills:sync`, so edit the owner list in .chezmoidata/skills.toml instead, or
+# name the skill there to override what the registry offers.
+#
+# Committed on purpose. Resolving owners at apply time would put a network call
+# in front of every `chezmoi apply`, and a registry that is slow, down, or
+# simply unreachable would then stop the whole apply.
+
+[agent_skills.adversarial-review]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/adversarial-review"
+
+[agent_skills.agent-feedback]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/agent-feedback"
+
+[agent_skills.agent-retro]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/agent-retro"
+
+[agent_skills.antfu]
+repo = "antfu/skills"
+path = "skills/antfu"
+
+[agent_skills.antfu-design]
+repo = "antfu/skills"
+path = "skills/antfu-design"
+
+[agent_skills.ask-matt]
+repo = "mattpocock/skills"
+path = "skills/engineering/ask-matt"
+
+[agent_skills.claude-handoff]
+repo = "mattpocock/skills"
+path = "skills/in-progress/claude-handoff"
+
+[agent_skills.close-off]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/close-off"
+
+[agent_skills.code-review]
+repo = "mattpocock/skills"
+path = "skills/engineering/code-review"
+
+[agent_skills.codebase-design]
+repo = "mattpocock/skills"
+path = "skills/engineering/codebase-design"
+
+[agent_skills.diagnosing-bugs]
+repo = "mattpocock/skills"
+path = "skills/engineering/diagnosing-bugs"
+
+[agent_skills.domain-modeling]
+repo = "mattpocock/skills"
+path = "skills/engineering/domain-modeling"
+
+[agent_skills.email-triage]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/email-triage"
+
+[agent_skills.empathy]
+repo = "danielroe/empathy"
+
+[agent_skills.git-guardrails-claude-code]
+repo = "mattpocock/skills"
+path = "skills/misc/git-guardrails-claude-code"
+
+[agent_skills.glossary]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/glossary"
+
+[agent_skills.grill-me]
+repo = "mattpocock/skills"
+path = "skills/productivity/grill-me"
+
+[agent_skills.grill-with-docs]
+repo = "mattpocock/skills"
+path = "skills/engineering/grill-with-docs"
+
+[agent_skills.grilling]
+repo = "mattpocock/skills"
+path = "skills/productivity/grilling"
+
+[agent_skills.handoff]
+repo = "mattpocock/skills"
+path = "skills/productivity/handoff"
+
+[agent_skills.harlan-github-agent]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/harlan-github-agent"
+
+[agent_skills.hogwild]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/hogwild"
+
+[agent_skills.humanize-writing]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/humanize-writing"
+
+[agent_skills.implement]
+repo = "mattpocock/skills"
+path = "skills/engineering/implement"
+
+[agent_skills.implement-spec]
+repo = "mattpocock/skills"
+path = "skills/in-progress/implement-spec"
+
+[agent_skills.improve-codebase-architecture]
+repo = "mattpocock/skills"
+path = "skills/engineering/improve-codebase-architecture"
+
+[agent_skills.improve-ts-pkg-architecture]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/improve-ts-pkg-architecture"
+
+[agent_skills.issue-triage]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/issue-triage"
+
+[agent_skills.loop-me]
+repo = "mattpocock/skills"
+path = "skills/in-progress/loop-me"
+
+[agent_skills.migrate-to-shoehorn]
+repo = "mattpocock/skills"
+path = "skills/misc/migrate-to-shoehorn"
+
+[agent_skills.nitro]
+repo = "antfu/skills"
+path = "skills/nitro"
+
+[agent_skills.nuxt]
+repo = "antfu/skills"
+path = "skills/nuxt"
+
+[agent_skills.nuxt-frontend-design]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-frontend-design"
+
+[agent_skills.nuxt-frontend-review]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-frontend-review"
+
+[agent_skills.nuxt-improve-codebase-architecture]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-improve-codebase-architecture"
+
+[agent_skills.pinia]
+repo = "antfu/skills"
+path = "skills/pinia"
+
+[agent_skills.pkg-conform]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/pkg-conform"
+
+[agent_skills.plan-ceo]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/plan-ceo"
+
+[agent_skills.pnpm]
+repo = "antfu/skills"
+path = "skills/pnpm"
+
+[agent_skills.pr]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/pr"
+
+[agent_skills.pr-lens]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/pr-lens"
+
+[agent_skills.pr-triage]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/pr-triage"
+
+[agent_skills.prototype]
+repo = "mattpocock/skills"
+path = "skills/engineering/prototype"
+
+[agent_skills.release-notes]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/release-notes"
+
+[agent_skills.research]
+repo = "mattpocock/skills"
+path = "skills/engineering/research"
+
+[agent_skills.resolving-merge-conflicts]
+repo = "mattpocock/skills"
+path = "skills/engineering/resolving-merge-conflicts"
+
+[agent_skills.retro]
+repo = "mattpocock/skills"
+path = "skills/in-progress/retro"
+
+[agent_skills.ripast]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/ripast"
+
+[agent_skills.scaffold-exercises]
+repo = "mattpocock/skills"
+path = "skills/misc/scaffold-exercises"
+
+[agent_skills.sentry-checkin]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/sentry-checkin"
+
+[agent_skills.setup-matt-pocock-skills]
+repo = "mattpocock/skills"
+path = "skills/engineering/setup-matt-pocock-skills"
+
+[agent_skills.setup-pre-commit]
+repo = "mattpocock/skills"
+path = "skills/misc/setup-pre-commit"
+
+[agent_skills.setup-ts-deep-modules]
+repo = "mattpocock/skills"
+path = "skills/in-progress/setup-ts-deep-modules"
+
+[agent_skills.social-presence]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/social-presence"
+
+[agent_skills.take-ownership]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/take-ownership"
+
+[agent_skills.tdd]
+repo = "mattpocock/skills"
+path = "skills/engineering/tdd"
+
+[agent_skills.teach]
+repo = "mattpocock/skills"
+path = "skills/productivity/teach"
+
+[agent_skills.to-questionnaire]
+repo = "mattpocock/skills"
+path = "skills/productivity/to-questionnaire"
+
+[agent_skills.to-spec]
+repo = "mattpocock/skills"
+path = "skills/engineering/to-spec"
+
+[agent_skills.to-tickets]
+repo = "mattpocock/skills"
+path = "skills/engineering/to-tickets"
+
+[agent_skills.triage]
+repo = "mattpocock/skills"
+path = "skills/engineering/triage"
+
+[agent_skills.ts-design-patterns]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/ts-design-patterns"
+
+[agent_skills.tsdown]
+repo = "antfu/skills"
+path = "skills/tsdown"
+
+[agent_skills.turborepo]
+repo = "antfu/skills"
+path = "skills/turborepo"
+
+[agent_skills.tweet]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/tweet"
+
+[agent_skills.unit-tests]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/unit-tests"
+
+[agent_skills.unocss]
+repo = "antfu/skills"
+path = "skills/unocss"
+
+[agent_skills.vite]
+repo = "antfu/skills"
+path = "skills/vite"
+
+[agent_skills.vitepress]
+repo = "antfu/skills"
+path = "skills/vitepress"
+
+[agent_skills.vitest]
+repo = "antfu/skills"
+path = "skills/vitest"
+
+[agent_skills.vue]
+repo = "antfu/skills"
+path = "skills/vue"
+
+[agent_skills.vue-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-best-practices"
+
+[agent_skills.vue-router-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-router-best-practices"
+
+[agent_skills.vue-testing-best-practices]
+repo = "antfu/skills"
+path = "skills/vue-testing-best-practices"
+
+[agent_skills.wait-what]
+repo = "mattpocock/skills"
+path = "skills/productivity/wait-what"
+
+[agent_skills.wayfinder]
+repo = "mattpocock/skills"
+path = "skills/engineering/wayfinder"
+
+[agent_skills.web-design-guidelines]
+repo = "antfu/skills"
+path = "skills/web-design-guidelines"
+
+[agent_skills.wizard]
+repo = "mattpocock/skills"
+path = "skills/engineering/wizard"
+
+[agent_skills.writing-beats]
+repo = "mattpocock/skills"
+path = "skills/in-progress/writing-beats"
+
+[agent_skills.writing-for-agents]
+repo = "mattpocock/skills"
+path = "skills/productivity/writing-for-agents"
+
+[agent_skills.writing-fragments]
+repo = "mattpocock/skills"
+path = "skills/in-progress/writing-fragments"
+
+[agent_skills.writing-shape]
+repo = "mattpocock/skills"
+path = "skills/in-progress/writing-shape"
+

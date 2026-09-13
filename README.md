@@ -137,6 +137,7 @@ git = "git@github.com:you/some-private-skill.git"
 | Update every skill     | Nothing. Any apply refreshes what is due, `--refresh-externals` does it now     |
 | Add a repo-owned skill | Drop the directory in `dot_agents/skills/<name>/`, run `chezmoi apply`          |
 | Support another agent  | Add its skills directory to `agent_skills_link_dirs`, if it needs one at all    |
+| Follow everything one person publishes | Add them to `agent_skill_owners`, run `skills:sync`, commit the diff |
 
 OpenAI Codex, GitHub Copilot CLI, and Gemini CLI read `~/.agents/skills` natively. Claude Code reads only `~/.claude/skills`, so it gets one symlink per skill. A skill that needs a license key names a keychain entry instead of carrying the key, so nothing licensed and nothing secret is committed.
 

@@ -1778,6 +1778,127 @@ zed:dump() {
   log success "Dumped ${#entries} Zed extension(s) to ${target:t}"
 }
 
+# ---------------------------------- Skills ---------------------------------- #
+
+# Rewrite .chezmoidata/skills-owners.toml from the people listed in
+# agent_skill_owners, so wanting everything somebody publishes costs one line
+# rather than one entry per skill.
+#
+# The resolved entries are written into the repository and committed, rather
+# than looked up while chezmoi renders. A registry call in front of every apply
+# would make an apply need the network, and a registry that is down or slow
+# would stop it. This way the repository still answers, on its own, which
+# skills exist.
+#
+# Run it when a watched person publishes something, or to find out whether they
+# have. It only ever writes the generated file, so the diff is the review.
+skills:sync() {
+  cmd:exists jq || { log error "Failed to find jq"; return 1; }
+  cmd:exists gh || { log error "Failed to find gh"; return 1; }
+  cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
+
+  # Every local up front. In zsh a bare `local x` inside a loop re-declares a
+  # variable that already has a value and echoes it, which would print the
+  # resolved branch of every skill.
+  local source_dir target owner json rec name url repo file dir branch entry
+  local -a owners entries skipped
+  local -A claimed keep_refresh branches
+
+  source_dir="$(chezmoi source-path)" || return 1
+  target="${source_dir}/.chezmoidata/skills-owners.toml"
+
+  owners=( ${(f)"$(chezmoi execute-template '{{ range .agent_skill_owners }}{{ . }}{{ "\n" }}{{ end }}')"} ) || return 1
+  (( ${#owners} )) || { log error "Failed to read agent_skill_owners from .chezmoidata/skills.toml"; return 1; }
+
+  # Names the hand-written file claims. Those win, so a deliberate choice of
+  # source survives a sync that would otherwise replace it. The merged template
+  # data covers both files, so subtract whatever the generated one contributed.
+  for name in ${(f)"$(chezmoi execute-template '{{ range $n, $s := .agent_skills }}{{ $n }}{{ "\n" }}{{ end }}')"}; do
+    claimed[$name]=1
+  done
+  for name in ${(f)"$(sed -n 's/^\[agent_skills\.\(.*\)\]$/\1/p' "$target" 2>/dev/null)"}; do
+    unset "claimed[$name]"
+  done
+
+  # refresh overrides already recorded here, carried across the rewrite so a
+  # heavy source stays throttled once somebody has throttled it.
+  for rec in ${(f)"$(awk -F'"' '/^\[agent_skills\./ {n=$0; sub(/^\[agent_skills\./,"",n); sub(/\]$/,"",n)} /^refresh = /{print n "\t" $2}' "$target" 2>/dev/null)"}; do
+    keep_refresh[${rec%%$'\t'*}]="${rec#*$'\t'}"
+  done
+
+  for owner in "${owners[@]}"; do
+    json="$(curl -fsSL --max-time 60 "https://skilld.dev/api/skills?owner=${owner}&limit=500")" || {
+      log error "Failed to reach the skilld registry for ${owner}"
+      return 1
+    }
+    for rec in ${(f)"$(print -r -- "$json" | jq -r '.items[] | [.name, .skillFileUrl] | @tsv')"}; do
+      name="${rec%%$'\t'*}"
+      url="${rec#*$'\t'}"
+      [[ -n "$name" && "$url" == https://github.com/* ]] || continue
+      if [[ -n "${claimed[$name]:-}" ]]; then
+        skipped+=( "$name" )
+        continue
+      fi
+
+      # https://github.com/OWNER/REPO/blob/REF/PATH/SKILL.md, where the path is
+      # percent encoded. A monorepo directory called @scope arrives as %40scope
+      # and would match nothing, so decode before using it as a glob.
+      repo="${${url#https://github.com/}%%/blob/*}"
+      file="${${url#https://github.com/}#*/blob/}"
+      file="${file#*/}"
+      file="$(printf '%b' "${file//\%/\\x}")"
+      dir="${file%/*}"
+      [[ "$dir" == "$file" ]] && dir=""
+
+      # One lookup per repository, not per skill: a collection of forty skills
+      # is one repository.
+      if [[ -z "${branches[$repo]:-}" ]]; then
+        branches[$repo]="$(gh api "repos/${repo}" --jq .default_branch 2>/dev/null)" || branches[$repo]=""
+      fi
+      branch="${branches[$repo]}"
+      [[ -n "$branch" ]] || { log warning "Skipped ${name} (failed to read ${repo} on GitHub)"; continue; }
+
+      # One record per line, name first, so the list sorts by the directory name
+      # the skill gets and the diff stays readable.
+      entry="[agent_skills.${name}]"$'\n'"repo = \"${repo}\""
+      [[ -n "$dir" ]] && entry+=$'\n'"path = \"${dir}\""
+      [[ "$branch" != main ]] && entry+=$'\n'"ref = \"${branch}\""
+      [[ -n "${keep_refresh[$name]:-}" ]] && entry+=$'\n'"refresh = \"${keep_refresh[$name]}\""
+      entries+=( "${name}"$'\t'"${entry}" )
+    done
+  done
+
+  (( ${#entries} )) || { log error "Failed to resolve any skill for the configured owners"; return 1; }
+  entries=( ${(o)entries} )
+
+  # Build the whole file before touching the old one, so a failure above cannot
+  # leave a truncated list behind.
+  {
+    print -r -- "# Agent Skills belonging to the people listed in agent_skill_owners, resolved"
+    print -r -- "# from the skilld.dev registry. GENERATED FILE: every entry here is rewritten by"
+    print -r -- "# \`skills:sync\`, so edit the owner list in .chezmoidata/skills.toml instead, or"
+    print -r -- "# name the skill there to override what the registry offers."
+    print -r -- "#"
+    print -r -- "# Committed on purpose. Resolving owners at apply time would put a network call"
+    print -r -- "# in front of every \`chezmoi apply\`, and a registry that is slow, down, or"
+    print -r -- "# simply unreachable would then stop the whole apply."
+    print -r -- ""
+    for rec in "${entries[@]}"; do
+      print -r -- "${rec#*$'\t'}"
+      print -r -- ""
+    done
+  } > "${target}.new" || { log error "Failed to write ${target:t}"; return 1; }
+  command mv -f "${target}.new" "$target" || return 1
+
+  log success "Resolved ${#entries} skill(s) from ${#owners} owner(s) into ${target:t}"
+  if (( ${#skipped} )); then
+    skipped=( ${(o)skipped} )
+    log info "Kept the named entry for ${(j:, :)skipped} rather than the registry copy"
+  fi
+  log info "Review the diff, then run chezmoi apply"
+  return 0
+}
+
 # ------------------------------------ Git ----------------------------------- #
 
 # Git-powered colored diff (named gdiff to avoid shadowing /usr/bin/diff)

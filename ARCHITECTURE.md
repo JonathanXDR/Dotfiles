@@ -70,7 +70,8 @@ Dotfiles/
 ├── .chezmoi.toml.tmpl                                   # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                                    # Shared non-secret defaults
 ├── .chezmoidata/
-│   ├── skills.toml                                      # Agent Skills inventory (name, source, licensing)
+│   ├── skills.toml                                      # Agent Skills inventory (name, source, licensing, watched owners)
+│   ├── skills-owners.toml                               # Skills of the watched owners (written by skills:sync)
 │   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
 ├── .chezmoiexternal.toml.tmpl                           # Agent Skills as chezmoi externals, from skills.toml
 ├── .chezmoiignore                                       # Files excluded from $HOME
@@ -387,6 +388,10 @@ Skills are fetched **once**, into `~/.agents/skills`, and shared from there. Tha
 | `git`             | `git-repo` external       | A private repository, where a tarball would need credentials        |
 | none              | plain source files        | A skill this repository owns, in `dot_agents/skills/<name>/`        |
 
+Wanting everything one person publishes is a fifth case, and it does not belong in the table because it is not a source kind. Listing a name in `agent_skill_owners` and running [`skills:sync`](dot_functions) resolves that person's whole catalogue through the [skilld.dev](https://skilld.dev) registry into [`.chezmoidata/skills-owners.toml`](.chezmoidata/skills-owners.toml), which is generated and committed. chezmoi merges every file under `.chezmoidata/`, so the two files together are the inventory.
+
+Resolving owners at apply time was rejected. It would put a registry call in front of every `chezmoi apply`, and since a failed external fails the whole source state, a registry that is slow or down would stop the apply. Committing the resolved list keeps the repository able to answer, on its own, which skills exist. A skill named by hand in `skills.toml` beats the registry's copy of the same name, which is how `slidev` stays on `slidevjs/slidev` rather than `antfu/skills`, and `skills:sync` reports every such override.
+
 Adding `token` to an entry marks it **licensed**. chezmoi externals cannot send an HTTP header, and a licensed tarball needs one, so [`run_after_10-agent-skills`](.chezmoiscripts/run_after_10-agent-skills.sh.tmpl) downloads those with the named keychain secret instead. It writes them to the same shared directory, so nothing downstream knows the difference. The license key never enters the repository, and the download hands it to `curl` on stdin rather than in an argument, which any local account could read from the process table.
 
 Every external carries `agent_skills_refresh` as its `refreshPeriod`, so the first apply after that period re-downloads it. Keeping skills current needs no separate workflow: it is whatever already brings the rest of the configuration up to date, `chezmoi apply` or `chezmoi update`, and `--refresh-externals` forces a download before the period is up. `exact = true` makes each skill converge, so a file upstream deletes is deleted here too.
@@ -519,6 +524,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Change a Claude Code guard hook      | `private_dot_claude/private_hooks/`                                                                |
 | Change the paths Claude cannot touch | `.chezmoidata.toml` (`claude_blocked_paths`)                                                       |
 | Add or remove an Agent Skill         | `.chezmoidata/skills.toml`                                                                         |
+| Follow everyone one person publishes | `.chezmoidata/skills.toml` (`agent_skill_owners`), then `skills:sync`                              |
 | Find out why a skill is missing      | The `Failed to install the <name> skill` errors at the end of `chezmoi apply`                      |
 | Refresh the external Agent Skills    | Nothing, any apply does it weekly (`chezmoi apply --refresh-externals` to skip the wait)           |
 | Teach another agent about the skills | `.chezmoidata/skills.toml` (`agent_skills_link_dirs`), only if it cannot read `~/.agents/skills`   |
