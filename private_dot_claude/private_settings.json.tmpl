@@ -34,7 +34,11 @@
     "kotlin-lsp@claude-plugins-official": true,
     "learning-output-style@claude-plugins-official": true,
     "linear@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true,
+{{- /* Off because .chezmoidata/skills.toml already declares these skills, and
+       the plugin would ship a second copy of 22 of them. Two copies of a skill
+       both reach the model, and the plugin's copy is pinned to whatever the
+       marketplace last published rather than tracking upstream. */}}
+    "mattpocock-skills@claude-plugins-official": false,
     "mcp-server-dev@claude-plugins-official": true,
     "microsoft-docs@claude-plugins-official": true,
     "notion@claude-plugins-official": true,

@@ -1,0 +1,54 @@
+{{- /* Agent Skills, one chezmoi external per entry in .chezmoidata/skills.toml.
+       That file is the inventory and the documentation; this one only turns it
+       into externals, so nothing here should need editing to add a skill.
+
+       Two kinds of entry produce no external. A licensed skill needs an HTTP
+       header to carry its token, which externals cannot send, and a
+       repository-owned skill is already in the source tree. Both are still
+       declared, because run_after_10-agent-skills installs the first kind and
+       links every kind, and both read the same inventory.
+
+       stripComponents is derived rather than declared: one component for the
+       archive's own root directory, plus one per component of `path`. A GitHub
+       branch tarball wraps everything in <repo>-<branch>/, and the vendor
+       tarballs wrap everything in ./, so the count is the same for both. */ -}}
+{{- $home := .agent_skills_home -}}
+{{- $refresh := .agent_skills_refresh -}}
+{{- range $name, $skill := .agent_skills -}}
+{{-   if hasKey $skill "git" }}
+
+["{{ $home }}/{{ $name }}"]
+  type = "git-repo"
+  url = {{ $skill.git | quote }}
+  refreshPeriod = {{ $refresh | quote }}
+  {{- /* A skill needs no history, and --ff-only keeps a pull from inventing a
+         merge commit in a tree the user may have edited in place. */}}
+  clone.args = ["--depth", "1"]
+  pull.args = ["--ff-only"]
+{{-   else if and (not (hasKey $skill "token")) (or (hasKey $skill "repo") (hasKey $skill "url")) }}
+{{-     $path := "" -}}
+{{-     if hasKey $skill "path" }}{{ $path = $skill.path }}{{ end -}}
+{{-     $strip := 1 -}}
+{{-     if $path }}{{ $strip = add 1 (len (splitList "/" $path)) }}{{ end -}}
+{{-     $url := "" -}}
+{{-     if hasKey $skill "url" -}}
+{{-       $url = $skill.url -}}
+{{-     else -}}
+{{-       $ref := "main" -}}
+{{-       if hasKey $skill "ref" }}{{ $ref = $skill.ref }}{{ end -}}
+{{-       $url = printf "https://github.com/%s/archive/refs/heads/%s.tar.gz" $skill.repo $ref -}}
+{{-     end }}
+
+["{{ $home }}/{{ $name }}"]
+  type = "archive"
+  url = {{ $url | quote }}
+  {{- /* exact makes the directory converge: a file upstream deletes is deleted
+         here too, rather than lingering as a file nothing declares. */}}
+  exact = true
+  stripComponents = {{ $strip }}
+{{-     if $path }}
+  include = [{{ printf "*/%s/**" $path | quote }}]
+{{-     end }}
+  refreshPeriod = {{ $refresh | quote }}
+{{-   end }}
+{{- end }}

@@ -1,0 +1,184 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# Finish the Agent Skills set that .chezmoiexternal.toml.tmpl starts. chezmoi
+# materializes every declared skill into one shared directory. This script does
+# the three things chezmoi cannot:
+#
+#   1. Download the licensed skills. Their tarballs need a license token in a
+#      request header, and a chezmoi external has no way to send one.
+#   2. Link every skill into the agents that do not read the shared directory
+#      themselves, which today means Claude Code alone. Codex, Copilot and
+#      Gemini already find it, so they are not in the list.
+#   3. Remove what the inventory no longer declares. Dropping an external stops
+#      chezmoi fetching it but never deletes the copy it already wrote, so a
+#      removed skill would keep being offered to every agent forever.
+#
+# Runs on every apply rather than behind a content hash. The linking and the
+# pruning are both cheap, and both depend on state this repo does not own: an
+# agent installed since the last apply needs its links created, and a licensed
+# download that failed while offline needs retrying. A hash of the inventory
+# would gate exactly those repairs off.
+#
+# Silent when nothing changes.
+
+SKILLS_HOME={{ printf "%s/%s" .chezmoi.homeDir .agent_skills_home | quote }}
+
+# What the last run installed, so this one can tell a skill that was dropped
+# from the inventory apart from a skill that was never managed here. Without
+# that distinction the only safe prune is no prune, and a hand-installed skill
+# is exactly what must survive. Losing the file costs one skipped prune, which
+# is why it lives under the state directory rather than in the repo.
+LEDGER={{ printf "%s/.local/state/agent-skills/managed" .chezmoi.homeDir | quote }}
+
+declared=(
+{{- range $name, $skill := .agent_skills }}
+  {{ $name | quote }}
+{{- end }}
+)
+
+# Skipped unless the agent's own directory already exists, so an agent this
+# machine does not have gets no empty skills directory invented for it.
+link_dirs=(
+{{- range .agent_skills_link_dirs }}
+  {{ printf "%s/%s" $.chezmoi.homeDir . | quote }}
+{{- end }}
+)
+
+# One newline-separated copy for the membership tests below. Built through a
+# guard because /bin/bash on macOS is 3.2, where expanding an empty array under
+# `set -u` is an error rather than nothing.
+declared_list=""
+if ((${#declared[@]})); then
+  declared_list="$(printf '%s\n' "${declared[@]}")"
+fi
+
+WORK_DIR="$(mktemp -d)"
+trap 'command rm -rf "$WORK_DIR"' EXIT
+
+# ------------------------------ Licensed skills ----------------------------- #
+
+# Replace the skill only when the download differs from what is already there,
+# so an unchanged skill keeps its mtimes and this script stays quiet.
+_install_licensed() {
+  local name="$1" url="$2" header="$3"
+  local dest="${SKILLS_HOME}/${name}"
+  local unpacked="${WORK_DIR}/${name}"
+  local archive="${WORK_DIR}/${name}.tar.gz"
+
+  # The token arrives base64 encoded and is decoded here. Rendering it directly
+  # would put whatever the vendor issued inside a double-quoted bash assignment,
+  # where a dollar sign in the value expands and silently corrupts it. Base64
+  # has no character bash treats specially, so any token survives.
+  local token
+  token="$(printf %s "$4" | base64 -d 2>/dev/null)" || token=""
+
+  if [[ -z "$token" ]]; then
+    _log warning "Skipped the ${name} skill (no license token in the keychain)"
+    return 0
+  fi
+
+  # The token goes to curl on stdin, not in an argument. Arguments are readable
+  # in the process table by any local account for as long as the request runs,
+  # and this is a credential that grants downloads against a paid seat.
+  if ! printf 'header = "%s: %s"\n' "$header" "$token" \
+    | curl -fsSL -K - -o "$archive" "$url"; then
+    # A warning, not a failure. Being offline, or holding a token that has
+    # expired, must not abort an apply that has nothing else to do with this
+    # vendor, and the copy already on disk keeps working until the next apply
+    # retries.
+    _log warning "Failed to download the ${name} skill (keeping the installed copy)"
+    return 0
+  fi
+
+  mkdir -p "$unpacked"
+  if ! tar xzf "$archive" -C "$unpacked"; then
+    _log warning "Failed to unpack the ${name} skill (keeping the installed copy)"
+    return 0
+  fi
+
+  if [[ -d "$dest" ]] && diff -rq "$unpacked" "$dest" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Swap rather than write in place, so a file the vendor dropped upstream does
+  # not survive here, matching the `exact` externals the rest of the set uses.
+  mkdir -p "$SKILLS_HOME"
+  command rm -rf "$dest"
+  command mv "$unpacked" "$dest"
+  _log success "Installed the ${name} skill"
+}
+
+{{ range $name, $skill := .agent_skills -}}
+{{-   if hasKey $skill "token" -}}
+{{-     $token := includeTemplate "keychain" (list $skill.token $skill.account $.keychain_name $.keychain_lookup_field) -}}
+_install_licensed {{ $name | quote }} {{ $skill.url | quote }} {{ $skill.header | quote }} {{ $token | b64enc | quote }}
+{{   end -}}
+{{- end }}
+# --------------------------------- Agent links ------------------------------ #
+
+for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
+  [[ -d "${link_dir%/*}" ]] || continue
+  mkdir -p "$link_dir"
+
+  for name in ${declared[@]+"${declared[@]}"}; do
+    target="${SKILLS_HOME}/${name}"
+    link="${link_dir}/${name}"
+
+    # A skill whose download failed has no target yet. Linking to it would
+    # leave a broken link the pruning below then removes, so wait for a later
+    # apply to fetch it instead.
+    [[ -d "$target" ]] || continue
+    [[ -L "$link" && "$(readlink "$link")" == "$target" ]] && continue
+
+    # Only ever replace a link. A real directory of the same name is somebody
+    # else's skill, and clobbering it would be the one destructive thing this
+    # script must never do.
+    if [[ -e "$link" && ! -L "$link" ]]; then
+      _log warning "Skipped linking ${name} into ${link_dir} (a real directory is already there)"
+      continue
+    fi
+
+    ln -sfn "$target" "$link"
+    _log success "Linked the ${name} skill into ${link_dir}"
+  done
+done
+
+# ---------------------------------- Pruning --------------------------------- #
+
+# Everything the last run installed that the inventory no longer names. Reading
+# a missing ledger as empty is what makes the first run on a machine adopt what
+# is already there rather than delete it.
+if [[ -r "$LEDGER" ]]; then
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    grep -qxF -- "$name" <<<"$declared_list" && continue
+
+    stale="${SKILLS_HOME}/${name}"
+    if [[ -e "$stale" ]]; then
+      command rm -rf "$stale"
+      _log success "Removed the ${name} skill (no longer declared)"
+    fi
+  done <"$LEDGER"
+fi
+
+# Links left pointing into the shared directory at something that is gone,
+# whether this run removed it or a hand-run of an installer did. The target
+# prefix is the ownership test: a link out to anywhere else belongs to whoever
+# made it, and a real directory is not this script's to touch.
+for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
+  [[ -d "$link_dir" ]] || continue
+
+  for link in "$link_dir"/*; do
+    [[ -L "$link" ]] || continue
+    [[ -e "$link" ]] && continue
+    [[ "$(readlink "$link")" == "${SKILLS_HOME}/"* ]] || continue
+
+    command rm -f "$link"
+    _log success "Removed the broken ${link##*/} link from ${link_dir}"
+  done
+done
+
+mkdir -p "${LEDGER%/*}"
+printf '%s\n' "$declared_list" >|"$LEDGER"

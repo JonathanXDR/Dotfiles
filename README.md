@@ -14,6 +14,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
+- 🧠 **Agent Skills:** one declared set, fetched once, read by Claude Code, Codex, Copilot, and Gemini
 - 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
 - ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
 
@@ -43,6 +44,7 @@ From there, chezmoi does the rest:
 3. Symlinks `~/.ssh` to its iCloud Drive copy, plus `~/.ssl` and `~/.vpn` on work machines, creates `~/.gnupg` and `~/.kube` as real directories whose entries symlink into iCloud Drive, and links the shell config files into `$HOME`
 4. Installs everything in the Brewfile for your machine type
 5. Installs language runtimes and global CLI packages with mise
+6. Downloads the declared Agent Skills and links them into every agent that needs a link
 
 ## 🧪 Usage
 
@@ -110,6 +112,34 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
 > [!CAUTION]
 > Managed entries are created with the `-A` flag, so any process running as your user can read them without a confirmation prompt. The chezmoi templates need this to render at apply time. The usual protections still matter here: FileVault, screen auto-lock, a strong account password, and two-factor authentication on your Apple ID.
 
+## 🧠 Agent Skills
+
+[Agent Skills](https://agentskills.io/specification) are `SKILL.md` directories an AI coding agent loads on demand. Every skill this machine should have is listed in [`.chezmoidata/skills.toml`](./.chezmoidata/skills.toml), together with where it comes from. That file is the only place the set is decided.
+
+```toml
+[agent_skills.tdd]                       # a directory in a public repository
+repo = "mattpocock/skills"
+path = "skills/engineering/tdd"
+
+[agent_skills.heroui-react]              # a tarball the vendor publishes
+url = "https://heroui.com/skills/heroui-react.tar.gz"
+
+[agent_skills.some-private-skill]        # a private repository, cloned over SSH
+git = "git@github.com:you/some-private-skill.git"
+```
+
+`chezmoi apply` fetches each one into `~/.agents/skills` and re-downloads it once a week, so the normal apply keeps every skill current with nothing copied by hand. No skill contents are committed here, except a skill this repository owns, which goes in `dot_agents/skills/<name>/` and is symlinked into the same directory.
+
+| Task                   | Do this                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| Add a skill            | Add an entry, run `chezmoi apply`                                               |
+| Remove a skill         | Delete its entry, run `chezmoi apply`                                           |
+| Update every skill     | Nothing. Any apply refreshes them weekly, and `--refresh-externals` does it now |
+| Add a repo-owned skill | Drop the directory in `dot_agents/skills/<name>/`, run `chezmoi apply`          |
+| Support another agent  | Add its skills directory to `agent_skills_link_dirs`, if it needs one at all    |
+
+OpenAI Codex, GitHub Copilot CLI, and Gemini CLI read `~/.agents/skills` natively. Claude Code reads only `~/.claude/skills`, so it gets one symlink per skill. A skill that needs a license key names a keychain entry instead of carrying the key, so nothing licensed and nothing secret is committed. See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
+
 ## 🐚 Shell Loading Order
 
 ```text
@@ -147,7 +177,8 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ```text
 ├── .chezmoi.toml.tmpl                       # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                        # Shared non-secret defaults
-├── .chezmoidata/                            # Generated data files (Zed extensions)
+├── .chezmoidata/                            # Agent Skills inventory, Zed extension list
+├── .chezmoiexternal.toml.tmpl               # Agent Skills as chezmoi externals
 ├── .chezmoiignore                           # Files excluded from $HOME
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)

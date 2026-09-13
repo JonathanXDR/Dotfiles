@@ -7,7 +7,7 @@ How this dotfiles system is organized, how data flows through it, and where to s
 
 ## 🦅 Bird's Eye View
 
-This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** running in **symlink mode**. chezmoi symlinks plain configuration files into `$HOME`, renders the Go-templated ones as real copies, and runs idempotent setup scripts. Secrets come from the macOS Keychain at apply time. Sensitive directories (SSH, GPG, SSL, kube, VPN) point straight at iCloud Drive, which makes iCloud the single source of truth for those keys.
+This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** running in **symlink mode**. chezmoi symlinks plain configuration files into `$HOME`, renders the Go-templated ones as real copies, downloads the declared Agent Skills, and runs idempotent setup scripts. Secrets come from the macOS Keychain at apply time. Sensitive directories (SSH, GPG, SSL, kube, VPN) point straight at iCloud Drive, which makes iCloud the single source of truth for those keys.
 
 ```text
 ┌─── chezmoi init ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -70,7 +70,9 @@ Dotfiles/
 ├── .chezmoi.toml.tmpl                                   # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                                    # Shared non-secret defaults
 ├── .chezmoidata/
+│   ├── skills.toml                                      # Agent Skills inventory (name, source, licensing)
 │   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
+├── .chezmoiexternal.toml.tmpl                           # Agent Skills as chezmoi externals, from skills.toml
 ├── .chezmoiignore                                       # Files excluded from $HOME
 ├── .chezmoitemplates/
 │   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
@@ -88,7 +90,8 @@ Dotfiles/
 │   ├── run_onchange_after_06-*                          # Install language runtimes and global CLI packages (re-runs on list change)
 │   ├── run_once_after_07-*                              # Fix zsh completion permissions
 │   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
-│   └── run_after_09-*                                   # Install /etc/hosts from ~/.config/hosts (every apply, self-healing)
+│   ├── run_after_09-*                                   # Install /etc/hosts from ~/.config/hosts (every apply, self-healing)
+│   └── run_after_10-*                                   # Fetch licensed skills, link them per agent, prune dropped ones
 │
 │   # iCloud Drive symlinks (point $HOME directories at iCloud)
 │
@@ -350,8 +353,48 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | GitLab MCP OAuth client ID and secret   | Work only |
+| `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
 For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
+
+### Agent Skills
+
+[Agent Skills](https://agentskills.io/specification) are `SKILL.md` directories that AI coding agents load as on-demand instructions. [`.chezmoidata/skills.toml`](.chezmoidata/skills.toml) is the inventory: it names every skill this machine should have and where each one comes from. Nothing else decides. Add an entry and the next apply fetches it, delete an entry and the next apply removes it.
+
+Skills are fetched **once**, into `~/.agents/skills`, and shared from there. That path is the ecosystem's convention for a personal skill directory every agent can read, and OpenAI Codex, GitHub Copilot CLI and Gemini CLI each find it with no configuration at all. Claude Code reads only `~/.claude/skills`, so it gets a symlink per skill, which is the mechanism [its own documentation](https://code.claude.com/docs/en/skills) describes.
+
+```text
+.chezmoidata/skills.toml            the inventory (33 skills)
+        │
+        ├──> .chezmoiexternal.toml.tmpl ──> chezmoi external ──┐
+        │      every skill but the licensed ones               │
+        │                                                      v
+        └──> run_after_10-agent-skills ──> curl + token ──> ~/.agents/skills/<name>
+               the licensed ones                               │
+                                                               ├──> Codex     reads it natively
+               run_after_10-agent-skills ──> symlink ──────────┤     Copilot  reads it natively
+                                                               │     Gemini   reads it natively
+                                                               └──> ~/.claude/skills/<name>
+```
+
+**Three source kinds**, one per entry, and the entry's keys say which:
+
+| Keys              | Fetched as                | Used for                                                            |
+| ----------------- | ------------------------- | ------------------------------------------------------------------- |
+| `repo` (+ `path`) | `archive` external        | A public GitHub repository, or one directory inside a larger one    |
+| `url`             | `archive` external        | A tarball the vendor publishes on its own, smaller than a repo copy |
+| `git`             | `git-repo` external       | A private repository, where a tarball would need credentials        |
+
+Adding `token` to an entry marks it **licensed**. chezmoi externals cannot send an HTTP header, and a licensed tarball needs one, so [`run_after_10-agent-skills`](.chezmoiscripts/run_after_10-agent-skills.sh.tmpl) downloads those with the named keychain secret instead. It writes them to the same shared directory, so nothing downstream knows the difference. The license key never enters the repository, and the download hands it to `curl` on stdin rather than in an argument, which any local account could read from the process table.
+
+Every external carries `agent_skills_refresh` as its `refreshPeriod`, so the first apply after that period re-downloads it. Keeping skills current needs no separate workflow: it is whatever already brings the rest of the configuration up to date, `chezmoi apply` or `chezmoi update`, and `--refresh-externals` forces a download before the period is up. `exact = true` makes each skill converge, so a file upstream deletes is deleted here too.
+
+A `git-repo` external is a real working tree, which is what makes a repository the user owns editable in place. The cost is that an apply refreshing it runs `git pull --ff-only`, so a clone carrying uncommitted work, or one whose history has diverged from the remote, reports the pull failure and is left untouched. That is deliberate: the alternatives are discarding the work or inventing a merge commit. Commit and push, or delete the directory and let the next apply clone it again. The failure is confined to that one skill, and every other external still applies.
+
+Removal is the one thing chezmoi cannot do alone. Dropping an external stops the download but leaves the copy already written, so `run_after_10-agent-skills` keeps a ledger of what it installed at `~/.local/state/agent-skills/managed` and deletes what the inventory no longer names. Anything absent from that ledger is somebody else's, and is left alone: a hand-installed skill in the shared directory, a real directory inside an agent's skill directory, and a symlink pointing anywhere other than the shared directory all survive every apply.
+
+> [!NOTE]
+> `~/.agents/.skill-lock.json` is left over from `npx skills`, which installed this set before chezmoi did. It is inert, but running `npx skills update` would write over directories chezmoi now owns. Declare skills in `.chezmoidata/skills.toml` instead. `npx skills find` is still the way to discover new ones.
 
 ### Machine-Type Branching
 
@@ -421,7 +464,7 @@ Scripts in `.chezmoiscripts/` are numbered for deterministic ordering. The filen
 | `run_once_before_`    | Once, before files are copied       | Install Homebrew, import keychain                    |
 | `run_onchange_after_` | Re-runs when script content changes | Homebrew packages (Brewfile hash embedded in script) |
 | `run_once_after_`     | Once, after files are copied        | Fix zsh completion permissions                       |
-| `run_after_`          | Every `chezmoi apply`, after files  | Export keychain to iCloud, install /etc/hosts        |
+| `run_after_`          | Every `chezmoi apply`, after files  | Export keychain to iCloud, install /etc/hosts, link Agent Skills |
 
 Every script includes `{{ template "shell-helpers" . }}`, which provides shared bash helpers:
 
@@ -456,6 +499,10 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Edit global Claude Code instructions | `private_dot_claude/private_CLAUDE.md`                                                             |
 | Change a Claude Code guard hook      | `private_dot_claude/private_hooks/`                                                                |
 | Change the paths Claude cannot touch | `.chezmoidata.toml` (`claude_blocked_paths`)                                                       |
+| Add or remove an Agent Skill         | `.chezmoidata/skills.toml`                                                                         |
+| Refresh the external Agent Skills    | Nothing, any apply does it weekly (`chezmoi apply --refresh-externals` to skip the wait)           |
+| Teach another agent about the skills | `.chezmoidata/skills.toml` (`agent_skills_link_dirs`), only if it cannot read `~/.agents/skills`   |
+| Edit a repository-owned Agent Skill  | Its directory under `dot_agents/skills/`, which symlinks straight into `~/.agents/skills`          |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`             |
 | Rename or update a secret            | `secret:rename <old_id> <old_account> <new_id> <new_account> [new_where] [new_kind] [new_comment]` |
 | Inspect or audit secrets             | `secrets:list` (table view), `secrets:import` (sync + drift), `secret:copy` (clipboard)            |
@@ -514,3 +561,9 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **Write-time secrets scan and destructive git guard**          | The SonarQube integration only scans files Claude reads and user prompts, so a PostToolUse hook runs `sonar analyze secrets` on every file Claude writes and feeds findings back with exit code 2. A second PreToolUse guard blocks `git reset --hard`, forced `git clean`, forced `git checkout`, and worktree-discarding `checkout` and `restore` behind the same explicit-confirmation pattern as the push guard (`CLAUDE_DESTRUCTIVE_OK=1`). The sonar-installed wrappers under `~/.claude/hooks/sonar-secrets/` stay vendor-managed and out of chezmoi, while their settings registration is templated so `chezmoi apply` cannot wipe it.                                                                                                                                                                                                                                                     |
 | **Commit style enforced by an agent hook, not a git hook**     | A global `core.hooksPath` was tried and reverted: it hijacks every repo's hook path (git-lfs and local tooling install into `.git/hooks`) and binds the human too, while the rule only needs to steer the agent. A PreToolUse hook now validates the Conventional Commits subject (lowercase type) and rejects Claude attribution trailers in commands it can parse, fails open for editor-based commits and exotic quoting, and accepts `CLAUDE_COMMIT_OK=1` when a repository's documented convention intentionally differs. Bodies and footers stay unrestricted.                                                                                                                                                                                                                                                                                                                               |
 | **A path blocklist needs a hook, not just a deny rule**        | One list in `.chezmoidata.toml` (`claude_blocked_paths`) feeds both `permissions.deny` and a PreToolUse guard, since neither alone suffices. Deny rules reach the `@` mentions no hook sees, but validate paths for only about thirty six recognised commands: before this machine's managed policy landed, a deny rule blocked `cat file` while `python3 -c` read it. That policy (`allowManagedPermissionRulesOnly`) drops every non-managed rule, so here the hook is the only enforcement. It registers for every tool, since Monitor, PowerShell and Tmux also run commands, and matches path text rather than command names, since zsh reads through hundreds of aliases and a bare `< file`. Entries are bare names, so a directory stays covered through a symlink or copy. No override: this is a confidentiality boundary. A project's `disableAllHooks` still defeats it.               |
+| **chezmoi externals over a skills package manager**            | `npx skills` installed this set first, and its lockfile lives in `~/.agents`, outside the repository, so the repository never held the answer to which skills exist. A chezmoi external per skill puts that answer in `.chezmoidata/skills.toml`, updates on `chezmoi update` like everything else, and needs no second package manager on a fresh machine. The cost is that chezmoi cannot send an auth header, which is why the two licensed skills keep a small script. |
+| **One shared skills directory over a copy per agent**          | `~/.agents/skills` is the ecosystem's shared personal location, and Codex, Copilot CLI and Gemini CLI each read it with no configuration. Only Claude Code needs anything, and one symlink per skill is what its documentation describes. Linking into the others as well was tried and rejected: they would list every skill twice against a skills budget capped at a fraction of the context window. |
+| **Per-skill symlinks over symlinking the whole directory**     | Claude Code does follow a symlinked `~/.claude/skills`, measured on 2.1.269, but that hands the entire directory to this repository. Codex shows why that is wrong: it keeps its own bundled skills in `~/.codex/skills/.system`. A link per skill leaves every agent's directory theirs. |
+| **A ledger over pruning whatever is undeclared**               | Dropping an external stops the download but leaves the copy behind, so removal needs a sweep. Sweeping everything undeclared would also delete a skill installed by hand, which is the one thing the sweep must not do. `run_after_10` records what it installed and deletes only what it stops declaring. |
+| **Licensed skills download on every apply**                    | The HeroUI CDN sends `no-store` and no `ETag`, so a conditional request is not possible and a stamp file would be the only way to skip one. The two tarballs are 13 KB together, and the script replaces a skill only when the bytes differ, so an unchanged apply costs one request and prints nothing. Being offline warns and keeps the installed copy. |
+| **`mattpocock-skills` plugin disabled**                        | The plugin ships 22 of the skills the inventory already declares. Two copies of a skill both reach the model, and the plugin's copy is pinned to whatever the marketplace last published rather than tracking upstream. |
