@@ -84,8 +84,8 @@ agent_skill_owners = [
 #            whose tarball is 25 MB or more, because a `repo` entry downloads
 #            the whole repository to extract one directory, and a handful of
 #            these are tens of megabytes, one of them 136 MB. Refreshing every
-#            source weekly would move about 790 MB a week. This splits it into
-#            300 MB weekly and 490 MB quarterly.
+#            source weekly would move about 1.3 GB a week. This splits it into
+#            390 MB weekly and 950 MB quarterly.
 #   token    Names a managed keychain entry (see `secrets:list`) and marks the
 #            skill as licensed: run_after_10-agent-skills downloads `url` with
 #            the token in the `header` request header, because chezmoi
@@ -93,6 +93,10 @@ agent_skill_owners = [
 #
 # Every entry is declared here whatever its source, because the same list also
 # decides what gets linked into each agent and what gets removed when it goes.
+
+[agent_skills.adding-dependencies]
+repo = "riekelt/principal-engineer"
+path = "plugins/principal-engineer/skills/adding-dependencies"
 
 [agent_skills.adhd]
 repo = "UditAkhourii/adhd"
@@ -106,6 +110,10 @@ path = "skills/agent-browser"
 repo = "anthropics/claude-code"
 path = "plugins/plugin-dev/skills/agent-development"
 
+[agent_skills.ai-seo]
+repo = "coreyhaines31/marketingskills"
+path = "skills/ai-seo"
+
 [agent_skills.analyzing-git-sessions]
 repo = "bitwarden/ai-plugins"
 path = "plugins/claude-retrospective/skills/analyzing-git-sessions"
@@ -114,9 +122,17 @@ path = "plugins/claude-retrospective/skills/analyzing-git-sessions"
 repo = "emilkowalski/skills"
 path = "skills/animate"
 
+[agent_skills.animation-vocabulary]
+repo = "emilkowalski/skills"
+path = "skills/animation-vocabulary"
+
 [agent_skills.api-and-interface-design]
 repo = "addyosmani/agent-skills"
 path = "skills/api-and-interface-design"
+
+[agent_skills.apple-design]
+repo = "emilkowalski/skills"
+path = "skills/apple-design"
 
 [agent_skills.archify]
 repo = "tt-a1i/archify"
@@ -125,6 +141,14 @@ path = "archify"
 [agent_skills.architect]
 repo = "cursor/plugins"
 path = "pstack/skills/architect"
+
+[agent_skills.ask-sonner]
+repo = "emilkowalski/skills"
+path = "skills/ask-sonner"
+
+[agent_skills.ast-grep]
+repo = "ast-grep/agent-skill"
+path = "ast-grep/skills/ast-grep"
 
 [agent_skills.authoring-skills]
 repo = "vercel/next.js"
@@ -149,6 +173,26 @@ path = ".codex/skills/babysit-pr"
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/banner-design"
 
+[agent_skills.baoyu-article-illustrator]
+repo = "JimLiu/baoyu-skills"
+path = "skills/baoyu-article-illustrator"
+
+[agent_skills.baoyu-cover-image]
+repo = "JimLiu/baoyu-skills"
+path = "skills/baoyu-cover-image"
+
+[agent_skills.baoyu-image-gen]
+repo = "JimLiu/baoyu-skills"
+path = "skills/baoyu-image-gen"
+
+[agent_skills.baoyu-infographic]
+repo = "JimLiu/baoyu-skills"
+path = "skills/baoyu-infographic"
+
+[agent_skills.baoyu-url-to-markdown]
+repo = "JimLiu/baoyu-skills"
+path = "skills/baoyu-url-to-markdown"
+
 [agent_skills.benchmark]
 repo = "garrytan/gstack"
 path = "benchmark"
@@ -156,6 +200,34 @@ path = "benchmark"
 [agent_skills.benchmark-models]
 repo = "garrytan/gstack"
 path = "benchmark-models"
+
+[agent_skills.better-accessibility]
+repo = "jakubkrehel/skills"
+path = "skills/better-accessibility"
+
+[agent_skills.better-colors]
+repo = "jakubkrehel/skills"
+path = "skills/better-colors"
+
+[agent_skills.better-interface]
+repo = "jakubkrehel/skills"
+path = "skills/better-interface"
+
+[agent_skills.better-layout]
+repo = "jakubkrehel/skills"
+path = "skills/better-layout"
+
+[agent_skills.better-typography]
+repo = "jakubkrehel/skills"
+path = "skills/better-typography"
+
+[agent_skills.better-ui]
+repo = "jakubkrehel/skills"
+path = "skills/better-ui"
+
+[agent_skills.better-writing]
+repo = "jakubkrehel/skills"
+path = "skills/better-writing"
 
 [agent_skills.book-study]
 repo = "sanyuan0704/sanyuan-skills"
@@ -173,6 +245,10 @@ path = "skills/brainstorming"
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/brand"
 
+[agent_skills.brandkit]
+repo = "Leonxlnx/taste-skill"
+path = "skills/brandkit"
+
 [agent_skills.browse]
 repo = "garrytan/gstack"
 path = "browse"
@@ -189,6 +265,10 @@ path = "canary"
 repo = "garrytan/gstack"
 path = "careful"
 
+[agent_skills.caveman]
+repo = "JuliusBrussee/caveman"
+path = "skills/caveman"
+
 [agent_skills.claude-api]
 repo = "anthropics/skills"
 path = "skills/claude-api"
@@ -198,13 +278,37 @@ repo = "tldraw/tldraw"
 path = "skills/clean-copy"
 refresh = "2160h"
 
+[agent_skills.clerk-cli]
+repo = "clerk/skills"
+path = "skills/core/clerk-cli"
+
+[agent_skills.clerk-custom-ui]
+repo = "clerk/skills"
+path = "skills/core/clerk-custom-ui"
+
 [agent_skills.clerk-nuxt-patterns]
 repo = "clerk/skills"
 path = "skills/frameworks/clerk-nuxt-patterns"
 
+[agent_skills.clerk-orgs]
+repo = "clerk/skills"
+path = "skills/features/clerk-orgs"
+
+[agent_skills.clerk-setup]
+repo = "clerk/skills"
+path = "skills/core/clerk-setup"
+
+[agent_skills.clerk-webhooks]
+repo = "clerk/skills"
+path = "skills/features/clerk-webhooks"
+
 [agent_skills.code-review-change-size]
 repo = "openai/codex"
 path = ".codex/skills/code-review-change-size"
+
+[agent_skills.code-simplification]
+repo = "addyosmani/agent-skills"
+path = "skills/code-simplification"
 
 [agent_skills.codex]
 repo = "garrytan/gstack"
@@ -217,6 +321,10 @@ path = ".codex/skills/codex-pr-body"
 [agent_skills.command-development]
 repo = "anthropics/claude-code"
 path = "plugins/plugin-dev/skills/command-development"
+
+[agent_skills.constraint-driven-development]
+repo = "addyosmani/agent-skills"
+path = "skills/constraint-driven-development"
 
 [agent_skills.content-design]
 repo = "n8n-io/n8n"
@@ -232,15 +340,52 @@ path = "context-restore"
 repo = "garrytan/gstack"
 path = "context-save"
 
+[agent_skills.copywriting]
+repo = "coreyhaines31/marketingskills"
+path = "skills/copywriting"
+
+[agent_skills.core-web-vitals]
+repo = "addyosmani/web-quality-skills"
+path = "skills/core-web-vitals"
+
+[agent_skills.council]
+repo = "warpdotdev/common-skills"
+path = ".agents/skills/council"
+
+[agent_skills.create-adaptable-composable]
+repo = "vuejs-ai/skills"
+path = "skills/create-adaptable-composable"
+
 [agent_skills.create-skill]
 repo = "n8n-io/n8n"
 path = ".agents/skills/create-skill"
 ref = "master"
 refresh = "2160h"
 
+[agent_skills.cross-critique]
+repo = "warpdotdev/common-skills"
+path = ".agents/skills/cross-critique"
+
 [agent_skills.cso]
 repo = "garrytan/gstack"
 path = "cso"
+
+[agent_skills.database-migrations]
+repo = "affaan-m/ECC"
+path = "skills/database-migrations"
+refresh = "2160h"
+
+[agent_skills.defuddle]
+repo = "kepano/obsidian-skills"
+path = "skills/defuddle"
+
+[agent_skills.deploy-to-vercel]
+repo = "vercel-labs/agent-skills"
+path = "skills/deploy-to-vercel"
+
+[agent_skills.deprecation-and-migration]
+repo = "addyosmani/agent-skills"
+path = "skills/deprecation-and-migration"
 
 [agent_skills.design]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
@@ -254,6 +399,10 @@ path = "design-consultation"
 repo = "garrytan/gstack"
 path = "design-html"
 
+[agent_skills.design-md]
+repo = "google-labs-code/stitch-skills"
+path = "plugins/stitch-utilities/skills/design-md"
+
 [agent_skills.design-review]
 repo = "garrytan/gstack"
 path = "design-review"
@@ -261,6 +410,10 @@ path = "design-review"
 [agent_skills.design-system]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/design-system"
+
+[agent_skills.design-taste-frontend]
+repo = "Leonxlnx/taste-skill"
+path = "skills/taste-skill"
 
 [agent_skills.devex-review]
 repo = "garrytan/gstack"
@@ -298,9 +451,21 @@ path = "document-generate"
 repo = "garrytan/gstack"
 path = "document-release"
 
+[agent_skills.documenting-contracts]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/documenting-contracts"
+
+[agent_skills.documenting-legacy-codebases]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/documenting-legacy-codebases"
+
 [agent_skills.docx]
 repo = "anthropics/skills"
 path = "skills/docx"
+
+[agent_skills.doubt-driven-development]
+repo = "addyosmani/agent-skills"
+path = "skills/doubt-driven-development"
 
 [agent_skills.drawio-skill]
 repo = "Agents365-ai/drawio-skill"
@@ -326,13 +491,25 @@ repo = "langgenius/dify"
 path = ".agents/skills/e2e-cucumber-playwright"
 refresh = "2160h"
 
+[agent_skills.email-best-practices]
+repo = "resend/resend-skills"
+path = "skills/email-best-practices"
+
 [agent_skills.emil-design-eng]
 repo = "emilkowalski/skills"
 path = "skills/emil-design-eng"
 
+[agent_skills.enhance-prompt]
+repo = "google-labs-code/stitch-skills"
+path = "plugins/stitch-utilities/skills/enhance-prompt"
+
 [agent_skills.executing-plans]
 repo = "obra/superpowers"
 path = "skills/executing-plans"
+
+[agent_skills.find-animation-opportunities]
+repo = "emilkowalski/skills"
+path = "skills/find-animation-opportunities"
 
 [agent_skills.find-skills]
 repo = "vercel-labs/skills"
@@ -341,6 +518,70 @@ path = "skills/find-skills"
 [agent_skills.finishing-a-development-branch]
 repo = "obra/superpowers"
 path = "skills/finishing-a-development-branch"
+
+[agent_skills.firebase-auth-basics]
+repo = "firebase/agent-skills"
+path = "skills/firebase-auth-basics"
+
+[agent_skills.firebase-basics]
+repo = "firebase/agent-skills"
+path = "skills/firebase-basics"
+
+[agent_skills.firebase-firestore]
+repo = "firebase/agent-skills"
+path = "skills/firebase-firestore"
+
+[agent_skills.firebase-hosting-basics]
+repo = "firebase/agent-skills"
+path = "skills/firebase-hosting-basics"
+
+[agent_skills.firebase-security-rules-auditor]
+repo = "firebase/agent-skills"
+path = "skills/firebase-security-rules-auditor"
+
+[agent_skills.firecrawl]
+repo = "firecrawl/cli"
+path = "skills/firecrawl"
+
+[agent_skills.firecrawl-crawl]
+repo = "firecrawl/cli"
+path = "skills/firecrawl-crawl"
+
+[agent_skills.firecrawl-download]
+repo = "firecrawl/cli"
+path = "skills/firecrawl-download"
+
+[agent_skills.firecrawl-map]
+repo = "firecrawl/cli"
+path = "skills/firecrawl-map"
+
+[agent_skills.firecrawl-scrape]
+repo = "firecrawl/cli"
+path = "skills/firecrawl-scrape"
+
+[agent_skills.firecrawl-search]
+repo = "firecrawl/cli"
+path = "skills/firecrawl-search"
+
+[agent_skills.firecrawl-website-design-clone]
+repo = "firecrawl/firecrawl-workflows"
+path = "skills/firecrawl-website-design-clone"
+
+[agent_skills.firestore-rules-creation]
+repo = "firebase/agent-skills"
+path = "skills/firestore-rules-creation"
+
+[agent_skills.fix-security-vulnerabilities-with-strix]
+repo = "usestrix/strix"
+path = "skills/fix-security-vulnerabilities-with-strix"
+
+[agent_skills.fixing-metadata]
+repo = "ibelick/ui-skills"
+path = "skills/fixing-metadata"
+
+[agent_skills.fixing-motion-performance]
+repo = "ibelick/ui-skills"
+path = "skills/fixing-motion-performance"
 
 [agent_skills.freeze]
 repo = "garrytan/gstack"
@@ -352,6 +593,23 @@ path = "skills/frontend-design"
 
 [agent_skills.frontend-slides]
 repo = "zarazhangrui/frontend-slides"
+
+[agent_skills.gdpr-data-handling]
+repo = "wshobson/agents"
+path = "plugins/hr-legal-compliance/skills/gdpr-data-handling"
+
+[agent_skills.general-video]
+repo = "heygen-com/hyperframes"
+path = "skills/general-video"
+refresh = "2160h"
+
+[agent_skills.gh-fix-ci]
+repo = "openai/skills"
+path = "skills/.curated/gh-fix-ci"
+
+[agent_skills.gh-issue-sync]
+repo = "mitsuhiko/gh-issue-sync"
+path = "skill"
 
 [agent_skills.gh-stack]
 repo = "github/gh-stack"
@@ -365,9 +623,38 @@ path = "skills_tutorial/git-commit-formatter"
 repo = "google-gemini/gemini-cli"
 path = ".gemini/skills/github-issue-creator"
 
+[agent_skills.github-issues]
+repo = "github/awesome-copilot"
+path = "skills/github-issues"
+refresh = "2160h"
+
 [agent_skills.gsap-core]
 repo = "greensock/gsap-skills"
 path = "skills/gsap-core"
+
+[agent_skills.gsap-frameworks]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-frameworks"
+
+[agent_skills.gsap-plugins]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-plugins"
+
+[agent_skills.gsap-react]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-react"
+
+[agent_skills.gsap-scrolltrigger]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-scrolltrigger"
+
+[agent_skills.gsap-timeline]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-timeline"
+
+[agent_skills.gsap-utils]
+repo = "greensock/gsap-skills"
+path = "skills/gsap-utils"
 
 [agent_skills.gstack]
 repo = "garrytan/gstack"
@@ -375,6 +662,14 @@ repo = "garrytan/gstack"
 [agent_skills.guard]
 repo = "garrytan/gstack"
 path = "guard"
+
+[agent_skills.hallmark]
+repo = "Nutlope/hallmark"
+path = "skills/hallmark"
+
+[agent_skills.handling-failures]
+repo = "riekelt/principal-engineer"
+path = "plugins/principal-engineer/skills/handling-failures"
 
 [agent_skills.health]
 repo = "garrytan/gstack"
@@ -408,6 +703,10 @@ token = "HeroUI Pro"
 account = "jonathan"
 header = "x-heroui-personal-token"
 
+[agent_skills.higgsfield-generate]
+repo = "higgsfield-ai/skills"
+path = "higgsfield-generate"
+
 [agent_skills.hook-development]
 repo = "anthropics/claude-code"
 path = "plugins/plugin-dev/skills/hook-development"
@@ -421,9 +720,70 @@ refresh = "2160h"
 [agent_skills.humanizer]
 repo = "blader/humanizer"
 
+[agent_skills.hyperframes]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes"
+refresh = "2160h"
+
+[agent_skills.hyperframes-animation]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-animation"
+refresh = "2160h"
+
+[agent_skills.hyperframes-audio]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-audio"
+refresh = "2160h"
+
+[agent_skills.hyperframes-cli]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-cli"
+refresh = "2160h"
+
+[agent_skills.hyperframes-core]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-core"
+refresh = "2160h"
+
+[agent_skills.hyperframes-creative]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-creative"
+refresh = "2160h"
+
+[agent_skills.hyperframes-keyframes]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-keyframes"
+refresh = "2160h"
+
+[agent_skills.hyperframes-registry]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-registry"
+refresh = "2160h"
+
+[agent_skills.hyperframes-studio]
+repo = "heygen-com/hyperframes"
+path = "skills/hyperframes-studio"
+refresh = "2160h"
+
 [agent_skills.i-have-adhd]
 repo = "ayghri/i-have-adhd"
 path = "skills/i-have-adhd"
+
+[agent_skills.image-to-code]
+repo = "Leonxlnx/taste-skill"
+path = "skills/image-to-code-skill"
+
+[agent_skills.impeccable]
+repo = "pbakaus/impeccable"
+path = ".agents/skills/impeccable"
+
+[agent_skills.improve]
+repo = "shadcn/improve"
+path = "skills/improve"
+
+[agent_skills.improve-animations]
+repo = "emilkowalski/skills"
+path = "skills/improve-animations"
 
 [agent_skills.install-anti-slop]
 repo = "dmmulroy/anti-slop"
@@ -433,13 +793,30 @@ path = "skills/install-anti-slop"
 repo = "Dammyjay93/interface-design"
 path = ".claude/skills/interface-design"
 
+[agent_skills.interface-review]
+repo = "jakubkrehel/skills"
+path = "skills/interface-review"
+
 [agent_skills.investigate]
 repo = "garrytan/gstack"
 path = "investigate"
 
+[agent_skills.kami]
+repo = "tw93/Kami"
+path = "skills/kami"
+refresh = "2160h"
+
 [agent_skills.karpathy-guidelines]
 repo = "multica-ai/andrej-karpathy-skills"
 path = "skills/karpathy-guidelines"
+
+[agent_skills.keeping-one-source-of-truth]
+repo = "riekelt/principal-engineer"
+path = "plugins/principal-engineer/skills/keeping-one-source-of-truth"
+
+[agent_skills.kubernetes-specialist]
+repo = "Jeffallan/claude-skills"
+path = "skills/kubernetes-specialist"
 
 [agent_skills.land-and-deploy]
 repo = "garrytan/gstack"
@@ -448,6 +825,14 @@ path = "land-and-deploy"
 [agent_skills.last30days]
 repo = "mvanhorn/last30days-skill"
 path = "skills/last30days"
+
+[agent_skills.launch]
+repo = "coreyhaines31/marketingskills"
+path = "skills/launch"
+
+[agent_skills.lavish]
+repo = "kunchenguid/lavish-axi"
+path = "skills/lavish"
 
 [agent_skills.lean-comments]
 repo = "JonathanXDR/lean-comments"
@@ -473,6 +858,40 @@ path = "skills/mcp-builder"
 [agent_skills.mcp-integration]
 repo = "anthropics/claude-code"
 path = "plugins/plugin-dev/skills/mcp-integration"
+
+[agent_skills.media-use]
+repo = "heygen-com/hyperframes"
+path = "skills/media-use"
+refresh = "2160h"
+
+[agent_skills.migrate-radix-to-base]
+repo = "shadcn-ui/ui"
+path = "skills/migrate-radix-to-base"
+
+[agent_skills.mobile-native]
+repo = "emilkowalski/skills"
+path = "skills/mobile-native"
+
+[agent_skills.modern-web-guidance]
+repo = "GoogleChrome/modern-web-guidance"
+path = "skills/modern-web-guidance"
+
+[agent_skills.motion-graphics]
+repo = "heygen-com/hyperframes"
+path = "skills/motion-graphics"
+refresh = "2160h"
+
+[agent_skills.multi-agent-review]
+repo = "riekelt/multi-agent-review"
+path = "plugins/multi-agent-review/skills/multi-agent-review"
+
+[agent_skills.nanobanana]
+repo = "GargantuaX/openskills"
+path = "skills/nanobanana"
+
+[agent_skills.nestjs-best-practices]
+repo = "Kadajett/agent-nestjs-skills"
+path = "skills/nestjs-best-practices"
 
 [agent_skills.next-cache-components-adoption]
 repo = "vercel/next.js"
@@ -530,9 +949,17 @@ path = "skills/nuxt-ui"
 ref = "v4"
 refresh = "2160h"
 
+[agent_skills.observability-and-instrumentation]
+repo = "addyosmani/agent-skills"
+path = "skills/observability-and-instrumentation"
+
 [agent_skills.office-hours]
 repo = "garrytan/gstack"
 path = "office-hours"
+
+[agent_skills.onboarding]
+repo = "coreyhaines31/marketingskills"
+path = "skills/onboarding"
 
 [agent_skills.open-gstack-browser]
 repo = "garrytan/gstack"
@@ -542,6 +969,10 @@ path = "open-gstack-browser"
 repo = "openai/codex"
 path = "codex-rs/skills/src/assets/samples/openai-docs"
 
+[agent_skills.operating-safely]
+repo = "riekelt/principal-engineer"
+path = "plugins/principal-engineer/skills/operating-safely"
+
 [agent_skills.pair-agent]
 repo = "garrytan/gstack"
 path = "pair-agent"
@@ -549,6 +980,18 @@ path = "pair-agent"
 [agent_skills.pdf]
 repo = "anthropics/skills"
 path = "skills/pdf"
+
+[agent_skills.penetration-testing-with-strix]
+repo = "usestrix/strix"
+path = "skills/penetration-testing-with-strix"
+
+[agent_skills.performance]
+repo = "addyosmani/web-quality-skills"
+path = "skills/performance"
+
+[agent_skills.performance-optimization]
+repo = "addyosmani/agent-skills"
+path = "skills/performance-optimization"
 
 [agent_skills.plan-ceo-review]
 repo = "garrytan/gstack"
@@ -574,6 +1017,10 @@ path = "plan-tune"
 repo = "OthmanAdi/planning-with-files"
 path = "skills/planning-with-files"
 ref = "master"
+
+[agent_skills.playwright-best-practices]
+repo = "currents-dev/playwright-best-practices-skill"
+path = "playwright-best-practices"
 
 [agent_skills.playwright-cli]
 repo = "microsoft/playwright"
@@ -608,9 +1055,48 @@ path = "skills/ponytail-help"
 repo = "DietrichGebert/ponytail"
 path = "skills/ponytail-review"
 
+[agent_skills.ppt-master]
+repo = "hugohe3/ppt-master"
+path = "skills/ppt-master"
+refresh = "2160h"
+
 [agent_skills.pptx]
 repo = "anthropics/skills"
 path = "skills/pptx"
+
+[agent_skills.pr-to-video]
+repo = "heygen-com/hyperframes"
+path = "skills/pr-to-video"
+refresh = "2160h"
+
+[agent_skills.principal-engineering]
+repo = "riekelt/principal-engineer"
+path = "plugins/principal-engineer/skills/principal-engineering"
+
+[agent_skills.prisma-cli]
+repo = "prisma/skills"
+path = "prisma-cli"
+
+[agent_skills.prisma-client-api]
+repo = "prisma/skills"
+path = "prisma-client-api"
+
+[agent_skills.prisma-database-setup]
+repo = "prisma/skills"
+path = "prisma-database-setup"
+
+[agent_skills.prisma-upgrade-v7]
+repo = "prisma/skills"
+path = "prisma-upgrade-v7"
+
+[agent_skills.product-launch-video]
+repo = "heygen-com/hyperframes"
+path = "skills/product-launch-video"
+refresh = "2160h"
+
+[agent_skills.programmatic-seo]
+repo = "coreyhaines31/marketingskills"
+path = "skills/programmatic-seo"
 
 [agent_skills.prompt-master]
 repo = "nidhinjs/prompt-master"
@@ -623,6 +1109,22 @@ path = "qa"
 repo = "garrytan/gstack"
 path = "qa-only"
 
+[agent_skills.react-doctor]
+repo = "millionco/react-doctor"
+path = "skills/react-doctor"
+
+[agent_skills.react-email]
+repo = "resend/resend-skills"
+path = "skills/react-email"
+
+[agent_skills.react-state-management]
+repo = "wshobson/agents"
+path = "plugins/frontend-mobile-development/skills/react-state-management"
+
+[agent_skills.readout]
+repo = "warpdotdev/common-skills"
+path = ".agents/skills/readout"
+
 [agent_skills.receiving-code-review]
 repo = "obra/superpowers"
 path = "skills/receiving-code-review"
@@ -632,9 +1134,25 @@ repo = "deepseek-ai/deepseek-harness"
 path = ".agents/skills/record-browser-gif"
 ref = "master"
 
+[agent_skills.remotion-best-practices]
+repo = "remotion-dev/skills"
+path = "skills/remotion-best-practices"
+
 [agent_skills.requesting-code-review]
 repo = "obra/superpowers"
 path = "skills/requesting-code-review"
+
+[agent_skills.resend]
+repo = "resend/resend-skills"
+path = "skills/resend"
+
+[agent_skills.resend-cli]
+repo = "resend/resend-skills"
+path = "skills/resend-cli"
+
+[agent_skills.resolve-merge-conflicts]
+repo = "warpdotdev/common-skills"
+path = ".agents/skills/resolve-merge-conflicts"
 
 [agent_skills.review]
 repo = "garrytan/gstack"
@@ -644,15 +1162,47 @@ path = "review"
 repo = "openai/codex"
 path = "codex-rs/skills/src/assets/samples/review-agent"
 
+[agent_skills.review-animations]
+repo = "emilkowalski/skills"
+path = "skills/review-animations"
+
+[agent_skills.review-loop]
+repo = "2dmurali/review-loop-skill"
+path = "review-loop"
+
+[agent_skills.reviewing-technical-prose]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/reviewing-technical-prose"
+
 [agent_skills.rtl-aware-development]
 repo = "anomalyco/opencode"
 path = ".opencode/skills/rtl-aware-development"
 ref = "dev"
 refresh = "2160h"
 
+[agent_skills.sanity-best-practices]
+repo = "sanity-io/agent-toolkit"
+path = "skills/sanity-best-practices"
+
+[agent_skills.security-and-hardening]
+repo = "addyosmani/agent-skills"
+path = "skills/security-and-hardening"
+
+[agent_skills.security-audit]
+repo = "cloudflare/security-audit-skill"
+path = "skills/security-audit"
+
+[agent_skills.self-improving-agent]
+repo = "zhaono1/agent-playbook"
+path = "skills/self-improving-agent"
+
 [agent_skills.seo]
 repo = "AgriciDaniel/claude-seo"
 path = "skills/seo"
+
+[agent_skills.seo-audit]
+repo = "coreyhaines31/marketingskills"
+path = "skills/seo-audit"
 
 [agent_skills.setup-browser-cookies]
 repo = "garrytan/gstack"
@@ -665,6 +1215,18 @@ path = "setup-deploy"
 [agent_skills.shadcn]
 repo = "shadcn-ui/ui"
 path = "skills/shadcn"
+
+[agent_skills.show-me]
+repo = "humanlayer/skills"
+path = "plugins/show-me/skills/show-me"
+
+[agent_skills.simple-english]
+repo = "AminBlg/SimpleEnglish"
+path = "skills/simple-english"
+
+[agent_skills.site-architecture]
+repo = "coreyhaines31/marketingskills"
+path = "skills/site-architecture"
 
 [agent_skills.skill-creator]
 repo = "anthropics/skills"
@@ -681,6 +1243,10 @@ path = ".claude/skills/slides"
 [agent_skills.slidev]
 repo = "slidevjs/slidev"
 path = "skills/slidev"
+
+[agent_skills.source-driven-development]
+repo = "addyosmani/agent-skills"
+path = "skills/source-driven-development"
 
 [agent_skills.spec]
 repo = "garrytan/gstack"
@@ -708,13 +1274,46 @@ repo = "hardikpandya/stop-slop"
 repo = "obra/superpowers"
 path = "skills/subagent-driven-development"
 
+[agent_skills.supabase]
+repo = "supabase/agent-skills"
+path = "skills/supabase"
+
+[agent_skills.supabase-postgres-best-practices]
+repo = "supabase/agent-skills"
+path = "skills/supabase-postgres-best-practices"
+
+[agent_skills.svelte-code-writer]
+repo = "sveltejs/ai-tools"
+path = "tools/skills/svelte-code-writer"
+
 [agent_skills.systematic-debugging]
 repo = "obra/superpowers"
 path = "skills/systematic-debugging"
 
+[agent_skills.tailwind-4-docs]
+repo = "Lombiq/Tailwind-Agent-Skills"
+path = "skills/tailwind-4-docs"
+ref = "dev"
+
+[agent_skills.tailwind-design-system]
+repo = "wshobson/agents"
+path = "plugins/frontend-mobile-development/skills/tailwind-design-system"
+
+[agent_skills.tanstack-query-best-practices]
+repo = "DeckardGer/tanstack-agent-skills"
+path = "skills/tanstack-query"
+
+[agent_skills.technical-writing]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/technical-writing"
+
 [agent_skills.test-driven-development]
 repo = "obra/superpowers"
 path = "skills/test-driven-development"
+
+[agent_skills.thermo-nuclear-code-quality-review]
+repo = "cursor/plugins"
+path = "thermos/skills/thermo-nuclear-code-quality-review"
 
 [agent_skills.tsdown]
 repo = "rolldown/tsdown"
@@ -764,9 +1363,21 @@ refresh = "2160h"
 repo = "dmno-dev/varlock"
 path = "skills/varlock"
 
+[agent_skills.vercel-composition-patterns]
+repo = "vercel-labs/agent-skills"
+path = "skills/composition-patterns"
+
 [agent_skills.vercel-optimize]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-optimize"
+
+[agent_skills.vercel-react-best-practices]
+repo = "vercel-labs/agent-skills"
+path = "skills/react-best-practices"
+
+[agent_skills.vercel-react-view-transitions]
+repo = "vercel-labs/agent-skills"
+path = "skills/react-view-transitions"
 
 [agent_skills.verification-before-completion]
 repo = "obra/superpowers"
@@ -779,6 +1390,10 @@ path = "plugins/visual-explainer"
 [agent_skills.vue-best-practices]
 repo = "vuejs-ai/skills"
 path = "skills/vue-best-practices"
+
+[agent_skills.vue-debug-guides]
+repo = "vuejs-ai/skills"
+path = "skills/vue-debug-guides"
 
 [agent_skills.vue-router-best-practices]
 repo = "vuejs-ai/skills"
@@ -804,6 +1419,10 @@ path = "skills/web-artifacts-builder"
 repo = "vercel-labs/agent-skills"
 path = "skills/web-design-guidelines"
 
+[agent_skills.web-quality-audit]
+repo = "addyosmani/web-quality-skills"
+path = "skills/web-quality-audit"
+
 [agent_skills.webapp-testing]
 repo = "anthropics/skills"
 path = "skills/webapp-testing"
@@ -814,13 +1433,33 @@ path = ".agents/skills/write-guide"
 ref = "canary"
 refresh = "2160h"
 
+[agent_skills.writing-changelogs]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/writing-changelogs"
+
+[agent_skills.writing-design-docs]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/writing-design-docs"
+
+[agent_skills.writing-issues]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/writing-issues"
+
 [agent_skills.writing-plans]
 repo = "obra/superpowers"
 path = "skills/writing-plans"
 
+[agent_skills.writing-postmortems]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/writing-postmortems"
+
 [agent_skills.writing-rules]
 repo = "anthropics/claude-code"
 path = "plugins/hookify/skills/writing-rules"
+
+[agent_skills.writing-runbooks]
+repo = "riekelt/technical-writer"
+path = "plugins/technical-writer/skills/writing-runbooks"
 
 [agent_skills.writing-skills]
 repo = "obra/superpowers"
