@@ -78,6 +78,7 @@ Dotfiles/
 ├── skill-unavailable.tar.gz                             # Fallback archive for a skill source that has gone away
 ├── .chezmoitemplates/
 │   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
+│   ├── keychain-flag                                    # The `security` flag that matches the lookup field
 │   └── shell-helpers                                    # Reusable bash helpers for run scripts
 │
 │   # Run scripts (run by chezmoi apply, numbered for ordering)

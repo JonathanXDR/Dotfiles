@@ -2,7 +2,7 @@
        named by <lookup-field>.
        Args: (list "<id>" "<account>" "<keychain-name>" "<lookup-field>")
        The last two usually come from the caller's chezmoi data. */ -}}
-{{- $flag := index (dict "name" "-l" "where" "-s" "kind" "-D" "comment" "-j") (index . 3) | default "-l" -}}
+{{- $flag := includeTemplate "keychain-flag" (index . 3) -}}
 {{- /* Only exit 44 (errSecItemNotFound) means "this machine has no such
        secret", the case callers render as an empty string. Any other failure,
        a locked keychain above all, has to stop the render, because swallowing
