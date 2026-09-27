@@ -73,9 +73,7 @@ Dotfiles/
 │   ├── skills.toml                                      # Agent Skills inventory (name, source, licensing, watched owners)
 │   ├── skills-owners.toml                               # Skills of the watched owners (written by skills:sync)
 │   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
-├── .chezmoiexternal.toml.tmpl                           # Agent Skills as chezmoi externals, from skills.toml
 ├── .chezmoiignore                                       # Files excluded from $HOME
-├── skill-unavailable.tar.gz                             # Fallback archive for a skill source that has gone away
 ├── .chezmoitemplates/
 │   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
 │   ├── keychain-flag                                    # The `security` flag that matches the lookup field
@@ -94,7 +92,7 @@ Dotfiles/
 │   ├── run_once_after_07-*                              # Fix zsh completion permissions
 │   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
 │   ├── run_after_09-*                                   # Install /etc/hosts from ~/.config/hosts (every apply, self-healing)
-│   └── run_after_10-*                                   # Fetch licensed skills, link them per agent, prune dropped ones
+│   └── run_after_10-*                                   # Clone and link the Agent Skills, fetch licensed ones, prune
 │
 │   # iCloud Drive symlinks (point $HOME directories at iCloud)
 │
@@ -135,6 +133,7 @@ Dotfiles/
 ├── dot_gitignore_global                                 # Global gitignore (referenced by dot_gitconfig.tmpl)
 ├── private_dot_npmrc.tmpl                               # npm registry tokens (0600, from keychain)
 ├── private_dot_wakatime.cfg.tmpl                        # WakaTime API key (0600, from keychain)
+├── dot_local/private_share/.keep                        # Keeps ~/.local/share at 0700, which holds the Agent Skills clones
 ├── dot_config/
 │   ├── hosts.tmpl                                       # /etc/hosts source (machine-type aware)
 │   ├── mise/config.toml                                 # Language runtimes + global CLI packages
@@ -362,64 +361,52 @@ For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
 
 ### Agent Skills
 
-[Agent Skills](https://agentskills.io/specification) are `SKILL.md` directories that AI coding agents load as on-demand instructions. [`.chezmoidata/skills.toml`](.chezmoidata/skills.toml) is the inventory: it names every skill this machine should have and where each one comes from. Nothing else decides. Add an entry and the next apply fetches it, delete an entry and the next apply removes it.
+[Agent Skills](https://agentskills.io/specification) are `SKILL.md` directories that AI coding agents load as on-demand instructions. [`.chezmoidata/skills.toml`](.chezmoidata/skills.toml) is the inventory: it names every skill this machine should have and where each one comes from, and the people in `agent_skill_owners` contribute their catalogues through the generated [`.chezmoidata/skills-owners.toml`](.chezmoidata/skills-owners.toml). Nothing else decides. Add an entry and the next apply installs it, delete an entry and the next apply removes it.
 
-Skills are fetched **once**, into `~/.agents/skills`, and shared from there. That path is the ecosystem's convention for a personal skill directory every agent can read, and OpenAI Codex, GitHub Copilot CLI and Gemini CLI each find it with no configuration at all. Claude Code reads only `~/.claude/skills`, so it gets a symlink per skill, which is the mechanism [its own documentation](https://code.claude.com/docs/en/skills) describes.
+Every skill ends up in `~/.agents/skills`, the ecosystem's convention for a personal skill directory, and Codex, Copilot CLI and Gemini CLI read it from there with no configuration at all. Claude Code reads only `~/.claude/skills`, so it gets a symlink per skill, which is the mechanism [its own documentation](https://code.claude.com/docs/en/skills) describes.
 
 ```text
-.chezmoidata/skills.toml            the inventory (402 skills)
+.chezmoidata/skills.toml  +  skills-owners.toml    the inventory (402 skills)
         │
-        ├──> .chezmoiexternal.toml.tmpl ──> chezmoi external ──┐
-        │      every skill but the licensed ones               │
-        │                                                      v
-        └──> run_after_10-agent-skills ──> curl + token ──> ~/.agents/skills/<name>
-               the licensed ones                               │
-                                                               ├──> Codex     reads it natively
-               run_after_10-agent-skills ──> symlink ──────────┤     Copilot  reads it natively
-                                                               │     Gemini   reads it natively
-                                                               └──> ~/.claude/skills/<name>
+        v
+run_after_10-agent-skills, on every chezmoi apply
+        ├──> one sparse git clone per repository ──> ~/.local/share/agent-skills/<owner>/<repo>
+        │                                                     │ symlink per skill
+        ├──> private clones, licensed downloads ──────> ~/.agents/skills/<name>
+        │                                                     ├──> Codex, Copilot, Gemini read it natively
+        └──> links ─────────────────────────────────────────> ~/.claude/skills/<name>
 ```
 
 **Four source kinds**, one per entry, and the entry's keys say which:
 
-| Keys              | Fetched as                | Used for                                                            |
-| ----------------- | ------------------------- | ------------------------------------------------------------------- |
-| `repo` (+ `path`) | `archive` external        | A public GitHub repository, or one directory inside a larger one    |
-| `url`             | `archive` external        | A tarball the vendor publishes on its own, smaller than a repo copy |
-| `git`             | `git-repo` external       | A private repository, where a tarball would need credentials        |
-| none              | plain source files        | A skill this repository owns, in `dot_agents/skills/<name>/`        |
+| Keys                     | Installed as                               | Used for                                                          |
+| ------------------------ | ------------------------------------------ | ----------------------------------------------------------------- |
+| `repo` (+ `path`, `ref`) | Sparse clone in the store, symlinked       | A public GitHub repository, or one directory inside a larger one  |
+| `git`                    | Full clone in `~/.agents/skills`           | A private repository, cloned over SSH and edited in place         |
+| `url` + `token`          | Download with a keychain token             | A licensed tarball                                                |
+| none                     | Plain source files                         | A skill this repository owns, in `dot_agents/skills/<name>/`      |
 
-Wanting everything one person publishes is a fifth case, and it does not belong in the table because it is not a source kind. Listing a name in `agent_skill_owners` and running [`skills:sync`](dot_functions) resolves that person's whole catalogue through the [skilld.dev](https://skilld.dev) registry into [`.chezmoidata/skills-owners.toml`](.chezmoidata/skills-owners.toml), which is generated and committed. chezmoi merges every file under `.chezmoidata/`, so the two files together are the inventory.
+**Clones.** [`run_after_10-agent-skills`](.chezmoiscripts/run_after_10-agent-skills.sh.tmpl) keeps one clone per source repository under `~/.local/share/agent-skills/<owner>/<repo>`, made with `--depth 1 --filter=blob:none --sparse` and narrowed with `git sparse-checkout set --no-cone` to the folders the inventory declares from it, so git fetches only those files. A repository whose skill is its root stays a full checkout. The script clones a missing repository on the spot, updates one not fetched for `agent_skills_refresh_days` with a shallow fetch and a reset, up to eight at a time, and calls git to narrow a clone only when its folders changed. With nothing due, a run makes no network call except the licensed downloads. `AGENT_SKILLS_REFRESH=1 chezmoi apply` updates every clone at once. The clones are mirrors, so an edit made inside one is lost at the next update.
 
-Resolving owners at apply time was rejected. It would put a registry call in front of every `chezmoi apply`, and since a failed external fails the whole source state, a registry that is slow or down would stop the apply. Committing the resolved list keeps the repository able to answer, on its own, which skills exist. A skill named by hand in `skills.toml` beats the registry's copy of the same name, which is how `slidev` stays on `slidevjs/slidev` rather than `antfu/skills`, and `skills:sync` reports every such override.
+**A private repository** (`git`) is a full clone straight into `~/.agents/skills`, because it is a working tree edited and pushed from there. It is only ever fast-forwarded. A pull that would need a merge commit or overwrite uncommitted changes fails with a warning and leaves the tree as it was, since the alternatives are inventing a merge or discarding the work. Commit and push, or delete the directory and let the next apply clone it again.
 
-Adding `token` to an entry marks it **licensed**. chezmoi externals cannot send an HTTP header, and a licensed tarball needs one, so [`run_after_10-agent-skills`](.chezmoiscripts/run_after_10-agent-skills.sh.tmpl) downloads those with the named keychain secret instead. It writes them to the same shared directory, so nothing downstream knows the difference. The license key never enters the repository, and the download hands it to `curl` on stdin rather than in an argument, which any local account could read from the process table.
+**Licensed skills** carry `token` and `account`, which name a keychain entry. The script reads the token at run time and hands it to `curl` on stdin in the request header, because a rendered token would show in every `chezmoi diff` and an argument is readable in the process table by any local account. The license never enters the repository.
 
-Every external carries `agent_skills_refresh` as its `refreshPeriod`, so the first apply after that period re-downloads it. Keeping skills current needs no separate workflow: it is whatever already brings the rest of the configuration up to date, `chezmoi apply` or `chezmoi update`, and `--refresh-externals` forces a download before the period is up. `exact = true` makes each skill converge, so a file upstream deletes is deleted here too.
-
-A `git-repo` external is a real working tree, which is what makes a repository the user owns editable in place. The cost is that an apply refreshing it runs `git pull --ff-only`, so a clone carrying uncommitted work, or one whose history has diverged from the remote, reports the pull failure and is left untouched. That is deliberate: the alternatives are discarding the work or inventing a merge commit. Commit and push, or delete the directory and let the next apply clone it again. The failure is confined to that one skill, and every other external still applies.
-
-A `repo` entry downloads the whole repository to extract one directory, and the inventory tracks 116 of them. Two things follow, and both are handled rather than hoped about.
-
-**One dead source must not break everything.** A failed `archive` download fails chezmoi's source-state read, not just that entry, so a single deleted repository would stop `chezmoi apply` from applying anything at all, on this machine and on a new one. Every archive therefore lists a second URL, [`skill-unavailable.tar.gz`](skill-unavailable.tar.gz), and chezmoi takes the first URL that answers. A dead source now unpacks a directory with no `SKILL.md`, which no agent loads, and the apply carries on. A `git-repo` external needs no such thing: its clone runs at write time, so chezmoi reports the failure and keeps going by itself.
-
-**A dead source must not be silent.** `run_after_10-agent-skills` ends by checking every declared skill for a `SKILL.md` and naming the ones that have none, together with the source the inventory claims for them:
+**Failures stay contained and stay visible.** A repository that is deleted, renamed or unreachable fails its own clone or update, the script prints git's reason as a warning, and every other skill still installs. The script then checks every declared skill for a `SKILL.md` and names each one that has none, together with the source the inventory claims for it, on every apply until it is fixed:
 
 ```text
 Error:   Failed to install the some-skill skill from someone/their-repo (skills/some-skill)
-Info:    Check the source of each skill above, then fix or drop its entry in .chezmoidata/skills.toml
+Info:    Fix or drop each entry above in .chezmoidata/skills.toml, or run skills:sync if it comes from a watched owner
 ```
 
-That covers a repository that was deleted or renamed, a skill the upstream moved so `path` no longer finds it, and a licensed download that has started failing. chezmoi's own message names a URL once, on the apply where the download broke. This one names the skill every apply until it is fixed.
+**Owners.** Listing a name in `agent_skill_owners` and running [`skills:sync`](dot_functions) resolves that person's whole catalogue through the [skilld.dev](https://skilld.dev) registry into `.chezmoidata/skills-owners.toml`, which is generated and committed. Resolving owners at apply time instead would make every apply depend on the registry, and a registry that is slow or down would stop it, while the committed list lets the repository answer on its own which skills exist. A skill named by hand in `skills.toml` beats the registry's copy of the same name, which is how `slidev` stays on `slidevjs/slidev` rather than `antfu/skills`. Run `skills:sync` after naming one, because until the generated entry is gone chezmoi merges the two key by key.
 
-**The listing has a budget too.** 402 skills is about 129 KB of names and descriptions, roughly 33,000 tokens. Claude Code and Gemini CLI list all of them, Codex caps its listing at the smaller of 2% of the context window and 8,000 characters and shortens or drops the rest, and every agent spends that text on every session. Trimming means removing entries here, or disabling per agent: `[[skills.config]]` with `enabled = false` in `~/.codex/config.toml`, `disabledSkills` in `~/.copilot/settings.json`, and `skillListingMaxDescChars` in Claude Code's settings.
+**Removal.** Dropping an entry leaves its link and clone behind, so the script keeps a ledger of what it installed at `~/.local/state/agent-skills/managed`, deletes what the inventory no longer names, and removes any clone no declared skill uses. Anything absent from that ledger is somebody else's and is left alone: a hand-installed skill in the shared directory, including one whose name the inventory also declares, a real directory inside an agent's skill directory, and a symlink pointing anywhere other than the shared directory all survive every apply. A dropped private clone is reported rather than deleted, since it may hold work that was never pushed.
 
-**Bandwidth is bounded by `refresh`.** Refreshing every source weekly would move about 1.3 GB a week, because a few of these repositories are enormous next to the skill they carry, one of them 136 MB. Any entry whose tarball is 25 MB or more sets `refresh = "2160h"`, which splits the load into 390 MB weekly and 950 MB quarterly. A first apply on a new machine still fetches everything once, so budget about 1.3 GB for it, and about 2.7 GB of `~/.cache/chezmoi` afterwards, since chezmoi keeps both the download and the unpacked copy. That cache can be deleted at any time.
-
-Removal is the one thing chezmoi cannot do alone. Dropping an external stops the download but leaves the copy already written, so `run_after_10-agent-skills` keeps a ledger of what it installed at `~/.local/state/agent-skills/managed` and deletes what the inventory no longer names. Anything absent from that ledger is somebody else's, and is left alone: a hand-installed skill in the shared directory, a real directory inside an agent's skill directory, and a symlink pointing anywhere other than the shared directory all survive every apply.
+**The listing has a budget.** 402 skills is about 129 KB of names and descriptions, roughly 33,000 tokens. Claude Code and Gemini CLI list all of them, Codex caps its listing at the smaller of 2% of the context window and 8,000 characters and shortens or drops the rest, and every agent spends that text on every session. Trimming means removing entries here, or disabling per agent: `[[skills.config]]` with `enabled = false` in `~/.codex/config.toml`, `disabledSkills` in `~/.copilot/settings.json`, and `skillListingMaxDescChars` in Claude Code's settings.
 
 > [!NOTE]
-> `~/.agents/.skill-lock.json` is left over from `npx skills`, which installed this set before chezmoi did. It is inert, but running `npx skills update` would write over directories chezmoi now owns. Declare skills in `.chezmoidata/skills.toml` instead. `npx skills find` is still the way to discover new ones.
+> `~/.agents/.skill-lock.json` is left over from `npx skills`, which installed this set before chezmoi did. It is inert, but running `npx skills update` would write over directories the script now owns. Declare skills in `.chezmoidata/skills.toml` instead. `npx skills find` is still the way to discover new ones.
 
 ### Machine-Type Branching
 
@@ -527,7 +514,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Add or remove an Agent Skill         | `.chezmoidata/skills.toml`                                                                         |
 | Follow everyone one person publishes | `.chezmoidata/skills.toml` (`agent_skill_owners`), then `skills:sync`                              |
 | Find out why a skill is missing      | The `Failed to install the <name> skill` errors at the end of `chezmoi apply`                      |
-| Refresh the external Agent Skills    | Nothing, any apply does it weekly (`chezmoi apply --refresh-externals` to skip the wait)           |
+| Update the Agent Skills now          | `AGENT_SKILLS_REFRESH=1 chezmoi apply` (any apply updates clones older than a week)                |
 | Teach another agent about the skills | `.chezmoidata/skills.toml` (`agent_skills_link_dirs`), only if it cannot read `~/.agents/skills`   |
 | Edit a repository-owned Agent Skill  | Its directory under `dot_agents/skills/`, which symlinks straight into `~/.agents/skills`          |
 | Add a managed secret                 | `secret:set <id> <account> <where> <kind> [comment]` then `includeTemplate "keychain"`             |
@@ -588,11 +575,11 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **Write-time secrets scan and destructive git guard**          | The SonarQube integration only scans files Claude reads and user prompts, so a PostToolUse hook runs `sonar analyze secrets` on every file Claude writes and feeds findings back with exit code 2. A second PreToolUse guard blocks `git reset --hard`, forced `git clean`, forced `git checkout`, and worktree-discarding `checkout` and `restore` behind the same explicit-confirmation pattern as the push guard (`CLAUDE_DESTRUCTIVE_OK=1`). The sonar-installed wrappers under `~/.claude/hooks/sonar-secrets/` stay vendor-managed and out of chezmoi, while their settings registration is templated so `chezmoi apply` cannot wipe it.                                                                                                                                                                                                                                                     |
 | **Commit style enforced by an agent hook, not a git hook**     | A global `core.hooksPath` was tried and reverted: it hijacks every repo's hook path (git-lfs and local tooling install into `.git/hooks`) and binds the human too, while the rule only needs to steer the agent. A PreToolUse hook now validates the Conventional Commits subject (lowercase type) and rejects Claude attribution trailers in commands it can parse, fails open for editor-based commits and exotic quoting, and accepts `CLAUDE_COMMIT_OK=1` when a repository's documented convention intentionally differs. Bodies and footers stay unrestricted.                                                                                                                                                                                                                                                                                                                               |
 | **A path blocklist needs a hook, not just a deny rule**        | One list in `.chezmoidata.toml` (`claude_blocked_paths`) feeds both `permissions.deny` and a PreToolUse guard, since neither alone suffices. Deny rules reach the `@` mentions no hook sees, but validate paths for only about thirty six recognised commands: before this machine's managed policy landed, a deny rule blocked `cat file` while `python3 -c` read it. That policy (`allowManagedPermissionRulesOnly`) drops every non-managed rule, so here the hook is the only enforcement. It registers for every tool, since Monitor, PowerShell and Tmux also run commands, and matches path text rather than command names, since zsh reads through hundreds of aliases and a bare `< file`. Entries are bare names, so a directory stays covered through a symlink or copy. No override: this is a confidentiality boundary. A project's `disableAllHooks` still defeats it.               |
-| **chezmoi externals over a skills package manager**            | `npx skills` installed this set first, and its lockfile lives in `~/.agents`, outside the repository, so the repository never held the answer to which skills exist. A chezmoi external per skill puts that answer in `.chezmoidata/skills.toml`, updates on `chezmoi update` like everything else, and needs no second package manager on a fresh machine. The cost is that chezmoi cannot send an auth header, which is why the two licensed skills keep a small script. |
+| **A declared inventory over a skills package manager**         | `npx skills` installed this set first, and its lockfile lives in `~/.agents`, outside the repository, so the repository never held the answer to which skills exist. Declaring every skill in `.chezmoidata/skills.toml` puts that answer in the repository, updates on `chezmoi update` like everything else, and needs no second package manager on a fresh machine. |
 | **One shared skills directory over a copy per agent**          | `~/.agents/skills` is the ecosystem's shared personal location, and Codex, Copilot CLI and Gemini CLI each read it with no configuration. Only Claude Code needs anything, and one symlink per skill is what its documentation describes. Linking into the others as well was tried and rejected: they would list every skill twice against a skills budget capped at a fraction of the context window. |
 | **Per-skill symlinks over symlinking the whole directory**     | Claude Code does follow a symlinked `~/.claude/skills`, measured on 2.1.269, but that hands the entire directory to this repository. Codex shows why that is wrong: it keeps its own bundled skills in `~/.codex/skills/.system`. A link per skill leaves every agent's directory theirs. |
-| **A ledger over pruning whatever is undeclared**               | Dropping an external stops the download but leaves the copy behind, so removal needs a sweep. Sweeping everything undeclared would also delete a skill installed by hand, which is the one thing the sweep must not do. `run_after_10` records what it installed and deletes only what it stops declaring. |
+| **A ledger over pruning whatever is undeclared**               | Dropping an entry leaves its link and clone behind, so removal needs a sweep. Sweeping everything undeclared would also delete a skill installed by hand, which is the one thing the sweep must not do. `run_after_10` records what it installed, never a name another installer occupies, and deletes only what it stops declaring. The clone store is the exception: nothing but this script writes there. |
 | **Licensed skills download on every apply**                    | The HeroUI CDN sends `no-store` and no `ETag`, so a conditional request is not possible and a stamp file would be the only way to skip one. The two tarballs are 13 KB together, and the script replaces a skill only when the bytes differ, so an unchanged apply costs one request and prints nothing. Being offline warns and keeps the installed copy. |
 | **`mattpocock-skills` plugin disabled**                        | The plugin ships 22 of the skills the inventory already declares. Two copies of a skill both reach the model, and the plugin's copy is pinned to whatever the marketplace last published rather than tracking upstream. |
-| **A fallback URL on every skill archive**                      | A failed archive download fails chezmoi's whole source-state read, so with 116 third-party repositories tracked, one deletion would stop `chezmoi apply` from applying anything at all. `--keep-going` does not cover it and neither does `--refresh-externals=never` on a machine with no cache. A second URL pointing at a committed placeholder turns that into one directory with no SKILL.md, which no agent loads and the run script reports. `git-repo` externals need none of this, because their clone runs at write time and chezmoi already carries on past it. |
-| **A per-entry `refresh` for heavy sources**                    | A `repo` entry downloads the whole repository to extract one directory, and the spread is extreme: 236 KB for mattpocock/skills against 136 MB for thedotmack/claude-mem, both for one skill. A single weekly period would move about 1.3 GB a week. Marking every source of 25 MB or more as quarterly leaves 390 MB weekly, and the number sits next to the entry that causes it. |
+| **One sparse clone per repository, not an archive per skill**  | chezmoi unpacks every `archive` external again on each command that computes the target state, so one archive per skill made `apply`, `diff`, `status` and `edit` take about 40 seconds at 400 skills, and each tarball carried a whole repository for one folder. A shallow, blobless, sparse clone per repository fetches only the declared folders (5 MB instead of 126 MB for HyperFrames), and chezmoi commands take well under a second. |
+| **The run script owns the clones, not chezmoi externals**      | chezmoi stops a whole apply at the first external that fails, and only the `--keep-going` flag changes that. As externals, one deleted upstream repository, a force-push or a week offline would keep `.zshrc` and everything after it from applying. In the script, the same failure is a warning and every other skill still installs. |

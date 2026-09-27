@@ -1,96 +1,254 @@
 #!/bin/bash
 set -euo pipefail
 {{ template "shell-helpers" . }}
+{{- if not .agent_skills_store }}{{ fail "agent_skills_store must not be empty" }}{{ end }}
 
-# Finish the Agent Skills set that .chezmoiexternal.toml.tmpl starts. chezmoi
-# materializes every declared skill into one shared directory. This script does
-# the three things chezmoi cannot:
+# Install the Agent Skills that .chezmoidata/skills.toml declares:
 #
-#   1. Download the licensed skills. Their tarballs need a license token in a
-#      request header, and a chezmoi external has no way to send one.
-#   2. Link every skill into the agents that do not read the shared directory
-#      themselves, which today means Claude Code alone. Codex, Copilot and
-#      Gemini already find it, so they are not in the list.
-#   3. Remove what the inventory no longer declares. Dropping an external stops
-#      chezmoi fetching it but never deletes the copy it already wrote, so a
-#      removed skill would keep being offered to every agent forever.
+#   1. Keep one shallow, blobless, sparse clone per source repository under
+#      agent_skills_store. A missing one is cloned, and one not fetched for
+#      agent_skills_refresh_days is updated, up to eight at a time. Each is
+#      then narrowed to the skill folders the inventory declares from it, and
+#      each of those skills is linked into agent_skills_home.
+#   2. Clone or pull the private repositories, which live in agent_skills_home
+#      as working trees the user edits.
+#   3. Download the licensed skills, with a token read from the keychain.
+#   4. Link every skill into the agents that do not read agent_skills_home
+#      themselves, which today means Claude Code alone.
+#   5. Remove the skills the inventory no longer declares and the clones no
+#      skill uses.
 #
-# Runs on every apply rather than behind a content hash. The linking and the
-# pruning are both cheap, and both depend on state this repo does not own: an
-# agent installed since the last apply needs its links created, and a licensed
-# download that failed while offline needs retrying. A hash of the inventory
-# would gate exactly those repairs off.
+# This script, not chezmoi externals, owns the clones: chezmoi stops a whole
+# apply at the first external that fails, while a failure here is a warning
+# and every other skill still installs. It runs on every apply. With nothing
+# due, it makes no network call except the licensed downloads, and the checks
+# per skill are bash tests rather than subprocesses. Written for /bin/bash 3.2,
+# the version macOS ships, so there are no associative arrays. Membership
+# tests match against a newline-separated list instead.
 #
-# Silent when nothing changes.
+# Set AGENT_SKILLS_REFRESH=1 to update every clone now instead of when due.
 
-SKILLS_HOME={{ printf "%s/%s" .chezmoi.homeDir .agent_skills_home | quote }}
+SKILLS_HOME={{ printf "%s/%s" .chezmoi.homeDir .agent_skills_home | shellQuote }}
+STORE={{ printf "%s/%s" .chezmoi.homeDir .agent_skills_store | shellQuote }}
+REFRESH_DAYS={{ .agent_skills_refresh_days | toString | shellQuote }}
+KEYCHAIN={{ printf "%s/Library/Keychains/%s.keychain-db" .chezmoi.homeDir .keychain_name | shellQuote }}
+KEYCHAIN_FLAG={{ includeTemplate "keychain-flag" .keychain_lookup_field | shellQuote }}
 
 # What the last run installed, so this one can tell a skill that was dropped
 # from the inventory apart from a skill that was never managed here. Without
 # that distinction the only safe prune is no prune, and a hand-installed skill
 # is exactly what must survive. Losing the file costs one skipped prune, which
 # is why it lives under the state directory rather than in the repo.
-LEDGER={{ printf "%s/.local/state/agent-skills/managed" .chezmoi.homeDir | quote }}
+LEDGER={{ printf "%s/.local/state/agent-skills/managed" .chezmoi.homeDir | shellQuote }}
 
-declared=(
-{{- range $name, $skill := .agent_skills }}
-  {{ $name | quote }}
-{{- end }}
-)
-
-# Where each declared skill is supposed to come from, in the same order, so the
-# health check at the end can name the source rather than only the skill.
-# chezmoi's own download error names a URL and nothing else.
-sources=(
-{{- range $name, $skill := .agent_skills }}
-{{-   if hasKey $skill "git" }}
-  {{ $skill.git | quote }}
-{{-   else if hasKey $skill "url" }}
-  {{ $skill.url | quote }}
-{{-   else if hasKey $skill "repo" }}
-  {{ printf "%s (%s)" $skill.repo (default "repository root" (get $skill "path")) | quote }}
-{{-   else }}
-  {{ printf "dot_agents/skills/%s in this repository" $name | quote }}
-{{-   end }}
-{{- end }}
-)
+# Marks when a clone was last fetched. git ignores unknown files in .git.
+STAMP="agent-skills-fetched"
 
 # Skipped unless the agent's own directory already exists, so an agent this
 # machine does not have gets no empty skills directory invented for it.
 link_dirs=(
 {{- range .agent_skills_link_dirs }}
-  {{ printf "%s/%s" $.chezmoi.homeDir . | quote }}
+  {{ printf "%s/%s" $.chezmoi.homeDir . | shellQuote }}
 {{- end }}
 )
 
-# One newline-separated copy for the membership tests below. Built through a
-# guard because /bin/bash on macOS is 3.2, where expanding an empty array under
-# `set -u` is an error rather than nothing.
+# ----------------------------------- Data ----------------------------------- #
+
+# One call per skill, clone and licensed download, rendered from the inventory.
+names=() origins=() targets=()
+_skill() { names+=("$1") origins+=("$2") targets+=("${3:-}"); }
+clone_dirs=() clone_urls=() clone_refs=() clone_patterns=()
+_clone() {
+  local p
+  clone_dirs+=("$1") clone_urls+=("$2") clone_refs+=("$3")
+  shift 3
+  printf -v p '%s\n' "$@"
+  clone_patterns+=("$p")
+}
+tree_names=() tree_urls=()
+_tree() { tree_names+=("$1") tree_urls+=("$2"); }
+licensed=()
+_licensed() { licensed+=("$1" "$2" "$3" "$4" "$5"); }
+
+{{  $store := printf "%s/%s" .chezmoi.homeDir .agent_skills_store -}}
+{{- $clones := dict -}}
+{{- range $name, $skill := .agent_skills -}}
+{{-   $path := get $skill "path" -}}
+{{-   if hasKey $skill "repo" -}}
+{{-     $ref := get $skill "ref" -}}
+{{-     $key := lower $skill.repo -}}
+{{-     if $ref }}{{ $key = printf "%s@%s" $key $ref }}{{ end -}}
+{{-     $pattern := "/*" -}}
+{{-     if $path }}{{ $pattern = printf "/%s/" $path }}{{ end -}}
+{{-     $clone := get $clones $key | default (dict "repo" $skill.repo "ref" $ref "patterns" list) -}}
+{{-     $_ := set $clone "patterns" (append $clone.patterns $pattern) -}}
+{{-     $_ := set $clones $key $clone -}}
+_skill {{ $name | shellQuote }} {{ printf "%s (%s)" $skill.repo (default "repository root" $path) | shellQuote }} {{ trimSuffix "/" (printf "%s/%s/%s" $store $key $path) | shellQuote }}
+{{    else if hasKey $skill "git" -}}
+_skill {{ $name | shellQuote }} {{ $skill.git | shellQuote }}
+_tree {{ $name | shellQuote }} {{ $skill.git | shellQuote }}
+{{    else if hasKey $skill "token" -}}
+_skill {{ $name | shellQuote }} {{ $skill.url | shellQuote }}
+_licensed {{ $name | shellQuote }} {{ $skill.url | shellQuote }} {{ $skill.header | shellQuote }} {{ $skill.token | shellQuote }} {{ $skill.account | shellQuote }}
+{{    else -}}
+_skill {{ $name | shellQuote }} {{ printf "dot_agents/skills/%s in this repository" $name | shellQuote }}
+{{    end -}}
+{{- end -}}
+{{- range $key, $clone := $clones -}}
+{{-   $patterns := uniq (sortAlpha $clone.patterns) -}}
+{{-   if has "/*" $patterns }}{{ $patterns = list "/*" }}{{ end -}}
+_clone {{ printf "%s/%s" $store $key | shellQuote }} {{ printf "https://github.com/%s.git" $clone.repo | shellQuote }} {{ $clone.ref | shellQuote }}{{ range $patterns }} {{ . | shellQuote }}{{ end }}
+{{ end }}
+# Built through guards because expanding an empty array under `set -u` is an
+# error in bash 3.2 rather than nothing.
 declared_list=""
-if ((${#declared[@]})); then
-  declared_list="$(printf '%s\n' "${declared[@]}")"
-fi
+((${#names[@]})) && printf -v declared_list '%s\n' "${names[@]}"
+checkout_list=""
+((${#clone_dirs[@]})) && printf -v checkout_list '%s\n' "${clone_dirs[@]}"
+managed_list=""
+[[ -r "$LEDGER" ]] && IFS= read -r -d '' managed_list <"$LEDGER" || true
+foreign_list=""
+
+_listed() { [[ $'\n'"$2" == *$'\n'"$1"$'\n'* ]]; }
 
 WORK_DIR="$(mktemp -d)"
 trap 'command rm -rf "$WORK_DIR"' EXIT
+mkdir -p "$SKILLS_HOME"
+
+# ------------------------------- Clone, update ------------------------------ #
+
+# A clone is due when it is missing or was last fetched before this reference
+# time. Comparing against one reference file keeps the check a bash test.
+touch -t "$(date -v-"${REFRESH_DAYS}"d +%Y%m%d%H%M.%S)" "${WORK_DIR}/due"
+_due() { [[ -n "${AGENT_SKILLS_REFRESH:-}" || ! "$1/.git/${STAMP}" -nt "${WORK_DIR}/due" ]]; }
+
+_update_clone() {
+  local dir="$1" url="$2" ref="$3" err
+  if [[ ! -d "${dir}/.git" ]]; then
+    local -a args=(clone --quiet --depth 1 --filter=blob:none --sparse)
+    [[ -z "$ref" ]] || args+=(--branch "$ref")
+    command rm -rf "$dir"
+    if ! err="$(git "${args[@]}" "$url" "$dir" 2>&1)"; then
+      command rm -rf "$dir"
+      _log warning "Failed to clone ${dir#"${STORE}/"} (${err##*$'\n'})"
+      return 0
+    fi
+  # The clone is a mirror nobody edits, so a reset rather than a merge keeps it
+  # at depth 1 and survives a force-push upstream.
+  elif ! err="$(git -C "$dir" fetch --quiet --depth 1 origin "${ref:-HEAD}" 2>&1 \
+    && git -C "$dir" reset --quiet --hard FETCH_HEAD 2>&1)"; then
+    _log warning "Failed to update ${dir#"${STORE}/"} (${err##*$'\n'}, keeping the current files)"
+    return 0
+  fi
+  touch "${dir}/.git/${STAMP}"
+}
+
+# A private repository is a working tree the user edits and pushes from, so it
+# is a full clone and only ever fast-forwarded. Anything else leaves it alone.
+_update_tree() {
+  local dir="${SKILLS_HOME}/$1" url="$2" err
+  if [[ ! -d "${dir}/.git" ]]; then
+    if [[ -e "$dir" ]]; then
+      _log warning "Skipped cloning $1 (${dir} already exists)"
+      return 0
+    fi
+    if ! err="$(git clone --quiet "$url" "$dir" 2>&1)"; then
+      _log warning "Failed to clone $1 (${err##*$'\n'})"
+      return 0
+    fi
+  elif ! err="$(git -C "$dir" pull --quiet --ff-only 2>&1)"; then
+    _log warning "Failed to pull $1 (${err##*$'\n'}, left untouched)"
+    return 0
+  fi
+  touch "${dir}/.git/${STAMP}"
+}
+
+# Run in the background, eight at a time. bash 3.2 has no `wait -n`, so each
+# batch waits for its slowest job, which is fine for a weekly refresh. The
+# explicit subshell is load-bearing: bash 3.2 runs a function started with a
+# bare `&` so that its first `command <utility>` replaces the whole job, and
+# nothing after that line ever runs.
+running=0
+_spawn() {
+  ("$@") &
+  running=$((running + 1))
+  ((running < 8)) || { wait; running=0; }
+}
+
+for ((i = 0; i < ${#clone_dirs[@]}; i++)); do
+  _due "${clone_dirs[i]}" && _spawn _update_clone "${clone_dirs[i]}" "${clone_urls[i]}" "${clone_refs[i]}"
+done
+for ((i = 0; i < ${#tree_names[@]}; i++)); do
+  _due "${SKILLS_HOME}/${tree_names[i]}" && _spawn _update_tree "${tree_names[i]}" "${tree_urls[i]}"
+done
+wait
+
+# ----------------------------- Narrow and link ------------------------------ #
+
+# Narrow a clone to its skill folders, but only when they changed, so an
+# unchanged clone costs a file read rather than a git call.
+_narrow() {
+  local dir="$1" want="$2" current="" err
+  [[ -d "${dir}/.git" ]] || return 0
+  [[ -r "${dir}/.git/info/sparse-checkout" ]] \
+    && IFS= read -r -d '' current <"${dir}/.git/info/sparse-checkout" || true
+  [[ "$current" == "$want" ]] && return 0
+
+  if err="$(printf '%s' "$want" | git -C "$dir" sparse-checkout set --no-cone --stdin 2>&1)"; then
+    _log success "Checked out the skill folders in ${dir#"${STORE}/"}"
+  else
+    _log warning "Failed to narrow ${dir#"${STORE}/"} to its skills (${err##*$'\n'})"
+  fi
+}
+
+for ((i = 0; i < ${#clone_dirs[@]}; i++)); do
+  _narrow "${clone_dirs[i]}" "${clone_patterns[i]}"
+done
+
+# Point agent_skills_home/<name> at its folder inside a clone. A real
+# directory in the way is replaced only when this script installed it and
+# only once the clone holds the skill, so a failed clone keeps the working
+# copy rather than leaving a dead link. A git working tree is never replaced.
+linked=0
+_link_skill() {
+  local name="$1" target="$2" link="${SKILLS_HOME}/$1"
+  [[ -L "$link" && "$link" -ef "$target" ]] && return 0
+  [[ -L "$link" && "$(readlink "$link")" == "$target" ]] && return 0
+
+  if [[ -e "$link" && ! -L "$link" ]]; then
+    if [[ -d "${link}/.git" ]] || ! _listed "$name" "$managed_list"; then
+      foreign_list+="${name}"$'\n'
+      _log warning "Skipped linking ${name} into ${SKILLS_HOME} (a real directory is already there)"
+      return 0
+    fi
+    [[ -f "${target}/SKILL.md" ]] || return 0
+    command rm -rf "$link"
+  fi
+  ln -sfn "$target" "$link"
+  linked=$((linked + 1))
+}
+
+for ((i = 0; i < ${#names[@]}; i++)); do
+  [[ -z "${targets[i]}" ]] || _link_skill "${names[i]}" "${targets[i]}"
+done
+((linked == 0)) || _log success "Linked ${linked} skill(s) into ${SKILLS_HOME}"
 
 # ------------------------------ Licensed skills ----------------------------- #
 
 # Replace the skill only when the download differs from what is already there,
-# so an unchanged skill keeps its mtimes and this script stays quiet.
+# so an unchanged skill keeps its mtimes and this script stays quiet. The CDN
+# offers no conditional request, so each licensed skill costs one download per
+# apply, which is also how a failed one retries.
 _install_licensed() {
-  local name="$1" url="$2" header="$3"
+  local name="$1" url="$2" header="$3" id="$4" account="$5"
   local dest="${SKILLS_HOME}/${name}"
   local unpacked="${WORK_DIR}/${name}"
   local archive="${WORK_DIR}/${name}.tar.gz"
-
-  # The token arrives base64 encoded and is decoded here. Rendering it directly
-  # would put whatever the vendor issued inside a double-quoted bash assignment,
-  # where a dollar sign in the value expands and silently corrupts it. Base64
-  # has no character bash treats specially, so any token survives.
   local token
-  token="$(printf %s "$4" | base64 -d 2>/dev/null)" || token=""
 
+  # Read here rather than rendered into this script, so the token never
+  # appears in the rendered script, which `chezmoi diff` prints.
+  token="$(security find-generic-password "$KEYCHAIN_FLAG" "$id" -a "$account" -w "$KEYCHAIN" 2>/dev/null)" || token=""
   if [[ -z "$token" ]]; then
     _log warning "Skipped the ${name} skill (no license token in the keychain)"
     return 0
@@ -98,9 +256,12 @@ _install_licensed() {
 
   # The token goes to curl on stdin, not in an argument. Arguments are readable
   # in the process table by any local account for as long as the request runs,
-  # and this is a credential that grants downloads against a paid seat.
+  # and this is a credential that grants downloads against a paid seat. curl's
+  # config syntax treats backslash and double quote as escapes.
+  token="${token//\\/\\\\}"
+  token="${token//\"/\\\"}"
   if ! printf 'header = "%s: %s"\n' "$header" "$token" \
-    | curl -fsSL -K - -o "$archive" "$url"; then
+    | curl -fsSL --connect-timeout 10 --max-time 120 -K - -o "$archive" "$url"; then
     # A warning, not a failure. Being offline, or holding a token that has
     # expired, must not abort an apply that has nothing else to do with this
     # vendor, and the copy already on disk keeps working until the next apply
@@ -120,34 +281,31 @@ _install_licensed() {
   fi
 
   # Swap rather than write in place, so a file the vendor dropped upstream does
-  # not survive here, matching the `exact` externals the rest of the set uses.
-  mkdir -p "$SKILLS_HOME"
+  # not survive here.
   command rm -rf "$dest"
   command mv "$unpacked" "$dest"
   _log success "Installed the ${name} skill"
 }
 
-{{ range $name, $skill := .agent_skills -}}
-{{-   if hasKey $skill "token" -}}
-{{-     $token := includeTemplate "keychain" (list $skill.token $skill.account $.keychain_name $.keychain_lookup_field) -}}
-_install_licensed {{ $name | quote }} {{ $skill.url | quote }} {{ $skill.header | quote }} {{ $token | b64enc | quote }}
-{{   end -}}
-{{- end }}
+for ((i = 0; i < ${#licensed[@]}; i += 5)); do
+  _install_licensed "${licensed[i]}" "${licensed[i + 1]}" "${licensed[i + 2]}" "${licensed[i + 3]}" "${licensed[i + 4]}"
+done
+
 # --------------------------------- Agent links ------------------------------ #
 
 for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
   [[ -d "${link_dir%/*}" ]] || continue
   mkdir -p "$link_dir"
+  added=0
 
-  for name in ${declared[@]+"${declared[@]}"}; do
+  for name in ${names[@]+"${names[@]}"}; do
     target="${SKILLS_HOME}/${name}"
     link="${link_dir}/${name}"
 
-    # Only a directory holding a SKILL.md is a skill. A download that failed
-    # leaves nothing, and one that fell back to skill-unavailable.tar.gz leaves
-    # a directory without one, so the test is the file rather than the
-    # directory. Either way, take back the link if this run already had one:
-    # the skill was installed on an earlier apply and has since gone away.
+    # Only a directory holding a SKILL.md is a skill. A clone that failed
+    # leaves a dangling link and a moved upstream folder leaves one without a
+    # SKILL.md, so the test is the file rather than the directory. Either way,
+    # take back the link if an earlier run made one: the skill has gone away.
     if [[ ! -f "${target}/SKILL.md" ]]; then
       if [[ -L "$link" && "$(readlink "$link")" == "$target" ]]; then
         command rm -f "$link"
@@ -156,7 +314,7 @@ for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
       continue
     fi
 
-    [[ -L "$link" && "$(readlink "$link")" == "$target" ]] && continue
+    [[ -L "$link" && "$link" -ef "$target" ]] && continue
 
     # Only ever replace a link. A real directory of the same name is somebody
     # else's skill, and clobbering it would be the one destructive thing this
@@ -167,27 +325,41 @@ for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
     fi
 
     ln -sfn "$target" "$link"
-    _log success "Linked the ${name} skill into ${link_dir}"
+    added=$((added + 1))
   done
+  ((added == 0)) || _log success "Linked ${added} skill(s) into ${link_dir}"
 done
 
 # ---------------------------------- Pruning --------------------------------- #
 
 # Everything the last run installed that the inventory no longer names. Reading
 # a missing ledger as empty is what makes the first run on a machine adopt what
-# is already there rather than delete it.
-if [[ -r "$LEDGER" ]]; then
+# is already there rather than delete it. A git working tree may hold work that
+# was never pushed, so it is reported rather than removed.
+if [[ "$managed_list" != "$declared_list" ]]; then
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
-    grep -qxF -- "$name" <<<"$declared_list" && continue
+    _listed "$name" "$declared_list" && continue
 
     stale="${SKILLS_HOME}/${name}"
-    if [[ -e "$stale" ]]; then
+    if [[ -d "${stale}/.git" && ! -L "$stale" ]]; then
+      _log warning "Kept ${stale} (a git working tree, remove it by hand)"
+    elif [[ -e "$stale" || -L "$stale" ]]; then
       command rm -rf "$stale"
       _log success "Removed the ${name} skill (no longer declared)"
     fi
-  done <"$LEDGER"
+  done <<<"$managed_list"
 fi
+
+# Clones no declared skill uses any more. The store belongs to this script
+# alone, so anything in it that the inventory does not name is a leftover.
+for dir in "$STORE"/*/*; do
+  [[ -d "$dir" ]] || continue
+  _listed "$dir" "$checkout_list" && continue
+  command rm -rf "$dir"
+  _log success "Removed the ${dir#"${STORE}/"} clone (no declared skill uses it)"
+done
+rmdir "$STORE"/*/ 2>/dev/null || true
 
 # Links left pointing into the shared directory at something that is gone,
 # whether this run removed it or a hand-run of an installer did. The target
@@ -206,30 +378,27 @@ for link_dir in ${link_dirs[@]+"${link_dirs[@]}"}; do
   done
 done
 
+# A name that another installer's directory occupies is not recorded, so a
+# later run neither replaces nor prunes that directory.
 mkdir -p "${LEDGER%/*}"
-printf '%s\n' "$declared_list" >|"$LEDGER"
+for name in ${names[@]+"${names[@]}"}; do
+  _listed "$name" "$foreign_list" || printf '%s\n' "$name"
+done >|"$LEDGER"
 
 # ------------------------------- Health check ------------------------------- #
 
 # A declared skill with no SKILL.md is a skill no agent can load, and nothing
-# else on this machine will say so. It happens when the upstream repository is
-# gone or renamed and the download fell through to skill-unavailable.tar.gz,
-# when the source moved the skill and `path` no longer points at one, or when a
-# licensed download has been failing. chezmoi reports the first case as one line
-# naming a URL, on the apply where it happens and never again, so the check
-# below is what keeps a quietly dead skill from staying dead.
+# else on this machine will say so. It happens when a repository is gone or
+# renamed, when the source moved the skill and `path` no longer points at one,
+# when a clone keeps failing, or when a licensed download has been failing.
+# The warnings above appear once, and this names the skill every apply.
 broken=0
-i=0
-while [[ $i -lt ${#declared[@]} ]]; do
-  name="${declared[$i]}"
-  origin="${sources[$i]}"
-  i=$((i + 1))
-
-  [[ -f "${SKILLS_HOME}/${name}/SKILL.md" ]] && continue
+for ((i = 0; i < ${#names[@]}; i++)); do
+  [[ -f "${SKILLS_HOME}/${names[i]}/SKILL.md" ]] && continue
   broken=$((broken + 1))
-  _log error "Failed to install the ${name} skill from ${origin}"
+  _log error "Failed to install the ${names[i]} skill from ${origins[i]}"
 done
 
 if ((broken)); then
-  _log info "Check the source of each skill above, then fix or drop its entry in .chezmoidata/skills.toml"
+  _log info "Fix or drop each entry above in .chezmoidata/skills.toml, or run skills:sync if it comes from a watched owner"
 fi

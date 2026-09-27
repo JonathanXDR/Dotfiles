@@ -1,24 +1,26 @@
 # Agent Skills this machine should have, and where each one comes from. This
 # file is the whole inventory: nothing installs a skill that is not listed here.
 #
-# Every skill is materialized once, into agent_skills_home, and shared from
-# there. .chezmoiexternal.toml.tmpl turns most entries below into a chezmoi
-# external, so `chezmoi apply` fetches what is missing and re-downloads it every
-# agent_skills_refresh. Two kinds of entry need no external: a licensed one,
-# which run_after_10-agent-skills downloads because chezmoi cannot send the
-# token header, and a repository-owned one, which is already in the source tree.
-# That same script links every skill into the agents that need a link, and
-# reports any skill that did not arrive.
+# On every `chezmoi apply`, run_after_10-agent-skills keeps one sparse git clone
+# per source repository under agent_skills_store, links each skill from it into
+# agent_skills_home, installs the licensed ones, links every skill into the
+# agents that need a link, removes what this file no longer lists, and reports
+# any skill that did not arrive. The skills of agent_skill_owners are resolved
+# into .chezmoidata/skills-owners.toml, which completes this inventory.
 #
 # To add a skill, add an entry. To remove one, delete its entry. Either way the
 # next `chezmoi apply` converges. See ARCHITECTURE.md for the full picture.
 
-# Where the one resolved copy of every skill lives, relative to $HOME. The
-# Agent Skills discovery convention names ~/.agents/skills as the shared
-# personal location, and OpenAI Codex, GitHub Copilot CLI and Gemini CLI all
-# read it with no configuration at all. agent_skills_link_dirs below covers the
-# agents that do not.
+# Where every skill is installed, relative to $HOME. The Agent Skills discovery
+# convention names ~/.agents/skills as the shared personal location, and OpenAI
+# Codex, GitHub Copilot CLI and Gemini CLI all read it with no configuration at
+# all. agent_skills_link_dirs below covers the agents that do not.
 agent_skills_home = ".agents/skills"
+
+# Where the sparse clones of the source repositories live, relative to $HOME.
+# Skills in agent_skills_home are symlinks into these, so nothing is copied.
+# The clones are mirrors: an edit made there is lost at the next update.
+agent_skills_store = ".local/share/agent-skills"
 
 # Agent skill directories that get a symlink per skill, for agents that do not
 # read agent_skills_home themselves. Each entry is skipped unless the agent's
@@ -34,10 +36,10 @@ agent_skills_link_dirs = [
   ".claude/skills", # Claude Code
 ]
 
-# How often chezmoi re-downloads a skill, unless its entry overrides it. Any
-# apply past this age refreshes, so keeping skills current needs no separate
-# workflow. Pass `--refresh-externals` to force a download before it is due.
-agent_skills_refresh = "168h"
+# How many days a clone goes without an update. Any apply past this age updates
+# it, so keeping skills current needs no separate workflow. Set
+# AGENT_SKILLS_REFRESH=1 for one `chezmoi apply` to update every clone now.
+agent_skills_refresh_days = 7
 
 # People whose entire published catalogue is wanted, rather than named skill by
 # skill. `skills:sync` resolves this list through the skilld.dev registry and
@@ -46,8 +48,9 @@ agent_skills_refresh = "168h"
 # exactly what this repository records.
 #
 # A skill named in this file wins over one the registry would generate for a
-# watched owner, which is how an exception is made. `skills:sync` reports each
-# one it skipped for that reason.
+# watched owner, which is how an exception is made. Run `skills:sync` after
+# naming one, because until the generated entry is gone chezmoi merges the two
+# key by key. `skills:sync` reports each one it skipped for that reason.
 agent_skill_owners = [
   "antfu",
   "danielroe",
@@ -61,38 +64,23 @@ agent_skill_owners = [
 # Two skills cannot share a name, so where two sources offer the same one, the
 # project's own repository wins over a third-party copy.
 #
-# Exactly one source key per entry decides where the contents come from:
+# At most one source key per entry decides where the contents come from:
 #
-#   repo   GitHub repository, fetched as a branch tarball. Add `path` when the
-#          skill is a subdirectory of a larger repository, and `ref` when it
-#          does not live on the default branch. This covers everything public.
-#   url    A tarball published by the vendor rather than by a git host. Use it
-#          when the vendor ships the skill on its own, because a repository
-#          tarball downloads the whole repository to extract one directory.
-#   git    A clone URL, for a repository chezmoi cannot fetch as a tarball.
-#          That means a private repository, where the tarball endpoint needs
-#          credentials but `git clone` over SSH already has them.
-#   local  No source at all. This repository owns the skill, and its contents
+#   repo   GitHub repository. Add `path` when the skill is a subdirectory, and
+#          `ref` when it does not live on the repository's default branch. This
+#          covers everything public.
+#   git    An SSH clone URL, for a private repository. It is cloned whole into
+#          agent_skills_home, edited in place, and only ever fast-forwarded.
+#   url    A licensed tarball, which needs `token`, `account` and `header` too.
+#          `token` and `account` name a managed keychain entry (see
+#          `secrets:list`), and run_after_10-agent-skills sends it in the
+#          `header` request header, which chezmoi externals cannot do. Nothing
+#          about the license reaches git.
+#   (none) An empty entry. This repository owns the skill, and its contents
 #          live in dot_agents/skills/<name>/, which chezmoi symlinks into
 #          agent_skills_home like any other plain file. Use it for a skill with
 #          no appropriate upstream that is small enough and safe enough to
 #          commit here, remembering that this repository is public.
-#
-# Two optional keys apply to any entry:
-#
-#   refresh  Overrides agent_skills_refresh for one entry. Set on every source
-#            whose tarball is 25 MB or more, because a `repo` entry downloads
-#            the whole repository to extract one directory, and a handful of
-#            these are tens of megabytes, one of them 136 MB. Refreshing every
-#            source weekly would move about 1.3 GB a week. This splits it into
-#            390 MB weekly and 950 MB quarterly.
-#   token    Names a managed keychain entry (see `secrets:list`) and marks the
-#            skill as licensed: run_after_10-agent-skills downloads `url` with
-#            the token in the `header` request header, because chezmoi
-#            externals cannot send one. Nothing about the license reaches git.
-#
-# Every entry is declared here whatever its source, because the same list also
-# decides what gets linked into each agent and what gets removed when it goes.
 
 [agent_skills.adding-dependencies]
 repo = "riekelt/principal-engineer"
@@ -153,8 +141,6 @@ path = "ast-grep/skills/ast-grep"
 [agent_skills.authoring-skills]
 repo = "vercel/next.js"
 path = ".agents/skills/authoring-skills"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.autoplan]
 repo = "garrytan/gstack"
@@ -163,7 +149,6 @@ path = "autoplan"
 [agent_skills.babysit]
 repo = "thedotmack/claude-mem"
 path = "plugin/skills/babysit"
-refresh = "2160h"
 
 [agent_skills.babysit-pr]
 repo = "openai/codex"
@@ -235,7 +220,6 @@ path = "skills/book-study"
 
 [agent_skills.book-to-skill]
 repo = "virgiliojr94/book-to-skill"
-ref = "master"
 
 [agent_skills.brainstorming]
 repo = "obra/superpowers"
@@ -276,7 +260,6 @@ path = "skills/claude-api"
 [agent_skills.clean-copy]
 repo = "tldraw/tldraw"
 path = "skills/clean-copy"
-refresh = "2160h"
 
 [agent_skills.clerk-cli]
 repo = "clerk/skills"
@@ -329,8 +312,6 @@ path = "skills/constraint-driven-development"
 [agent_skills.content-design]
 repo = "n8n-io/n8n"
 path = ".agents/skills/content-design"
-ref = "master"
-refresh = "2160h"
 
 [agent_skills.context-restore]
 repo = "garrytan/gstack"
@@ -359,8 +340,6 @@ path = "skills/create-adaptable-composable"
 [agent_skills.create-skill]
 repo = "n8n-io/n8n"
 path = ".agents/skills/create-skill"
-ref = "master"
-refresh = "2160h"
 
 [agent_skills.cross-critique]
 repo = "warpdotdev/common-skills"
@@ -373,7 +352,6 @@ path = "cso"
 [agent_skills.database-migrations]
 repo = "affaan-m/ECC"
 path = "skills/database-migrations"
-refresh = "2160h"
 
 [agent_skills.defuddle]
 repo = "kepano/obsidian-skills"
@@ -474,22 +452,18 @@ path = "skills/drawio-skill"
 [agent_skills.dsh-merging-stacked-prs]
 repo = "deepseek-ai/deepseek-harness"
 path = ".agents/skills/dsh-merging-stacked-prs"
-ref = "master"
 
 [agent_skills.dsh-prose-standard]
 repo = "deepseek-ai/deepseek-harness"
 path = ".agents/skills/dsh-prose-standard"
-ref = "master"
 
 [agent_skills.dsh-trim-cot-leakage]
 repo = "deepseek-ai/deepseek-harness"
 path = ".agents/skills/dsh-trim-cot-leakage"
-ref = "master"
 
 [agent_skills.e2e-cucumber-playwright]
 repo = "langgenius/dify"
 path = ".agents/skills/e2e-cucumber-playwright"
-refresh = "2160h"
 
 [agent_skills.email-best-practices]
 repo = "resend/resend-skills"
@@ -601,7 +575,6 @@ path = "plugins/hr-legal-compliance/skills/gdpr-data-handling"
 [agent_skills.general-video]
 repo = "heygen-com/hyperframes"
 path = "skills/general-video"
-refresh = "2160h"
 
 [agent_skills.gh-fix-ci]
 repo = "openai/skills"
@@ -626,7 +599,6 @@ path = ".gemini/skills/github-issue-creator"
 [agent_skills.github-issues]
 repo = "github/awesome-copilot"
 path = "skills/github-issues"
-refresh = "2160h"
 
 [agent_skills.gsap-core]
 repo = "greensock/gsap-skills"
@@ -678,25 +650,22 @@ path = "health"
 [agent_skills.heroui-native]
 repo = "heroui-inc/heroui"
 path = "skills/heroui-native"
-ref = "v3"
-
-[agent_skills.heroui-pro-design-taste]
-url = "https://docs.heroui.pro/docs/skills/heroui-pro-design-taste.tar.gz"
-token = "HeroUI Pro"
-account = "jonathan"
-header = "x-heroui-personal-token"
-
-# The vendor's own tarball, the one https://heroui.com/install downloads. It is
-# 11 KB against 3 MB for a tarball of the heroui repository, which carries the
-# whole component library to extract one skill.
-[agent_skills.heroui-react]
-url = "https://heroui.com/skills/heroui-react.tar.gz"
 
 # Licensed, and the license forbids redistributing any part of the package, so
 # these two can only ever be fetched from HeroUI with a personal token. The
 # token lives in the dotfiles keychain under the (`token`, `account`) pair
 # below, the same lookup key `secret:set` uses, and reaches the download as a
 # request header.
+[agent_skills.heroui-pro-design-taste]
+url = "https://docs.heroui.pro/docs/skills/heroui-pro-design-taste.tar.gz"
+token = "HeroUI Pro"
+account = "jonathan"
+header = "x-heroui-personal-token"
+
+[agent_skills.heroui-react]
+repo = "heroui-inc/heroui"
+path = "skills/heroui-react"
+
 [agent_skills.heroui-react-pro]
 url = "https://docs.heroui.pro/docs/skills/heroui-react-pro.tar.gz"
 token = "HeroUI Pro"
@@ -714,8 +683,6 @@ path = "plugins/plugin-dev/skills/hook-development"
 [agent_skills.human-like-code-review]
 repo = "n8n-io/n8n"
 path = ".agents/skills/human-like-code-review"
-ref = "master"
-refresh = "2160h"
 
 [agent_skills.humanizer]
 repo = "blader/humanizer"
@@ -723,47 +690,38 @@ repo = "blader/humanizer"
 [agent_skills.hyperframes]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes"
-refresh = "2160h"
 
 [agent_skills.hyperframes-animation]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-animation"
-refresh = "2160h"
 
 [agent_skills.hyperframes-audio]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-audio"
-refresh = "2160h"
 
 [agent_skills.hyperframes-cli]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-cli"
-refresh = "2160h"
 
 [agent_skills.hyperframes-core]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-core"
-refresh = "2160h"
 
 [agent_skills.hyperframes-creative]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-creative"
-refresh = "2160h"
 
 [agent_skills.hyperframes-keyframes]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-keyframes"
-refresh = "2160h"
 
 [agent_skills.hyperframes-registry]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-registry"
-refresh = "2160h"
 
 [agent_skills.hyperframes-studio]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-studio"
-refresh = "2160h"
 
 [agent_skills.i-have-adhd]
 repo = "ayghri/i-have-adhd"
@@ -804,7 +762,6 @@ path = "investigate"
 [agent_skills.kami]
 repo = "tw93/Kami"
 path = "skills/kami"
-refresh = "2160h"
 
 [agent_skills.karpathy-guidelines]
 repo = "multica-ai/andrej-karpathy-skills"
@@ -844,8 +801,6 @@ path = "learn"
 [agent_skills.loom-transcript]
 repo = "n8n-io/n8n"
 path = ".agents/skills/loom-transcript"
-ref = "master"
-refresh = "2160h"
 
 [agent_skills.make-pdf]
 repo = "garrytan/gstack"
@@ -862,7 +817,6 @@ path = "plugins/plugin-dev/skills/mcp-integration"
 [agent_skills.media-use]
 repo = "heygen-com/hyperframes"
 path = "skills/media-use"
-refresh = "2160h"
 
 [agent_skills.migrate-radix-to-base]
 repo = "shadcn-ui/ui"
@@ -879,7 +833,6 @@ path = "skills/modern-web-guidance"
 [agent_skills.motion-graphics]
 repo = "heygen-com/hyperframes"
 path = "skills/motion-graphics"
-refresh = "2160h"
 
 [agent_skills.multi-agent-review]
 repo = "riekelt/multi-agent-review"
@@ -896,32 +849,22 @@ path = "skills/nestjs-best-practices"
 [agent_skills.next-cache-components-adoption]
 repo = "vercel/next.js"
 path = "skills/next-cache-components-adoption"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.next-cache-components-optimizer]
 repo = "vercel/next.js"
 path = "skills/next-cache-components-optimizer"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.next-dev-loop]
 repo = "vercel/next.js"
 path = "skills/next-dev-loop"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.next-partial-prefetching-adoption]
 repo = "vercel/next.js"
 path = "skills/next-partial-prefetching-adoption"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.next-partial-prefetching-optimizer]
 repo = "vercel/next.js"
 path = "skills/next-partial-prefetching-optimizer"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.no-ai-slop]
 repo = "petergyang/no-ai-slop"
@@ -946,8 +889,6 @@ path = "skills/nuxt-style-readme"
 [agent_skills.nuxt-ui]
 repo = "nuxt/ui"
 path = "skills/nuxt-ui"
-ref = "v4"
-refresh = "2160h"
 
 [agent_skills.observability-and-instrumentation]
 repo = "addyosmani/agent-skills"
@@ -1016,7 +957,6 @@ path = "plan-tune"
 [agent_skills.planning-with-files]
 repo = "OthmanAdi/planning-with-files"
 path = "skills/planning-with-files"
-ref = "master"
 
 [agent_skills.playwright-best-practices]
 repo = "currents-dev/playwright-best-practices-skill"
@@ -1025,7 +965,6 @@ path = "playwright-best-practices"
 [agent_skills.playwright-cli]
 repo = "microsoft/playwright"
 path = "packages/playwright-core/src/tools/skills/playwright-cli"
-refresh = "2160h"
 
 [agent_skills.plugin-settings]
 repo = "anthropics/claude-code"
@@ -1058,7 +997,6 @@ path = "skills/ponytail-review"
 [agent_skills.ppt-master]
 repo = "hugohe3/ppt-master"
 path = "skills/ppt-master"
-refresh = "2160h"
 
 [agent_skills.pptx]
 repo = "anthropics/skills"
@@ -1067,7 +1005,6 @@ path = "skills/pptx"
 [agent_skills.pr-to-video]
 repo = "heygen-com/hyperframes"
 path = "skills/pr-to-video"
-refresh = "2160h"
 
 [agent_skills.principal-engineering]
 repo = "riekelt/principal-engineer"
@@ -1092,7 +1029,6 @@ path = "prisma-upgrade-v7"
 [agent_skills.product-launch-video]
 repo = "heygen-com/hyperframes"
 path = "skills/product-launch-video"
-refresh = "2160h"
 
 [agent_skills.programmatic-seo]
 repo = "coreyhaines31/marketingskills"
@@ -1132,7 +1068,6 @@ path = "skills/receiving-code-review"
 [agent_skills.record-browser-gif]
 repo = "deepseek-ai/deepseek-harness"
 path = ".agents/skills/record-browser-gif"
-ref = "master"
 
 [agent_skills.remotion-best-practices]
 repo = "remotion-dev/skills"
@@ -1177,8 +1112,6 @@ path = "plugins/technical-writer/skills/reviewing-technical-prose"
 [agent_skills.rtl-aware-development]
 repo = "anomalyco/opencode"
 path = ".opencode/skills/rtl-aware-development"
-ref = "dev"
-refresh = "2160h"
 
 [agent_skills.sanity-best-practices]
 repo = "sanity-io/agent-toolkit"
@@ -1255,15 +1188,11 @@ path = "spec"
 [agent_skills.spec-driven-development]
 repo = "n8n-io/n8n"
 path = ".agents/skills/spec-driven-development"
-ref = "master"
-refresh = "2160h"
 
 # Written here rather than published, because it documents an employer's
 # internal stack. This repository is public, so the contents live in a private
-# repository and chezmoi clones them. Edit the clone in place under
-# agent_skills_home and push from there. Any later apply fast-forwards it, and
-# refuses rather than guesses if the clone has uncommitted work or has diverged
-# from the remote.
+# repository, cloned over SSH. Edit the clone in place under agent_skills_home
+# and push from there.
 [agent_skills.stake-engine-slot-development]
 git = "git@github.com:JonathanXDR/stake-engine-slot-development-skill.git"
 
@@ -1293,7 +1222,6 @@ path = "skills/systematic-debugging"
 [agent_skills.tailwind-4-docs]
 repo = "Lombiq/Tailwind-Agent-Skills"
 path = "skills/tailwind-4-docs"
-ref = "dev"
 
 [agent_skills.tailwind-design-system]
 repo = "wshobson/agents"
@@ -1322,7 +1250,6 @@ path = "skills/tsdown"
 [agent_skills.turborepo]
 repo = "vercel/turborepo"
 path = "skills/turborepo"
-refresh = "2160h"
 
 [agent_skills.ui-styling]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
@@ -1354,11 +1281,7 @@ path = "skills/using-superpowers"
 [agent_skills.v8-jit]
 repo = "vercel/next.js"
 path = ".agents/skills/v8-jit"
-ref = "canary"
-refresh = "2160h"
 
-# An 18 MB tarball for one small skill. The npm package ships the same skill in
-# 1 MB, but only at a pinned version, and a pin would have to be bumped by hand.
 [agent_skills.varlock]
 repo = "dmno-dev/varlock"
 path = "skills/varlock"
@@ -1430,8 +1353,6 @@ path = "skills/webapp-testing"
 [agent_skills.write-guide]
 repo = "vercel/next.js"
 path = ".agents/skills/write-guide"
-ref = "canary"
-refresh = "2160h"
 
 [agent_skills.writing-changelogs]
 repo = "riekelt/technical-writer"

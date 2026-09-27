@@ -121,31 +121,34 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
 repo = "mattpocock/skills"
 path = "skills/engineering/tdd"
 
-[agent_skills.heroui-react]              # a tarball the vendor publishes
-url = "https://heroui.com/skills/heroui-react.tar.gz"
+[agent_skills.heroui-react-pro]          # a licensed tarball, its token read from the keychain
+url = "https://docs.heroui.pro/docs/skills/heroui-react-pro.tar.gz"
+token = "HeroUI Pro"
+account = "you"
+header = "x-heroui-personal-token"
 
 [agent_skills.some-private-skill]        # a private repository, cloned over SSH
 git = "git@github.com:you/some-private-skill.git"
 ```
 
-`chezmoi apply` fetches each one into `~/.agents/skills` and re-downloads it weekly, so the normal apply keeps every skill current with nothing copied by hand. A `repo` entry pulls the whole repository to extract one directory, so the handful of sources over 25 MB carry a `refresh` of their own and come round quarterly instead. No skill contents are committed here, except a skill this repository owns, which goes in `dot_agents/skills/<name>/` and is symlinked into the same directory.
+`chezmoi apply` keeps one shallow, sparse git clone per source repository in `~/.local/share/agent-skills`, holding only the declared skill folders, and links each skill from there into `~/.agents/skills`. Any apply updates the clones fetched more than a week ago, so skills stay current with nothing copied by hand. No skill contents are committed here, except a skill this repository owns, which goes in `dot_agents/skills/<name>/` and is symlinked into the same directory.
 
-| Task                   | Do this                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| Add a skill            | Add an entry, run `chezmoi apply`                                               |
-| Remove a skill         | Delete its entry, run `chezmoi apply`                                           |
-| Update every skill     | Nothing. Any apply refreshes what is due, `--refresh-externals` does it now     |
-| Add a repo-owned skill | Drop the directory in `dot_agents/skills/<name>/`, run `chezmoi apply`          |
-| Support another agent  | Add its skills directory to `agent_skills_link_dirs`, if it needs one at all    |
-| Follow everything one person publishes | Add them to `agent_skill_owners`, run `skills:sync`, commit the diff |
+| Task                                   | Do this                                                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Add a skill                            | Add an entry, run `chezmoi apply`                                                              |
+| Remove a skill                         | Delete its entry, run `chezmoi apply`                                                          |
+| Update every skill                     | Nothing. Any apply updates what is due, `AGENT_SKILLS_REFRESH=1 chezmoi apply` updates all now |
+| Add a repo-owned skill                 | Drop the directory in `dot_agents/skills/<name>/`, run `chezmoi apply`                         |
+| Support another agent                  | Add its skills directory to `agent_skills_link_dirs`, if it needs one at all                   |
+| Follow everything one person publishes | Add them to `agent_skill_owners`, run `skills:sync`, commit the diff                           |
 
 OpenAI Codex, GitHub Copilot CLI, and Gemini CLI read `~/.agents/skills` natively. Claude Code reads only `~/.claude/skills`, so it gets one symlink per skill. A skill that needs a license key names a keychain entry instead of carrying the key, so nothing licensed and nothing secret is committed.
 
-When an upstream repository disappears or moves its skill, the download falls back to a placeholder rather than failing the apply, and every apply then prints the skill and the source it could not reach:
+When an upstream repository disappears or moves its skill, the apply still installs everything else, and every apply prints the skill and the source it could not reach until the entry is fixed:
 
 ```text
 Error:   Failed to install the some-skill skill from someone/their-repo (skills/some-skill)
-Info:    Check the source of each skill above, then fix or drop its entry in .chezmoidata/skills.toml
+Info:    Fix or drop each entry above in .chezmoidata/skills.toml, or run skills:sync if it comes from a watched owner
 ```
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
@@ -188,9 +191,7 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── .chezmoi.toml.tmpl                       # User config (iCloud config.toml or prompts)
 ├── .chezmoidata.toml                        # Shared non-secret defaults
 ├── .chezmoidata/                            # Agent Skills inventory, Zed extension list
-├── .chezmoiexternal.toml.tmpl               # Agent Skills as chezmoi externals
 ├── .chezmoiignore                           # Files excluded from $HOME
-├── skill-unavailable.tar.gz                 # Fallback for a skill source that has gone away
 ├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │

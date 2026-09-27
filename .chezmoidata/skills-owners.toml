@@ -2,10 +2,6 @@
 # from the skilld.dev registry. GENERATED FILE: every entry here is rewritten by
 # `skills:sync`, so edit the owner list in .chezmoidata/skills.toml instead, or
 # name the skill there to override what the registry offers.
-#
-# Committed on purpose. Resolving owners at apply time would put a network call
-# in front of every `chezmoi apply`, and a registry that is slow, down, or
-# simply unreachable would then stop the whole apply.
 
 [agent_skills.adversarial-review]
 repo = "harlan-zw/harlan-agent-kit"
