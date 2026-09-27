@@ -94,10 +94,6 @@ path = "skills/adhd"
 repo = "vercel-labs/agent-browser"
 path = "skills/agent-browser"
 
-[agent_skills.agent-development]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/agent-development"
-
 [agent_skills.ai-seo]
 repo = "coreyhaines31/marketingskills"
 path = "skills/ai-seo"
@@ -300,10 +296,6 @@ path = "codex"
 [agent_skills.codex-pr-body]
 repo = "openai/codex"
 path = ".codex/skills/codex-pr-body"
-
-[agent_skills.command-development]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/command-development"
 
 [agent_skills.constraint-driven-development]
 repo = "addyosmani/agent-skills"
@@ -676,10 +668,6 @@ header = "x-heroui-personal-token"
 repo = "higgsfield-ai/skills"
 path = "higgsfield-generate"
 
-[agent_skills.hook-development]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/hook-development"
-
 [agent_skills.human-like-code-review]
 repo = "n8n-io/n8n"
 path = ".agents/skills/human-like-code-review"
@@ -809,10 +797,6 @@ path = "make-pdf"
 [agent_skills.mcp-builder]
 repo = "anthropics/skills"
 path = "skills/mcp-builder"
-
-[agent_skills.mcp-integration]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/mcp-integration"
 
 [agent_skills.media-use]
 repo = "heygen-com/hyperframes"
@@ -965,14 +949,6 @@ path = "playwright-best-practices"
 [agent_skills.playwright-cli]
 repo = "microsoft/playwright"
 path = "packages/playwright-core/src/tools/skills/playwright-cli"
-
-[agent_skills.plugin-settings]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/plugin-settings"
-
-[agent_skills.plugin-structure]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/plugin-structure"
 
 [agent_skills.ponytail]
 repo = "DietrichGebert/ponytail"
@@ -1164,10 +1140,6 @@ path = "skills/site-architecture"
 [agent_skills.skill-creator]
 repo = "anthropics/skills"
 path = "skills/skill-creator"
-
-[agent_skills.skill-development]
-repo = "anthropics/claude-code"
-path = "plugins/plugin-dev/skills/skill-development"
 
 [agent_skills.slides]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
@@ -1373,10 +1345,6 @@ path = "skills/writing-plans"
 [agent_skills.writing-postmortems]
 repo = "riekelt/technical-writer"
 path = "plugins/technical-writer/skills/writing-postmortems"
-
-[agent_skills.writing-rules]
-repo = "anthropics/claude-code"
-path = "plugins/hookify/skills/writing-rules"
 
 [agent_skills.writing-runbooks]
 repo = "riekelt/technical-writer"
