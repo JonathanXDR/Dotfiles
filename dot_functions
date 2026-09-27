@@ -40,6 +40,32 @@ log() {
   esac
 }
 
+# Redraw a single progress line on stderr, styled as an in-progress log message,
+# for work slow enough to look hung. It draws only on a terminal: run:daily
+# points stderr at a report file, where the carriage returns and erase codes
+# would land as garbage. The line is cut to the terminal width, because a
+# wrapped line breaks the carriage-return redraw. Call progress:clear before any
+# other output, or that output prints over the bar.
+# Usage: progress:bar <done> <total> <message> [detail]
+progress:bar() {
+  [[ -t 2 ]] || return 0
+  local done="$1" total="$2" message="$3" detail="${4:-}"
+  local width=24 filled body cols="${COLUMNS:-0}"
+  (( total > 0 )) || return 0
+  (( cols > 0 )) || cols=80
+
+  filled=$(( done * width / total ))
+  body="${message} ${(l:filled::█:)}${(l:width-filled::░:)} ${done}/${total}${detail:+ (${detail})}"
+  (( ${#body} > cols - 10 )) && body="${body[1,cols-11]}…"
+  printf '\r\033[K\033[0;34mInfo:\033[0m    %s' "$body" >&2
+}
+
+# Erase the line progress:bar drew, so the next output starts on a clean line.
+progress:clear() {
+  [[ -t 2 ]] && printf '\r\033[K' >&2
+  return 0
+}
+
 # Retry a command up to N times with a delay between attempts (from bash-it)
 # Usage: retry <attempts> <delay_seconds> <command...>
 retry() {
@@ -1800,8 +1826,8 @@ skills:sync() {
   # Every local up front. In zsh a bare `local x` inside a loop re-declares a
   # variable that already has a value and echoes it, which would print the
   # resolved branch of every skill.
-  local source_dir target owner json rec name url repo file dir branch entry
-  local -a owners entries skipped
+  local source_dir target owner json rec name url repo file dir branch entry i=0
+  local -a owners entries skipped records
   local -A claimed keep_refresh branches
 
   source_dir="$(chezmoi source-path)" || return 1
@@ -1826,47 +1852,56 @@ skills:sync() {
     keep_refresh[${rec%%$'\t'*}]="${rec#*$'\t'}"
   done
 
+  # Every owner is fetched before any skill is resolved, so the second stage
+  # knows its total and its progress bar can mean something.
   for owner in "${owners[@]}"; do
+    progress:bar $(( i++ )) ${#owners} "Fetching the skilld registry…" "$owner"
     json="$(curl -fsSL --max-time 60 "https://skilld.dev/api/skills?owner=${owner}&limit=500")" || {
+      progress:clear
       log error "Failed to reach the skilld registry for ${owner}"
       return 1
     }
-    for rec in ${(f)"$(print -r -- "$json" | jq -r '.items[] | [.name, .skillFileUrl] | @tsv')"}; do
-      name="${rec%%$'\t'*}"
-      url="${rec#*$'\t'}"
-      [[ -n "$name" && "$url" == https://github.com/* ]] || continue
-      if [[ -n "${claimed[$name]:-}" ]]; then
-        skipped+=( "$name" )
-        continue
-      fi
-
-      # https://github.com/OWNER/REPO/blob/REF/PATH/SKILL.md, where the path is
-      # percent encoded. A monorepo directory called @scope arrives as %40scope
-      # and would match nothing, so decode before using it as a glob.
-      repo="${${url#https://github.com/}%%/blob/*}"
-      file="${${url#https://github.com/}#*/blob/}"
-      file="${file#*/}"
-      file="$(printf '%b' "${file//\%/\\x}")"
-      dir="${file%/*}"
-      [[ "$dir" == "$file" ]] && dir=""
-
-      # One lookup per repository, not per skill: a collection of forty skills
-      # is one repository.
-      if [[ -z "${branches[$repo]:-}" ]]; then
-        branches[$repo]="$(gh api "repos/${repo}" --jq .default_branch 2>/dev/null)" || branches[$repo]=""
-      fi
-      branch="${branches[$repo]}"
-      [[ -n "$branch" ]] || { log warning "Skipped ${name} (failed to read ${repo} on GitHub)"; continue; }
-
-      # One record per line, name first, so the list sorts by the directory name
-      # the skill gets and the diff stays readable.
-      entry="[agent_skills.${name}]"$'\n'"repo = \"${repo}\""
-      [[ -n "$dir" ]] && entry+=$'\n'"path = \"${dir}\""
-      [[ "$branch" != main ]] && entry+=$'\n'"ref = \"${branch}\""
-      [[ -n "${keep_refresh[$name]:-}" ]] && entry+=$'\n'"refresh = \"${keep_refresh[$name]}\""
-      entries+=( "${name}"$'\t'"${entry}" )
-    done
+    records+=( ${(f)"$(print -r -- "$json" | jq -r '.items[] | [.name, .skillFileUrl] | @tsv')"} )
   done
+
+  i=0
+  for rec in "${records[@]}"; do
+    name="${rec%%$'\t'*}"
+    url="${rec#*$'\t'}"
+    progress:bar $(( i++ )) ${#records} "Resolving skills…" "$name"
+    [[ -n "$name" && "$url" == https://github.com/* ]] || continue
+    if [[ -n "${claimed[$name]:-}" ]]; then
+      skipped+=( "$name" )
+      continue
+    fi
+
+    # https://github.com/OWNER/REPO/blob/REF/PATH/SKILL.md, where the path is
+    # percent encoded. A monorepo directory called @scope arrives as %40scope
+    # and would match nothing, so decode before using it as a glob.
+    repo="${${url#https://github.com/}%%/blob/*}"
+    file="${${url#https://github.com/}#*/blob/}"
+    file="${file#*/}"
+    file="$(printf '%b' "${file//\%/\\x}")"
+    dir="${file%/*}"
+    [[ "$dir" == "$file" ]] && dir=""
+
+    # One lookup per repository, not per skill: a collection of forty skills
+    # is one repository.
+    if [[ -z "${branches[$repo]:-}" ]]; then
+      branches[$repo]="$(gh api "repos/${repo}" --jq .default_branch 2>/dev/null)" || branches[$repo]=""
+    fi
+    branch="${branches[$repo]}"
+    [[ -n "$branch" ]] || { progress:clear; log warning "Skipped ${name} (failed to read ${repo} on GitHub)"; continue; }
+
+    # One record per line, name first, so the list sorts by the directory name
+    # the skill gets and the diff stays readable.
+    entry="[agent_skills.${name}]"$'\n'"repo = \"${repo}\""
+    [[ -n "$dir" ]] && entry+=$'\n'"path = \"${dir}\""
+    [[ "$branch" != main ]] && entry+=$'\n'"ref = \"${branch}\""
+    [[ -n "${keep_refresh[$name]:-}" ]] && entry+=$'\n'"refresh = \"${keep_refresh[$name]}\""
+    entries+=( "${name}"$'\t'"${entry}" )
+  done
+  progress:clear
 
   (( ${#entries} )) || { log error "Failed to resolve any skill for the configured owners"; return 1; }
   entries=( ${(o)entries} )
