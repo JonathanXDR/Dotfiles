@@ -1814,39 +1814,49 @@ zed:dump() {
 # Run it when a watched person publishes something, or to find out whether they
 # have. It only ever writes the generated file, so the diff is the review.
 skills:sync() {
-  cmd:exists jq || { log error "Failed to find jq"; return 1; }
+  cmd:exists yq || { log error "Failed to find yq"; return 1; }
   cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
 
   # Every local up front. In zsh a bare `local x` inside a loop re-declares a
-  # variable that already has a value and echoes it.
-  local source_dir target owner json rec name url repo file dir entry i=0
-  local -a owners entries skipped records
-  local -A claimed
+  # variable that already has a value and echoes it. MATCH, MBEGIN, MEND and
+  # their arrays are what the =~ tests below set.
+  local source_dir inventory target owner json rows rec name url repo file dir entry
+  local MATCH MBEGIN MEND
+  local -i i=0 page pages
+  local -a owners records entries skipped match mbegin mend
+  local -A claimed taken
 
   source_dir="$(chezmoi source-path)" || return 1
+  inventory="${source_dir}/.chezmoidata/skills.toml"
   target="${source_dir}/.chezmoidata/skills-owners.toml"
 
-  owners=( ${(f)"$(chezmoi execute-template '{{ range .agent_skill_owners }}{{ . }}{{ "\n" }}{{ end }}')"} ) || return 1
-  (( ${#owners} )) || { log error "Failed to read agent_skill_owners from .chezmoidata/skills.toml"; return 1; }
+  # The inventory is read directly rather than through chezmoi's merged data,
+  # so a broken generated file cannot stop the sync that rewrites it.
+  owners=( ${(f)"$(yq -p toml -oy '.agent_skill_owners[]' "$inventory")"} ) || return 1
+  (( ${#owners} )) || { log error "Failed to read agent_skill_owners from ${inventory:t}"; return 1; }
 
   # Names the hand-written file claims. Those win, so a deliberate choice of
-  # source survives a sync that would otherwise replace it. The merged template
-  # data covers both files, so subtract whatever the generated one contributed.
-  for name in ${(f)"$(chezmoi execute-template '{{ range $n, $s := .agent_skills }}{{ $n }}{{ "\n" }}{{ end }}')"}; do
+  # source survives a sync that would otherwise replace it.
+  for name in ${(f)"$(yq -p toml -oy '.agent_skills | keys | .[]' "$inventory")"}; do
     claimed[$name]=1
   done
-  for name in ${(f)"$(sed -n 's/^\[agent_skills\.\(.*\)\]$/\1/p' "$target" 2>/dev/null)"}; do
-    unset "claimed[$name]"
-  done
 
+  # The registry answers 60 skills a page, and an owner with nothing to list is
+  # far more likely a typo than a person who published nothing.
   for owner in "${owners[@]}"; do
     progress:bar $(( i++ )) ${#owners} "Fetching the skilld registry…" "$owner"
-    json="$(curl -fsSL --max-time 60 "https://skilld.dev/api/skills?owner=${owner}&limit=500")" || {
-      progress:clear
-      log error "Failed to reach the skilld registry for ${owner}"
-      return 1
-    }
-    records+=( ${(f)"$(print -r -- "$json" | jq -r '.items[] | [.name, .skillFileUrl] | @tsv')"} )
+    page=1
+    while :; do
+      json="$(curl -fsSL --max-time 60 "https://skilld.dev/api/skills?owner=${owner}&page=${page}")" \
+        && rows="$(print -r -- "$json" | yq -e -p json -o tsv '.items[] | [.name, .skillFileUrl]')" \
+        && pages="$(print -r -- "$json" | yq -p json '.pages')" || {
+        progress:clear
+        log error "Failed to read the skilld registry for ${owner}"
+        return 1
+      }
+      records+=( ${(f)rows} )
+      (( page++ < pages )) || break
+    done
   done
   progress:clear
 
@@ -1865,15 +1875,32 @@ skills:sync() {
     repo="${${url#https://github.com/}%%/blob/*}"
     file="${${url#https://github.com/}#*/blob/}"
     file="${file#*/}"
-    file="$(printf '%b' "${file//\%/\\x}")"
+    printf -v file '%b' "${file//\%/\\x}"
     dir="${file%/*}"
     [[ "$dir" == "$file" ]] && dir=""
+
+    # The name, repository and path end up as a TOML key, a directory and
+    # arguments in a shell script, and two skills cannot share a name. Anything
+    # outside these patterns is refused rather than escaped, and the first owner
+    # in agent_skill_owners keeps a contested name.
+    if [[ ! "$name" =~ '^[a-z0-9]+(-[a-z0-9]+)*$' \
+      || ! "$repo" =~ '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' \
+      || ( -n "$dir" && ! "$dir" =~ '^[A-Za-z0-9._@+-]+(/[A-Za-z0-9._@+-]+)*$' ) \
+      || "/${dir}/" == */../* ]]; then
+      log warning "Skipped ${name} from ${repo} (not a valid skill name or path)"
+      continue
+    fi
+    if [[ -n "${taken[$name]:-}" ]]; then
+      log warning "Skipped ${name} from ${repo} (${taken[$name]} already provides it, name one in ${inventory:t} to choose)"
+      continue
+    fi
 
     # One record per line, name first, so the list sorts by the directory name
     # the skill gets and the diff stays readable.
     entry="[agent_skills.${name}]"$'\n'"repo = \"${repo}\""
     [[ -n "$dir" ]] && entry+=$'\n'"path = \"${dir}\""
     entries+=( "${name}"$'\t'"${entry}" )
+    taken[$name]="$repo"
   done
 
   (( ${#entries} )) || { log error "Failed to resolve any skill for the configured owners"; return 1; }
@@ -1896,7 +1923,7 @@ skills:sync() {
 
   log success "Resolved ${#entries} skill(s) from ${#owners} owner(s) into ${target:t}"
   if (( ${#skipped} )); then
-    skipped=( ${(o)skipped} )
+    skipped=( ${(ou)skipped} )
     log info "Kept the named entry for ${(j:, :)skipped} rather than the registry copy"
   fi
   log info "Review the diff, then run chezmoi apply"
