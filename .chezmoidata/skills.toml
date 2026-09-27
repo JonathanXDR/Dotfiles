@@ -111,8 +111,8 @@ repo = "bitwarden/ai-plugins"
 path = "plugins/claude-retrospective/skills/analyzing-git-sessions"
 
 [agent_skills.animate]
-repo = "usekaneo/kaneo"
-path = ".agents/skills/animate"
+repo = "emilkowalski/skills"
+path = "skills/animate"
 
 [agent_skills.api-and-interface-design]
 repo = "addyosmani/agent-skills"
@@ -358,10 +358,8 @@ path = "skills/frontend-design"
 repo = "zarazhangrui/frontend-slides"
 
 [agent_skills.gh-stack]
-repo = "vercel/next.js"
-path = ".agents/skills/gh-stack"
-ref = "canary"
-refresh = "2160h"
+repo = "github/gh-stack"
+path = "skills/gh-stack"
 
 [agent_skills.git-commit-formatter]
 repo = "rominirani/antigravity-skills"
@@ -532,7 +530,7 @@ path = "skills/nuxt-seo"
 
 [agent_skills.nuxt-style-readme]
 repo = "JonathanXDR/nuxt-style-readme-skill"
-path = "nuxt-style-readme"
+path = "skills/nuxt-style-readme"
 
 [agent_skills.nuxt-ui]
 repo = "nuxt/ui"
@@ -734,6 +732,15 @@ path = "skills/test-driven-development"
 repo = "onmax/nuxt-skills"
 path = "skills/ts-library"
 
+[agent_skills.tsdown]
+repo = "rolldown/tsdown"
+path = "skills/tsdown"
+
+[agent_skills.turborepo]
+repo = "vercel/turborepo"
+path = "skills/turborepo"
+refresh = "2160h"
+
 [agent_skills.ui-styling]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = "cli/assets/skills/ui-styling"
@@ -785,6 +792,18 @@ path = "skills/verification-before-completion"
 repo = "nicobailon/visual-explainer"
 path = "plugins/visual-explainer"
 
+[agent_skills.vue-best-practices]
+repo = "vuejs-ai/skills"
+path = "skills/vue-best-practices"
+
+[agent_skills.vue-router-best-practices]
+repo = "vuejs-ai/skills"
+path = "skills/vue-router-best-practices"
+
+[agent_skills.vue-testing-best-practices]
+repo = "vuejs-ai/skills"
+path = "skills/vue-testing-best-practices"
+
 [agent_skills.vueuse-functions]
 repo = "vueuse/skills"
 path = "skills/vueuse-functions"
@@ -796,6 +815,10 @@ path = "skills/watch"
 [agent_skills.web-artifacts-builder]
 repo = "anthropics/skills"
 path = "skills/web-artifacts-builder"
+
+[agent_skills.web-design-guidelines]
+repo = "vercel-labs/agent-skills"
+path = "skills/web-design-guidelines"
 
 [agent_skills.webapp-testing]
 repo = "anthropics/skills"

@@ -254,14 +254,6 @@ path = "skills/engineering/triage"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/ts-design-patterns"
 
-[agent_skills.tsdown]
-repo = "antfu/skills"
-path = "skills/tsdown"
-
-[agent_skills.turborepo]
-repo = "antfu/skills"
-path = "skills/turborepo"
-
 [agent_skills.tweet]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/tweet"
@@ -290,18 +282,6 @@ path = "skills/vitest"
 repo = "antfu/skills"
 path = "skills/vue"
 
-[agent_skills.vue-best-practices]
-repo = "antfu/skills"
-path = "skills/vue-best-practices"
-
-[agent_skills.vue-router-best-practices]
-repo = "antfu/skills"
-path = "skills/vue-router-best-practices"
-
-[agent_skills.vue-testing-best-practices]
-repo = "antfu/skills"
-path = "skills/vue-testing-best-practices"
-
 [agent_skills.wait-what]
 repo = "mattpocock/skills"
 path = "skills/productivity/wait-what"
@@ -309,10 +289,6 @@ path = "skills/productivity/wait-what"
 [agent_skills.wayfinder]
 repo = "mattpocock/skills"
 path = "skills/engineering/wayfinder"
-
-[agent_skills.web-design-guidelines]
-repo = "antfu/skills"
-path = "skills/web-design-guidelines"
 
 [agent_skills.wizard]
 repo = "mattpocock/skills"
