@@ -298,10 +298,6 @@ path = "document-generate"
 repo = "garrytan/gstack"
 path = "document-release"
 
-[agent_skills.document-writer]
-repo = "onmax/nuxt-skills"
-path = "skills/document-writer"
-
 [agent_skills.docx]
 repo = "anthropics/skills"
 path = "skills/docx"
@@ -478,10 +474,6 @@ path = "skills/mcp-builder"
 repo = "anthropics/claude-code"
 path = "plugins/plugin-dev/skills/mcp-integration"
 
-[agent_skills.motion]
-repo = "onmax/nuxt-skills"
-path = "skills/motion"
-
 [agent_skills.next-cache-components-adoption]
 repo = "vercel/next.js"
 path = "skills/next-cache-components-adoption"
@@ -587,10 +579,6 @@ ref = "master"
 repo = "microsoft/playwright"
 path = "packages/playwright-core/src/tools/skills/playwright-cli"
 refresh = "2160h"
-
-[agent_skills.plugin-creator]
-repo = "openai/codex"
-path = "codex-rs/skills/src/assets/samples/plugin-creator"
 
 [agent_skills.plugin-settings]
 repo = "anthropics/claude-code"
@@ -727,10 +715,6 @@ path = "skills/systematic-debugging"
 [agent_skills.test-driven-development]
 repo = "obra/superpowers"
 path = "skills/test-driven-development"
-
-[agent_skills.ts-library]
-repo = "onmax/nuxt-skills"
-path = "skills/ts-library"
 
 [agent_skills.tsdown]
 repo = "rolldown/tsdown"
