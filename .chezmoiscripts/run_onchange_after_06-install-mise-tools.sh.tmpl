@@ -2,8 +2,9 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# mise config content hash (triggers a re-run when the tool list changes):
+# mise config content hashes (trigger a re-run when the config changes):
 # {{ include "dot_config/mise/config.toml" | sha256sum }}
+# {{ includeTemplate "dot_config/mise/conf.d/personal.toml.tmpl" . | sha256sum }}
 #
 # mise presence is part of the trigger for the same reason as in script 03. mise
 # itself arrives through Homebrew, so a run before that happens must not record
@@ -31,22 +32,14 @@ fi
 # java as an empty install directory every later run reads as already there.
 find "$(mise -C "$HOME" cache path)/java" -maxdepth 1 -type f -delete 2>/dev/null || true
 
-# The `mise install` command reads ~/.config/mise/config.toml (symlinked to
-# this repo) and installs whatever is missing. It never writes back, unlike
-# `mise use -g`, which would rewrite that file and fight chezmoi over it.
-# Re-runs are sub-second no-ops, so the content hash above is the only thing
-# gating this step.
-#
 # Scoped to $HOME with -C so a project mise.toml in the working directory
 # cannot pull in undeclared tools. Leaving that config untrusted would not help:
 # mise asks for trust before running [env], [tasks], and [hooks], never before
 # reading [tools].
 #
-# No --yes here, unlike the prune below. On install it is not just prompt
-# suppression. With system_deps at its default of "prompt", it authorizes mise
-# to install missing system dependencies through Homebrew, behind the Brewfile
-# that script 03 owns. Nothing in config.toml declares one today, because only
-# vfox-backed plugins can, so this is about the tool added tomorrow.
+# No --yes here, unlike the prune below. With system_deps at its default of
+# "prompt", --yes would also authorize mise to install missing system
+# dependencies through Homebrew, behind the Brewfile that script 03 owns.
 _log info "Installing mise-managed tools…"
 if mise -C "$HOME" install; then
   _log success "Installed mise-managed tools"

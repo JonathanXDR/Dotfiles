@@ -1668,14 +1668,7 @@ docker:cleanup() {
 
 # -------------------------------- Toolchain --------------------------------- #
 
-# Refresh every mise-managed tool within the ranges pinned in
-# ~/.config/mise/config.toml. Deliberately not `mise upgrade --bump`, which
-# would rewrite that file. It is chezmoi-tracked, so version changes belong in
-# the source. mise itself is upgraded by Homebrew, never from here. The
-# `auto_update` setting added in mise 2026.8.11 stays unset for the same reason,
-# and could not fire anyway. The Homebrew keg ships a .disable-self-update
-# marker, which makes mise report self_update_available as no and skip every
-# automatic update.
+# Not `mise upgrade --bump`, which would rewrite the chezmoi-tracked config.
 #
 # Scoped to $HOME with -C, like run_onchange_after_06-install-mise-tools. This
 # fires unattended from run:daily, in whatever directory the shell started in,

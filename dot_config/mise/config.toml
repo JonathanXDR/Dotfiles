@@ -32,11 +32,9 @@ pnpm = "latest"
 # picks the best backend (a native binary beats an npm package) and carries any
 # build approvals the package needs. `npm:` is spelled out where the registry
 # has no entry (skilld) or maps the name to a different tool (`cf` is Cloud
-# Foundry there, not the Cloudflare CLI).
-claude-code = "latest"
-codex = "latest"
+# Foundry there, not the Cloudflare CLI). Personal-only packages are in
+# conf.d/personal.toml instead.
 copilot = "latest"
-gemini-cli = "latest"
 ni = "latest"
 "npm:@angular/cli" = "latest"
 "npm:@nestjs/cli" = "latest"

@@ -1,0 +1,12 @@
+{{- /* Not a plain file skipped by .chezmoiignore, because mise reads
+       mise/conf.d/*.toml in the working directory or any parent as project
+       config. A shell in dot_config/ would make mise track a plain source copy,
+       and `mise prune` would then keep these tools on work machines. */ -}}
+{{ if ne .machine_type "work" -}}
+# Managed by chezmoi (do not edit directly).
+
+[tools]
+claude-code = "latest"
+codex = "latest"
+gemini-cli = "latest"
+{{ end -}}

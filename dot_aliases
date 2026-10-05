@@ -144,7 +144,7 @@ alias:safe kiro="kiro-cli"
 alias:safe cld="claude"
 alias:safe cdx="codex"
 alias:safe cpl="copilot"
-alias:safe gmi="gemini"
+cmd:exists gemini && alias:safe gmi="gemini"
 alias:safe kro="kiro"
 
 # ------------------------------- macOS Tweaks ------------------------------- #

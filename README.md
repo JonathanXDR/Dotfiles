@@ -10,7 +10,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🪨 **Foundation:** [chezmoi](https://chezmoi.io) in symlink mode, Go templates for per-machine configs
 - 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
-- 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, proxy, SSL, VPN, npm, `/etc/hosts`
+- 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, mise tools, proxy, SSL, VPN, npm, `/etc/hosts`
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
 - 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
@@ -222,6 +222,7 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── dot_config/
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
+│   ├── mise/conf.d/personal.toml.tmpl       # Global CLI packages (personal only)
 │   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)
 ├── private_dot_claude/                      # ~/.claude/ (0700)
 │   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
