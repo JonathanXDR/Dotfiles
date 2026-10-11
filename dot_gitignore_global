@@ -630,6 +630,7 @@ mise.local.toml
 # ---- AI tools ----
 **/.claude/*
 **/.remember/*
+**/.skills/*
 **/.github/copilot-instructions.md
 
 **/CLAUDE.md
