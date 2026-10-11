@@ -92,7 +92,8 @@ Dotfiles/
 │   ├── run_once_after_07-*                              # Fix zsh completion permissions
 │   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
 │   ├── run_after_09-*                                   # Install /etc/hosts from ~/.config/hosts (every apply, self-healing)
-│   └── run_after_10-*                                   # Clone and link the Agent Skills, fetch licensed ones, prune
+│   ├── run_after_10-*                                   # Clone and link the Agent Skills, fetch licensed ones, prune
+│   └── run_after_11-*                                   # Install the Hunspell dictionaries (every apply, self-healing)
 │
 │   # iCloud Drive symlinks (point $HOME directories at iCloud)
 │
@@ -478,7 +479,7 @@ Scripts in `.chezmoiscripts/` are numbered for deterministic ordering. The filen
 | `run_once_before_`    | Once, before files are copied       | Install Homebrew, import keychain                    |
 | `run_onchange_after_` | Re-runs when script content changes | Homebrew packages (Brewfile hash embedded in script) |
 | `run_once_after_`     | Once, after files are copied        | Fix zsh completion permissions                       |
-| `run_after_`          | Every `chezmoi apply`, after files  | Export keychain to iCloud, install /etc/hosts, link Agent Skills |
+| `run_after_`          | Every `chezmoi apply`, after files  | Export keychain to iCloud, install /etc/hosts and Hunspell dictionaries, link Agent Skills |
 
 Every script includes `{{ template "shell-helpers" . }}`, which provides shared bash helpers:
 

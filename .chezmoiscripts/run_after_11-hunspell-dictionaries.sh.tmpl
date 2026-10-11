@@ -1,0 +1,64 @@
+#!/bin/bash
+set -euo pipefail
+{{ template "shell-helpers" . }}
+
+# A script rather than a chezmoi external, because chezmoi stops the whole apply
+# at the first external that fails. It runs on every apply, not on change, so a
+# failed download is retried and a deleted dictionary is restored.
+
+_ensure_brew
+
+# Not a warning, which a machine without hunspell would print on every apply
+if ! _cmd_exists hunspell; then
+  _log debug "Skipped Hunspell dictionaries (hunspell not installed)"
+  exit 0
+fi
+
+# Update with the checksums below, which alone decide whether to download
+SOURCE_URL="https://raw.githubusercontent.com/LibreOffice/dictionaries/32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4"
+
+# Not ~/Library/Spelling, which macOS also loads into the system spell checker
+DEST="${XDG_DATA_HOME:-$HOME/.local/share}/hunspell"
+
+trap 'rm -f "$DEST"/.*.part' EXIT
+
+_sha256() { shasum -a 256 "$1" 2>/dev/null | cut -d ' ' -f 1; }
+
+_fetch() {
+  local src="$1" file="$2" sha="$3"
+
+  if ! curl -fsSL --connect-timeout 10 --max-time 120 -o "$file" "${SOURCE_URL}/${src}"; then
+    _log warning "Failed to download ${src}"
+    return 1
+  fi
+  if [[ "$(_sha256 "$file")" != "$sha" ]]; then
+    _log warning "Failed to verify ${src} (checksum mismatch)"
+    return 1
+  fi
+}
+
+_dictionary() {
+  local name="$1" src="$2" aff_sha="$3" dic_sha="$4"
+
+  if [[ "$(_sha256 "${DEST}/${name}.aff")" == "$aff_sha" ]] \
+    && [[ "$(_sha256 "${DEST}/${name}.dic")" == "$dic_sha" ]]; then
+    return 0
+  fi
+
+  _log info "Downloading the ${name} Hunspell dictionary…"
+  mkdir -p "$DEST"
+  # Fetch both before replacing either, so a failed fetch never leaves a mismatched pair
+  if _fetch "${src}.aff" "${DEST}/.${name}.aff.part" "$aff_sha" \
+    && _fetch "${src}.dic" "${DEST}/.${name}.dic.part" "$dic_sha"; then
+    mv -f "${DEST}/.${name}.aff.part" "${DEST}/${name}.aff"
+    mv -f "${DEST}/.${name}.dic.part" "${DEST}/${name}.dic"
+    _log success "Installed the ${name} Hunspell dictionary"
+  fi
+}
+
+_dictionary en_US en/en_US \
+  e746c882dd6f303c2c46e7452804b9201115a6942cfeb15f18f8edf774d2e24e \
+  f0b1a234bd178bdd01875b2a392a9647f888b8fe879f79c52aae62c2759b3647
+_dictionary de_CH de/de_CH_frami \
+  d86884be4c3f07e5e08057884856feabf2872b4e2f90a587a11376082bc4126b \
+  80a4df38cdc3e16d2f042f8eba4a99668ab9c075662e4262c62f8bba46c7bd16
