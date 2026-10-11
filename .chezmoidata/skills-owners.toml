@@ -19,25 +19,41 @@ path = "harlan-agent-kit/skills/agent-retro"
 repo = "antfu/skills"
 path = "skills/antfu"
 
-[agent_skills.antfu-design]
+[agent_skills.antfu-create-pr]
 repo = "antfu/skills"
-path = "skills/antfu-design"
+path = "skills/antfu-create-pr"
 
 [agent_skills.ask-matt]
 repo = "mattpocock/skills"
 path = "skills/engineering/ask-matt"
 
+[agent_skills.brand-lab]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/brand-lab"
+
+[agent_skills.browser]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/browser"
+
+[agent_skills.chief-of-staff]
+repo = "mattpocock/skills"
+path = "skills/in-progress/chief-of-staff"
+
 [agent_skills.ci-review]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/ci-review"
 
+[agent_skills.claim-fidelity]
+repo = "harlan-zw/brundlefly"
+path = "skills/claim-fidelity"
+
+[agent_skills.clarity]
+repo = "harlan-zw/brundlefly"
+path = "skills/clarity"
+
 [agent_skills.claude-handoff]
 repo = "mattpocock/skills"
 path = "skills/in-progress/claude-handoff"
-
-[agent_skills.close-off]
-repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/close-off"
 
 [agent_skills.code-review]
 repo = "mattpocock/skills"
@@ -51,6 +67,10 @@ path = "skills/engineering/codebase-design"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/content-refresh"
 
+[agent_skills.d1-query-review]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/d1-query-review"
+
 [agent_skills.daily-checkin]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/daily-checkin"
@@ -58,6 +78,10 @@ path = "harlan-agent-kit/skills/daily-checkin"
 [agent_skills.dependency-updates]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/dependency-updates"
+
+[agent_skills.devtools-layer-skilld]
+repo = "harlan-zw/nuxt-seo"
+path = "packages/devtools-layer/skills/devtools-layer-skilld"
 
 [agent_skills.diagnosing-bugs]
 repo = "mattpocock/skills"
@@ -71,6 +95,10 @@ path = "skills/engineering/domain-modeling"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/email-triage"
 
+[agent_skills.email-usage]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/email-usage"
+
 [agent_skills.empathy]
 repo = "danielroe/empathy"
 
@@ -79,8 +107,8 @@ repo = "mattpocock/skills"
 path = "skills/misc/git-guardrails-claude-code"
 
 [agent_skills.glossary]
-repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/glossary"
+repo = "harlan-zw/brundlefly"
+path = "skills/glossary"
 
 [agent_skills.grill-me]
 repo = "mattpocock/skills"
@@ -110,9 +138,17 @@ path = "harlan-agent-kit/skills/harlan-github-agent"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/hogwild"
 
-[agent_skills.humanize-writing]
+[agent_skills.i-dont-know-just-keep-working]
 repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/humanize-writing"
+path = "harlan-agent-kit/skills/i-dont-know-just-keep-working"
+
+[agent_skills.im-a-fly]
+repo = "harlan-zw/brundlefly"
+path = "skills/im-a-fly"
+
+[agent_skills.im-not-a-fly]
+repo = "harlan-zw/brundlefly"
+path = "skills/im-not-a-fly"
 
 [agent_skills.implement]
 repo = "mattpocock/skills"
@@ -120,7 +156,7 @@ path = "skills/engineering/implement"
 
 [agent_skills.implement-spec]
 repo = "mattpocock/skills"
-path = "skills/in-progress/implement-spec"
+path = "skills/engineering/implement-spec"
 
 [agent_skills.improve-codebase-architecture]
 repo = "mattpocock/skills"
@@ -138,6 +174,10 @@ path = "harlan-agent-kit/skills/issue-triage"
 repo = "mattpocock/skills"
 path = "skills/in-progress/loop-me"
 
+[agent_skills.mdream]
+repo = "harlan-zw/mdream"
+path = "packages/mdream/skills/mdream"
+
 [agent_skills.migrate-to-shoehorn]
 repo = "mattpocock/skills"
 path = "skills/misc/migrate-to-shoehorn"
@@ -150,6 +190,14 @@ path = "skills/nitro"
 repo = "antfu/skills"
 path = "skills/nuxt"
 
+[agent_skills.nuxt-4-minors-migration]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-4-minors-migration"
+
+[agent_skills.nuxt-ai-ready]
+repo = "harlan-zw/nuxt-ai-ready"
+path = "skills/nuxt-ai-ready"
+
 [agent_skills.nuxt-frontend-design]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/nuxt-frontend-design"
@@ -161,6 +209,34 @@ path = "harlan-agent-kit/skills/nuxt-frontend-review"
 [agent_skills.nuxt-improve-codebase-architecture]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/nuxt-improve-codebase-architecture"
+
+[agent_skills.nuxt-link-checker]
+repo = "harlan-zw/nuxt-link-checker"
+path = "skills/nuxt-link-checker"
+
+[agent_skills.nuxt-module-migration]
+repo = "harlan-zw/harlan-agent-kit"
+path = "harlan-agent-kit/skills/nuxt-module-migration"
+
+[agent_skills.nuxt-schema-org]
+repo = "harlan-zw/nuxt-schema-org"
+path = "skills/nuxt-schema-org"
+
+[agent_skills.nuxt-seo-utils]
+repo = "harlan-zw/nuxt-seo-utils"
+path = "skills/nuxt-seo-utils"
+
+[agent_skills.nuxt-site-config]
+repo = "harlan-zw/nuxt-site-config"
+path = "packages/module/skills/nuxt-site-config"
+
+[agent_skills.nuxt-skew-protection]
+repo = "harlan-zw/nuxt-skew-protection"
+path = "skills/nuxt-skew-protection"
+
+[agent_skills.nuxtjs-seo]
+repo = "harlan-zw/nuxt-seo"
+path = "packages/nuxt-seo/skills/nuxtjs-seo"
 
 [agent_skills.perf-review]
 repo = "harlan-zw/harlan-agent-kit"
@@ -198,6 +274,14 @@ path = "harlan-agent-kit/skills/pr-triage"
 repo = "mattpocock/skills"
 path = "skills/engineering/prototype"
 
+[agent_skills.pull-request-summary]
+repo = "harlan-zw/brundlefly"
+path = "skills/pull-request-summary"
+
+[agent_skills.readme]
+repo = "harlan-zw/brundlefly"
+path = "skills/readme"
+
 [agent_skills.release-notes]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/release-notes"
@@ -206,17 +290,13 @@ path = "harlan-agent-kit/skills/release-notes"
 repo = "mattpocock/skills"
 path = "skills/engineering/research"
 
-[agent_skills.resolving-merge-conflicts]
-repo = "mattpocock/skills"
-path = "skills/engineering/resolving-merge-conflicts"
-
 [agent_skills.retro]
 repo = "mattpocock/skills"
-path = "skills/in-progress/retro"
+path = "skills/engineering/retro"
 
 [agent_skills.ripast]
-repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/ripast"
+repo = "harlan-zw/ripide"
+path = "packages/cli/skills/ripast"
 
 [agent_skills.scaffold-exercises]
 repo = "mattpocock/skills"
@@ -242,10 +322,6 @@ path = "skills/misc/setup-pre-commit"
 repo = "mattpocock/skills"
 path = "skills/in-progress/setup-ts-deep-modules"
 
-[agent_skills.social-presence]
-repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/social-presence"
-
 [agent_skills.take-ownership]
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/take-ownership"
@@ -257,6 +333,10 @@ path = "skills/engineering/tdd"
 [agent_skills.teach]
 repo = "mattpocock/skills"
 path = "skills/productivity/teach"
+
+[agent_skills.technical-guide]
+repo = "harlan-zw/brundlefly"
+path = "skills/technical-guide"
 
 [agent_skills.to-questionnaire]
 repo = "mattpocock/skills"
@@ -286,9 +366,17 @@ path = "harlan-agent-kit/skills/tweet"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/unit-tests"
 
+[agent_skills.unlighthouse]
+repo = "harlan-zw/unlighthouse"
+path = "packages/unlighthouse/skills/unlighthouse"
+
 [agent_skills.unocss]
 repo = "antfu/skills"
 path = "skills/unocss"
+
+[agent_skills.verify-examples]
+repo = "harlan-zw/brundlefly"
+path = "skills/verify-examples"
 
 [agent_skills.vitals-review]
 repo = "harlan-zw/harlan-agent-kit"
