@@ -127,6 +127,8 @@ brew "grunt-cli"
 brew "gulp-cli"
 # Kubernetes package manager
 brew "helm"
+# Spell checker and morphological analyzer
+brew "hunspell"
 # Comprehensive RPC framework
 brew "ice"
 # Tool to report network interface bandwidth
