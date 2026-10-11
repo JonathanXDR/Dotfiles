@@ -150,10 +150,6 @@ path = "autoplan"
 repo = "thedotmack/claude-mem"
 path = "plugin/skills/babysit"
 
-[agent_skills.babysit-pr]
-repo = "openai/codex"
-path = ".codex/skills/babysit-pr"
-
 [agent_skills.banner-design]
 repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/banner-design"
@@ -285,10 +281,6 @@ path = "skills/clerk-setup"
 repo = "clerk/skills"
 path = "skills/clerk-webhooks"
 
-[agent_skills.code-review-change-size]
-repo = "openai/codex"
-path = ".codex/skills/code-review-change-size"
-
 [agent_skills.code-simplification]
 repo = "addyosmani/agent-skills"
 path = "skills/code-simplification"
@@ -296,10 +288,6 @@ path = "skills/code-simplification"
 [agent_skills.codex]
 repo = "garrytan/gstack"
 path = "codex"
-
-[agent_skills.codex-pr-body]
-repo = "openai/codex"
-path = ".codex/skills/codex-pr-body"
 
 [agent_skills.constraint-driven-development]
 repo = "addyosmani/agent-skills"
