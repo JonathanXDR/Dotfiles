@@ -131,6 +131,10 @@ alias bash='PERMIT_BASH=true bash'
 
 # Restart the shell in place, as a login shell
 alias:safe reload="exec ${SHELL} -l"
+alias:safe rld="reload"
+
+# Clear the terminal screen
+alias:safe clr="clear"
 
 # --------------------------------- AI Tools --------------------------------- #
 
