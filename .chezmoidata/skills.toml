@@ -110,6 +110,10 @@ path = "skills/animate"
 repo = "emilkowalski/skills"
 path = "skills/animation-vocabulary"
 
+[agent_skills.antfu-design]
+repo = "antfu/design"
+path = "skills/antfu-design"
+
 [agent_skills.api-and-interface-design]
 repo = "addyosmani/agent-skills"
 path = "skills/api-and-interface-design"
@@ -259,27 +263,27 @@ path = "skills/clean-copy"
 
 [agent_skills.clerk-cli]
 repo = "clerk/skills"
-path = "skills/core/clerk-cli"
+path = "skills/clerk-cli"
 
 [agent_skills.clerk-custom-ui]
 repo = "clerk/skills"
-path = "skills/core/clerk-custom-ui"
+path = "skills/clerk-custom-ui"
 
 [agent_skills.clerk-nuxt-patterns]
 repo = "clerk/skills"
-path = "skills/frameworks/clerk-nuxt-patterns"
+path = "skills/clerk-nuxt-patterns"
 
 [agent_skills.clerk-orgs]
 repo = "clerk/skills"
-path = "skills/features/clerk-orgs"
+path = "skills/clerk-orgs"
 
 [agent_skills.clerk-setup]
 repo = "clerk/skills"
-path = "skills/core/clerk-setup"
+path = "skills/clerk-setup"
 
 [agent_skills.clerk-webhooks]
 repo = "clerk/skills"
-path = "skills/features/clerk-webhooks"
+path = "skills/clerk-webhooks"
 
 [agent_skills.code-review-change-size]
 repo = "openai/codex"
