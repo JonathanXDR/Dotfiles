@@ -2,6 +2,7 @@
   "env": {
     "CLAUDE_CODE_RETRY_WATCHDOG": "1"
   },
+  "attribution": false,
   "permissions": {
     "deny": [
 {{- $rules := list }}
@@ -26,18 +27,18 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git *)",
-            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-push.sh'"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-push.sh'",
+            "if": "Bash(git *)"
           },
           {
             "type": "command",
-            "if": "Bash(git *)",
-            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-destructive.sh'"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/block-git-destructive.sh'",
+            "if": "Bash(git *)"
           },
           {
             "type": "command",
-            "if": "Bash(git *)",
-            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/check-commit-message.sh'"
+            "command": "'{{ .chezmoi.homeDir }}/.claude/hooks/check-commit-message.sh'",
+            "if": "Bash(git *)"
           }
         ]
       },
@@ -171,18 +172,20 @@
       }
     }
   },
+  "spellcheck": {
+    "enabled": true,
+    "language": "en_US"
+  },
   "modelSettings": {
     "claude-opus-5-5": {
       "effortLevel": "xhigh"
     }
   },
-  "attribution": false,
-  "agentPushNotifEnabled": true,
-  "skipDangerousModePermissionPrompt": true,
   "tui": "fullscreen",
-  "spellcheck": { "enabled": true, "language": "en_US" },
   "voice": {
     "enabled": true,
     "mode": "tap"
-  }
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true
 }
