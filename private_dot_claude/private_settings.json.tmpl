@@ -2,7 +2,6 @@
   "env": {
     "CLAUDE_CODE_RETRY_WATCHDOG": "1"
   },
-  "attribution": false,
   "permissions": {
     "deny": [
 {{- $rules := list }}
@@ -177,7 +176,8 @@
       "effortLevel": "xhigh"
     }
   },
-  "tui": "fullscreen",
+  "attribution": false,
+  "agentPushNotifEnabled": true,
   "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true
+  "tui": "fullscreen"
 }
