@@ -13,7 +13,7 @@ set -euo pipefail
 
 KEYCHAIN_NAME={{ .keychain_name | quote }}
 KEYCHAIN="${HOME}/Library/Keychains/${KEYCHAIN_NAME}.keychain-db"
-KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | shellQuote }}{{ else }}""{{ end }}
 
 # Nothing to unlock on a first apply, since run_once_before_02 creates the
 # keychain.

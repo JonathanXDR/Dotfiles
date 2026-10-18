@@ -19,7 +19,7 @@ set -euo pipefail
 export SECRETS_TOKENS_FILE="{{ .icloud_secrets }}/.keychain/tokens"
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
 export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
-export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | quote }}{{ else }}""{{ end }}
+export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | shellQuote }}{{ else }}""{{ end }}
 export DOTFILES_SOURCE={{ .chezmoi.sourceDir | quote }}
 
 zsh -c 'source "$DOTFILES_SOURCE/dot_functions" && _secrets:ensure-keychain'
