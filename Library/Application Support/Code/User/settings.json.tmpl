@@ -232,7 +232,9 @@
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.debug.settings.hotCodeReplace": "auto",
   "java.import.gradle.home": "{{ .chezmoi.homeDir }}/Library/Application Support/Code/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest",
-  "java.import.gradle.java.home": "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home",
+  {{- range $path := glob "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home" }}
+  "java.import.gradle.java.home": {{ $path | toJson }},
+  {{- end }}
   "java.maxConcurrentBuilds": 14,
   "java.sources.organizeImports.staticStarThreshold": 1,
   "javascript.updateImportsOnFileMove.enabled": "always",
