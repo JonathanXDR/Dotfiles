@@ -113,7 +113,7 @@ Dotfiles/
 │
 │   # Proxy agent (work only, ignored on personal via .chezmoiignore)
 │
-├── Library/LaunchAgents/
+├── private_Library/LaunchAgents/
 │   └── private_local.alpaca.plist.tmpl                  # Alpaca with its PAC and NTLM credentials (0600, from keychain)
 │
 │   # Shell configuration (sourced on every terminal open)
@@ -155,7 +155,7 @@ Dotfiles/
 │
 │   # IDE settings
 │
-├── Library/Application Support/Code/User/
+├── private_Library/Application Support/Code/User/
 │   ├── settings.json.tmpl                               # VS Code settings (home dir templated for Java/Gradle paths)
 │   └── keybindings.json                                 # VS Code keybindings
 │
@@ -210,7 +210,7 @@ chezmoi maps source filenames to target paths by replacing prefixes and strippin
 | `private_dot_claude/private_CLAUDE.md`           | `~/.claude/CLAUDE.md`               | Plain copy, and `private_` keeps the source name out of the global gitignore    |
 | `symlink_dot_ssh.tmpl`                           | `~/.ssh`                            | Symlink to the rendered iCloud path                                             |
 | `private_dot_gnupg/`                             | `~/.gnupg/`                         | `private_` sets the directory to `0700`                                         |
-| `Library/Application Support/...`                | `~/Library/Application Support/...` | Literal path                                                                    |
+| `private_Library/Application Support/...`        | `~/Library/Application Support/...` | `private_` keeps `~/Library` at `0700`                                          |
 
 ### Data Layers
 
@@ -356,7 +356,7 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | GitLab MCP OAuth client ID and secret   | Work only |
-| `Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy credentials | Work only |
+| `private_Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy credentials | Work only |
 | `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
 For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.

@@ -230,4 +230,4 @@ private_dot_npmrc
 private_dot_wakatime.cfg
 dot_config/zed/private_settings.json
 dot_zshenv
-Library/LaunchAgents/private_local.alpaca.plist
+private_Library/LaunchAgents/private_local.alpaca.plist

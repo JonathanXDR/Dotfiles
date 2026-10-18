@@ -200,7 +200,7 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
-├── Library/LaunchAgents/
+├── private_Library/LaunchAgents/
 │   └── private_local.alpaca.plist.tmpl      # Alpaca proxy agent (0600, NTLM from keychain, work only)
 │
 ├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale, proxy variables)
@@ -226,7 +226,8 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 │   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, permissions, hooks)
 │   ├── private_hooks/                       # Claude Code guard hooks and session notices
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
-├── Library/Application Support/Code/User/   # VS Code settings & keybindings
+├── private_Library/Application Support/
+│   └── Code/User/                           # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
 └── Brewfile.work                            # Homebrew packages (work)

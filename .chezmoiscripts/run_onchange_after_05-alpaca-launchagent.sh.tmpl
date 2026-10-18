@@ -4,7 +4,7 @@ set -euo pipefail
 
 {{ if eq .machine_type "work" -}}
 # Rendered plist hash, so a new keychain credential also restarts Alpaca:
-# {{ includeTemplate "Library/LaunchAgents/private_local.alpaca.plist.tmpl" . | sha256sum }}
+# {{ includeTemplate "private_Library/LaunchAgents/private_local.alpaca.plist.tmpl" . | sha256sum }}
 #
 # Alpaca keg, so an upgrade restarts the agent and a run skipped for a missing
 # binary retries:
