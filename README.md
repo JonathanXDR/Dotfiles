@@ -206,7 +206,7 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── Library/LaunchAgents/
 │   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
 │
-├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, npm registry)
+├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
 ├── private_dot_exports.tmpl                 # Env vars, history, locale, zsh options (0600, reads the keychain)

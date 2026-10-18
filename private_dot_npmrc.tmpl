@@ -18,13 +18,10 @@ registry=https://registry.npmjs.org/
 {{- if ne $swisscom_bin "" }}
 //bin.swisscom.com/artifactory/api/npm/:_auth={{ printf "taarujo6:%s" $swisscom_bin | b64enc }}
 {{- end }}
-; Both hosts serve the same virtual repo, but only artifactory.swisscom.com is
-; reachable through the corporate proxy and only bin.swisscom.com without it.
-; npm expands ${...} from the environment, so proxy:set, proxy:unset and the
-; proxy-watchd LaunchAgent swap the active host as the network changes.
-; .zshenv exports NPM_SWISSCOM_REGISTRY, defaulting it to the direct host. Every
-; zsh reads that file.
-@swisscom:registry=${NPM_SWISSCOM_REGISTRY}
+; Both hosts serve the same virtual repo. One fixed host keeps lockfiles
+; network-independent, and artifactory keeps its credentials for lockfiles that
+; already pin its tarball URLs.
+@swisscom:registry=https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/
 {{- if ne $swisscom_artifactory "" }}
 //artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
 {{- end }}

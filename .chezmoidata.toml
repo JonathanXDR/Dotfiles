@@ -36,14 +36,6 @@ trash_skip = ["node_modules"]
 # Binary that the vpn:* functions drive, exported as CISCO_VPN_BIN
 cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
 
-# Hosts for the @swisscom npm scope. Both serve the same virtual repo, but
-# only the proxied one is reachable through the corporate proxy and only the
-# direct one without it. dot_zshenv.tmpl exports them, proxy:set, proxy:unset
-# and proxy-watchd swap the active one, and .npmrc reads the result.
-# Applied on work machines only.
-npm_swisscom_registry_proxied = "https://artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
-npm_swisscom_registry_direct = "https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/"
-
 # Host vpn:full-refresh reconnects to when called without an argument,
 # exported as VPN_DEFAULT_HOST. Empty means the argument is required.
 vpn_default_host = ""

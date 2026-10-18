@@ -9,8 +9,6 @@ PROXY_PROTOCOL="{{ .proxy_protocol }}"
 PROXY_HOST="{{ .proxy_host }}"
 PROXY_PORT="{{ .proxy_port }}"
 NO_PROXY="{{ .no_proxy }}"
-NPM_REGISTRY_PROXIED="{{ .npm_swisscom_registry_proxied }}"
-NPM_REGISTRY_DIRECT="{{ .npm_swisscom_registry_direct }}"
 
 STATE_FILE="${HOME}/.cache/proxy-state"
 
@@ -39,12 +37,9 @@ if [[ "${state}" == "on" ]]; then
   launchctl setenv HTTPS_PROXY "${addr}"
   launchctl setenv ALL_PROXY "${addr}"
   launchctl setenv NO_PROXY "${NO_PROXY}"
-  launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_REGISTRY_PROXIED}"
 else
   launchctl unsetenv HTTP_PROXY
   launchctl unsetenv HTTPS_PROXY
   launchctl unsetenv ALL_PROXY
   launchctl unsetenv NO_PROXY
-  # Set rather than unset, because .npmrc has no fallback for an unset value
-  launchctl setenv NPM_SWISSCOM_REGISTRY "${NPM_REGISTRY_DIRECT}"
 fi
