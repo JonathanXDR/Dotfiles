@@ -306,7 +306,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 
 **How it works:**
 
-1. **The dotfiles keychain is the source of truth for secrets.** Templates read secrets with `includeTemplate "keychain" (list "<id>" "<account>" .keychain_name .keychain_lookup_field)`, which wraps `security find-generic-password` against the configured keychain and falls back to an empty string.
+1. **The dotfiles keychain is the source of truth for secrets.** Templates read secrets with `includeTemplate "keychain" (list "<id>" "<account>" .keychain_name .keychain_lookup_field)`, which wraps `security find-generic-password` against the configured keychain and falls back to an empty string when the item is missing.
 2. **The keychain is unlocked once per apply.** Script `00` (`run_before_00-unlock-keychain`) runs before chezmoi renders any template, calls `security unlock-keychain` with the cached password, and re-applies the lock policy (`-l` only), so the keychain stays open for the rest of the apply. That is what keeps secret-reading templates prompt-free.
 3. **iCloud Drive is the backup.** Script `02` creates the dotfiles keychain on a fresh machine and imports tokens from iCloud into it. Script `08` runs after every apply and rewrites the tokens file when the keychain and the file differ.
 4. **Shell functions** in `dot_functions` cover the full lifecycle. The `secret:` functions operate on a single entry, the `secrets:` functions on the whole set:
@@ -320,7 +320,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 
 > [!NOTE]
 > **Why a custom `keychain` template instead of chezmoi's built-in `keyring`?**
-> The `keyring` function panics when a key is missing. The `keychain` helper wraps `security find-generic-password ... || true` in `includeTemplate`, so a missing key yields an empty string. Templates can then render a warning comment instead of failing.
+> The `keyring` function panics when a key is missing. The `keychain` helper returns an empty string when the item is missing (exit 44) and fails the render on any other error, such as a locked keychain. Templates then leave the setting out or render it empty.
 
 **Naming convention.** Each managed entry uses five native Keychain Access fields:
 
