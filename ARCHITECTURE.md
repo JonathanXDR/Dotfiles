@@ -3,7 +3,7 @@
 How this dotfiles system is organized, how data flows through it, and where to start when navigating the codebase.
 
 > [!TIP]
-> New here? Start with [Bird's Eye View](#-birds-eye-view) for the big picture, skim [Key Concepts](#-key-concepts) for the mental model, and jump to [Entry Points](#-entry-points) when you know what you want to change.
+> New here? Start with [Bird's Eye View](#-birds-eye-view) for the big picture, skim [Key Concepts](#-key-concepts) for the mental model, and jump to [Entry Points](#%EF%B8%8F-entry-points) when you know what you want to change.
 
 ## 🦅 Bird's Eye View
 
