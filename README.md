@@ -7,46 +7,58 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 
 ## Features
 
-- 🪨 **Foundation:** [chezmoi](https://chezmoi.io) in symlink mode, Go templates for per-machine configs
-- 🔐 **Secrets:** macOS Keychain source of truth, iCloud-backed, zero plaintext in the repo
-- ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
-- 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, mise tools, proxy, SSL, VPN, npm, `/etc/hosts`
-- 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
-- 🚦 **Network-aware proxy:** [Alpaca](https://github.com/samuong/alpaca) routes every request through the corporate proxy or directly, following Wi-Fi and VPN changes
-- ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
-- 🧠 **Agent Skills:** 200+ skills declared in one file, fetched once, read by Claude Code, Codex, Copilot, and Gemini
-- 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
-- ♻️ **Idempotent bootstrap:** Homebrew install, keychain import/export, mise tools, permission fixups
+- 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
+- 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
+- ☁️ **iCloud sync:** Shares SSH, GPG, SSL, kubeconfig, VPN, and `config.toml` across Macs.
+- 💻 **Machine types:** Adapts packages, proxy, SSL, VPN, npm, and `/etc/hosts` to personal or work Macs.
+- 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
+- 🚦 **Network-aware proxy:** Routes work traffic through the corporate proxy or directly with [Alpaca](https://github.com/samuong/alpaca).
+- ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
+- 🧠 **Agent Skills:** Declares 400+ skills in one file for Claude Code, Codex, Copilot, and Gemini.
+- 🛠️ **Shell toolkit:** Adds 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases.
+- ♻️ **Idempotent bootstrap:** Sets up Homebrew, packages, tools, and secrets, and is safe to re-run.
 
 ## 📋 Prerequisites
 
-> [!WARNING]
-> Turn on [Advanced Data Protection](https://support.apple.com/en-us/108756) before you bootstrap. Without it, everything this setup keeps on iCloud Drive (SSH, GPG, SSL, kube, VPN, the tokens file, and `config.toml`) is encrypted under keys Apple also holds, rather than keys only your trusted devices hold.
+> [!CAUTION]
+> Turn on [Advanced Data Protection](https://support.apple.com/en-us/108756) before you bootstrap. Without it, Apple can decrypt everything this setup stores on iCloud Drive, including your SSH and GPG keys and the tokens file that holds every managed secret.
 
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
 - iCloud Drive signed in (for keys, config, and the tokens file)
+- The App Store signed in (both Brewfiles install App Store apps through `mas`)
 
 ## 🚀 Quick Start
 
+Clone over HTTPS, because your SSH keys only arrive once chezmoi links `~/.ssh`:
+
 ```bash
-git clone git@github.com:JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfiles
+git clone https://github.com/JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dotfiles
 
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-During `chezmoi init`, chezmoi asks for your machine type first, then for your email, name, and GPG key, and finally for an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every key after the machine type comes from `config.toml` on iCloud Drive when that file supplies it, and is prompted for when it does not. The keychain password is the exception. It is never read from `config.toml`. Your answers are cached, so later runs stay quiet.
+`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
-1. Installs Homebrew if it is missing
+1. Installs Homebrew if it is missing, asking for your password once
 2. Imports your tokens from iCloud Drive into the `dotfiles` keychain
-3. Symlinks `~/.ssh` to its iCloud Drive copy, plus `~/.ssl` and `~/.vpn` on work machines, creates `~/.gnupg` and `~/.kube` as real directories whose entries symlink into iCloud Drive, and links the shell config files into `$HOME`
+3. Links `~/.ssh`, `~/.gnupg`, and `~/.kube` to their iCloud Drive copies (plus `~/.ssl` and `~/.vpn` on work machines), and the shell config into `$HOME`
 4. Installs everything in the Brewfile for your machine type
 5. Installs language runtimes and global CLI packages with mise
-6. Downloads the declared Agent Skills and links them into every agent that needs a link
+6. Installs `/etc/hosts` from `dot_config/hosts.tmpl`, asking for your password whenever it changes
+7. Downloads the declared Agent Skills and links them into every agent that needs a link
+
+Finish by starting daily Homebrew upgrades, which the setup counts on to keep mise current:
+
+```bash
+brew autoupdate start --upgrade --sudo
+```
 
 ## 🧪 Usage
+
+Three chezmoi commands cover most changes:
 
 ```bash
 chezmoi apply          # Apply changes to $HOME
@@ -54,8 +66,7 @@ chezmoi diff           # Preview what would change
 chezmoi edit ~/.zshrc  # Edit through chezmoi (or open the file directly)
 ```
 
-> [!TIP]
-> In symlink mode, `~/.zshrc` and the other dotfiles point straight at this repo, so editing them in `$HOME` edits the source. The `chezmoi edit` command is there out of habit, not because you need it.
+In symlink mode, `~/.zshrc` and the other dotfiles point straight at this repo, so editing them in `$HOME` edits the source. The `chezmoi edit` command is there out of habit, not because you need it.
 
 Shortcut aliases:
 
@@ -71,6 +82,8 @@ Secrets live in a dedicated **`dotfiles` keychain**, separate from `login` and w
 
 The first `chezmoi apply` creates the keychain, and `run_before_00-unlock-keychain` unlocks it once per run, so every template that reads a secret renders in one pass without prompting you again. The keychain locks on system sleep and has no idle timeout (`security set-keychain-settings -l`).
 
+The `secret:` functions act on a single entry, while the `secrets:` functions act on the whole set:
+
 ```bash
 secret:set <id> <account> <where> <kind> [comment]   # Add a new entry (prompts for password)
 secret:get <id> <account>                            # Read raw value to stdout
@@ -82,8 +95,6 @@ secrets:list                                         # Sorted table of all keych
 secrets:import                                       # Import tokens-file entries missing from the keychain, report drift
 secrets:export                                       # Rewrite the tokens file from the keychain (auto-runs on apply)
 ```
-
-The `secret:` functions act on a single entry, while the `secrets:` functions act on the whole set.
 
 Each entry uses five native Keychain Access fields, and the `(id, account)` pair is its unique lookup key. The `id` argument fills the Label (Name) field and the URL goes into Service (Where), which keeps URLs out of committed templates:
 
@@ -97,8 +108,7 @@ Each entry uses five native Keychain Access fields, and the `(id, account)` pair
 
 Run `secrets:list` to see what the keychain holds. It prints the metadata for every entry and never the secrets themselves.
 
-> [!NOTE]
-> macOS stores generic passwords under `(Where, Account)`, so two entries cannot share that pair even when their names differ. `secret:set` and `secret:rename` refuse such a collision rather than overwrite the entry that already holds it. Run `secrets:list` to find the other entry when one is rejected.
+macOS stores generic passwords under `(Where, Account)`, so two entries cannot share that pair even when their names differ. `secret:set` and `secret:rename` refuse such a collision rather than overwrite the entry that already holds it, and `secrets:list` shows the other entry.
 
 **Configuration** (`.chezmoidata.toml`):
 
@@ -115,6 +125,8 @@ You can also give the keychain a **master password** during `chezmoi init`. It i
 ## 🧠 Agent Skills
 
 [Agent Skills](https://agentskills.io/specification) are `SKILL.md` directories an AI coding agent loads on demand. Every skill this machine should have is listed in [`.chezmoidata/skills.toml`](./.chezmoidata/skills.toml), together with where it comes from. That file is the only place the set is decided.
+
+Each entry names one source:
 
 ```toml
 [agent_skills.tdd]                       # a directory in a public repository
@@ -155,6 +167,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
 
 ## 🐚 Shell Loading Order
 
+Every new terminal runs these files and hooks in this order:
+
 ```text
 ~/.zshenv ───────── mise shims, locale, proxy variables on work (every zsh, including non-interactive)
         │
@@ -162,7 +176,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
         │
 ~/.zprofile ─────── Restores the mise shims to the front of PATH
         │
-Kiro CLI pre ────── Launches figterm (must stay first in ~/.zshrc)
+Kiro CLI pre ────── Launches kiro-cli-term (must stay first in ~/.zshrc)
         │
 ~/.exports ──────── Env vars, history, zsh options
         │
@@ -181,10 +195,11 @@ Runtime hooks ───── SSH agent, daily mise, brew, and plugin checks
 Kiro CLI post ───── Prompt and keybinding hooks (must stay last in ~/.zshrc)
 ```
 
-Homebrew runs before the tool paths because `brew shellenv` prepends its own
-`bin` and `sbin`, and the tool paths have to land in front of them.
+Homebrew runs before the tool paths because `brew shellenv` prepends its own `bin` and `sbin`, and the tool paths have to land in front of them.
 
 ## 📦 Project Structure
+
+The source maps onto `$HOME` like this:
 
 ```text
 ├── .chezmoi.toml.tmpl                       # User config (iCloud config.toml or prompts)
@@ -200,9 +215,6 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
-├── private_Library/LaunchAgents/
-│   └── private_local.alpaca.plist.tmpl      # Alpaca proxy agent (0600, NTLM from keychain, work only)
-│
 ├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale, proxy variables)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
@@ -216,7 +228,7 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 ├── dot_gitignore_global                     # Global gitignore
 ├── private_dot_npmrc.tmpl                   # npm registry tokens (0600, from keychain)
 ├── private_dot_wakatime.cfg.tmpl            # WakaTime API key (0600, from keychain)
-├── dot_config/
+├── dot_config/                              # ~/.config
 │   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
 │   ├── mise/conf.d/personal.toml.tmpl       # Global CLI packages (personal only)
@@ -226,8 +238,9 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 │   ├── private_settings.json.tmpl           # Claude Code user settings (plugins, permissions, hooks)
 │   ├── private_hooks/                       # Claude Code guard hooks and session notices
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
-├── private_Library/Application Support/
-│   └── Code/User/                           # VS Code settings & keybindings
+├── private_Library/                         # ~/Library (0700)
+│   ├── Application Support/Code/User/       # VS Code settings & keybindings
+│   └── LaunchAgents/                        # Alpaca proxy agent (0600, NTLM from keychain, work only)
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
 └── Brewfile.work                            # Homebrew packages (work)
@@ -237,10 +250,9 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 
 1. 📖 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for a walkthrough of how the pieces fit together.
 2. 🔀 Fork this repo and adapt `config.toml`, the Brewfiles, and the machine types to your setup.
-3. 🔄 Start daily Homebrew upgrades with `brew autoupdate start --upgrade --sudo`. The setup counts on them, for example to keep mise current.
-4. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
-5. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
+3. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
+4. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
 
 ## ⚖️ License
 
-Licensed under the [MIT License](./LICENSE) &copy; Jonathan Russ.
+Licensed under the [MIT license](./LICENSE) © Jonathan Russ.
