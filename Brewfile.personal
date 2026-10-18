@@ -9,7 +9,6 @@ tap "hpedrorodrigues/tools", trusted: true
 tap "infisical/get-cli", trusted: true
 tap "minio/stable", trusted: true
 tap "mongodb/brew", trusted: true
-tap "samuong/alpaca", trusted: true
 tap "teamookla/speedtest", trusted: true
 tap "ubuntu/microk8s", trusted: true
 tap "updatest/tap", "https://github.com/updatest/tap.git", trusted: true
@@ -305,8 +304,6 @@ brew "hashicorp/tap/vault"
 brew "infisical/get-cli/infisical"
 # High-performance, schema-free, document-oriented database
 brew "mongodb/brew/mongodb-community"
-# A local HTTP proxy for command-line tools. Supports PAC scripts and NTLM authentication.
-brew "samuong/alpaca/alpaca"
 # Ookla Speedtest
 brew "teamookla/speedtest/speedtest"
 # Image editing and design software
