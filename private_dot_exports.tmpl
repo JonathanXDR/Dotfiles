@@ -92,7 +92,8 @@ export SECRETS_TOKENS_FILE={{ joinPath .icloud_secrets ".keychain/tokens" | quot
 # name and the lookup field are configured via .chezmoidata.toml.
 export SECRETS_KEYCHAIN_NAME={{ .keychain_name | quote }}
 export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
-export SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | shellQuote }}{{ else }}""{{ end }}
+# Not exported, because only functions in this shell read it
+typeset +x SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | shellQuote }}{{ else }}""{{ end }}
 
 # Cisco VPN binary the vpn:* functions drive
 export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
