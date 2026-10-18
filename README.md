@@ -181,9 +181,8 @@ Runtime hooks ───── SSH agent, daily mise, brew, and plugin checks
 Kiro CLI post ───── Prompt and keybinding hooks (must stay last in ~/.zshrc)
 ```
 
-Homebrew runs before the tool paths because `brew shellenv` calls `path_helper`,
-which rebuilds `PATH` from `/etc/paths` and appends the rest. Anything prepended
-earlier lands behind `/usr/bin` instead of in front of it.
+Homebrew runs before the tool paths because `brew shellenv` prepends its own
+`bin` and `sbin`, and the tool paths have to land in front of them.
 
 ## 📦 Project Structure
 
