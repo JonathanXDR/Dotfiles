@@ -13,4 +13,6 @@ _log info "Installing Homebrew…"
 # Download first, so a failed fetch aborts here instead of running an empty
 # installer and marking this run_once script as done.
 installer="$(curl -fsSL --connect-timeout 10 --max-time 120 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# NONINTERACTIVE makes the installer use `sudo -n`, which fails without cached credentials
+sudo -v
 /bin/bash -c "$installer"
