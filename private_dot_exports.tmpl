@@ -3,10 +3,6 @@
 export EDITOR={{ .editor | quote }}
 export KUBE_EDITOR={{ .editor | quote }}
 
-# Build with BuildKit for both `docker build` and `docker compose build`
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
-
 # Infisical Universal Auth machine identity for Application-Website-Frontend
 export INFISICAL_CLIENT_ID={{ includeTemplate "keychain" (list "Infisical Client ID" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
 export INFISICAL_CLIENT_SECRET={{ includeTemplate "keychain" (list "Infisical Client Secret" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
