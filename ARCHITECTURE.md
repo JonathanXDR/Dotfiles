@@ -118,10 +118,10 @@ Dotfiles/
 │
 │   # Shell configuration (sourced on every terminal open)
 │
-├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims, proxy variables)
+├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims, locale, proxy variables)
 ├── dot_zprofile                                         # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                            # Shell orchestrator
-├── private_dot_exports.tmpl                             # Env vars, history, locale, zsh options (0600, reads the keychain)
+├── private_dot_exports.tmpl                             # Env vars, history, zsh options (0600, reads the keychain)
 ├── dot_functions                                        # Shell functions
 ├── dot_aliases                                          # Command aliases
 ├── dot_plugins                                          # Oh My Zsh plugin list, compiled by antidote
@@ -430,7 +430,7 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 When a new terminal opens, startup runs in this exact order. zsh reads the first three files on its own, then `~/.zshrc` drives the rest:
 
 ```text
-  ~/.zshenv ────────────── mise shims, proxy variables on work (every zsh, including non-interactive)
+  ~/.zshenv ────────────── mise shims, locale, proxy variables on work (every zsh, including non-interactive)
           │
           v
   /etc/zprofile ────────── macOS path_helper rebuilds PATH (login shells only),
@@ -442,7 +442,7 @@ When a new terminal opens, startup runs in this exact order. zsh reads the first
   Kiro CLI pre-hook ────── (if installed)
           │
           v
-  ~/.exports ───────────── Env vars, locale, history, zsh options
+  ~/.exports ───────────── Env vars, history, zsh options
           │
           v
   ~/.functions ─────────── Utility functions (proxy, VPN, secrets, toolchain, Git, ...)

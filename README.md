@@ -156,7 +156,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
 ## 🐚 Shell Loading Order
 
 ```text
-~/.zshenv ───────── mise shims, proxy variables on work (every zsh, including non-interactive)
+~/.zshenv ───────── mise shims, locale, proxy variables on work (every zsh, including non-interactive)
         │
 /etc/zprofile ───── macOS path_helper rebuilds PATH (login shells only)
         │
@@ -164,7 +164,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
         │
 Kiro CLI pre ────── Launches figterm (must stay first in ~/.zshrc)
         │
-~/.exports ──────── Env vars, locale, history, zsh options
+~/.exports ──────── Env vars, history, zsh options
         │
 ~/.functions ────── Utility functions
         │
@@ -204,10 +204,10 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── Library/LaunchAgents/
 │   └── private_local.alpaca.plist.tmpl      # Alpaca proxy agent (0600, NTLM from keychain, work only)
 │
-├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, proxy variables)
+├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale, proxy variables)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
-├── private_dot_exports.tmpl                 # Env vars, history, locale, zsh options (0600, reads the keychain)
+├── private_dot_exports.tmpl                 # Env vars, history, zsh options (0600, reads the keychain)
 ├── dot_functions                            # Shell functions
 ├── dot_aliases                              # Command aliases
 ├── dot_plugins                              # Oh My Zsh plugin list, compiled by antidote

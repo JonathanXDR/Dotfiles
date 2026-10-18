@@ -5,6 +5,9 @@
 # Collapse duplicate PATH entries (nested shells re-source this file)
 typeset -gU PATH path
 
+# Set before /etc/zprofile, whose C.UTF-8 fallback would otherwise win in login shells
+export LANG="${LANG:-en_US.UTF-8}"
+
 # mise shims, so editors, LaunchAgents, and `zsh -c` scripts resolve the same
 # toolchain as an interactive shell (non-interactive shells never read .zshrc).
 # Interactive shells also run `mise activate zsh`, which prepends the resolved
