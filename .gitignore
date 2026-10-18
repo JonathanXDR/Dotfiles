@@ -220,11 +220,14 @@ MobileBackups.trash
 tmbootpicker.efi
 
 # ---- chezmoi ----
-# Rendered forms of the four templates that inline a keychain secret. Saying yes
-# to `chezmoi add` on one of those targets, or passing --force, drops the
-# template attribute and replaces the .tmpl with the rendered file, tokens and
-# all. This repository is public, so those names must never reach a commit.
+# Rendered forms of the templates that inline a keychain secret or the
+# corporate no_proxy list. Saying yes to `chezmoi add` on one of those targets,
+# or passing --force, drops the template attribute and replaces the .tmpl with
+# the rendered file, tokens and all. This repository is public, so those names
+# must never reach a commit.
 private_dot_exports
 private_dot_npmrc
 private_dot_wakatime.cfg
 dot_config/zed/private_settings.json
+dot_zshenv
+Library/LaunchAgents/private_local.alpaca.plist

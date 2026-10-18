@@ -6,6 +6,5 @@ Brewfile.*
 {{ if ne .machine_type "work" }}
 .ssl
 .vpn
-.local/bin/proxy-watchd
-Library/LaunchAgents/local.proxy-watchd.plist
+Library/LaunchAgents/local.alpaca.plist
 {{ end }}

@@ -790,158 +790,50 @@ vpn:reset-filter() {
   open -a "Cisco Secure Client"
 }
 
-# Export every proxy variable the toolchain reads, and mirror the main ones
-# into the launchd session so GUI apps see them too. Omitted arguments fall
-# back to PROXY_PROTOCOL, PROXY_HOST, PROXY_PORT, and NO_PROXY from .exports,
-# and the first three have to resolve to a value one way or the other.
-# Usage: proxy:set <protocol> <host> <port> [no_proxy]
-proxy:set() {
-  local proxy_protocol="${1:-${PROXY_PROTOCOL}}"
-  local proxy_host="${2:-${PROXY_HOST}}"
-  local proxy_port="${3:-${PROXY_PORT}}"
-  local no_proxy="${4:-${NO_PROXY}}"
+# Show the agent's state, how Alpaca authenticates, and this shell's proxy
+# variables. Only selected `launchctl print` lines pass through, because the
+# full output lists the agent's environment, NTLM credentials included, and this
+# output tends to get pasted into tickets.
+alpaca:status() {
+  local label="local.alpaca"
+  local logfile="${HOME}/Library/Logs/alpaca.log"
+  local info
 
-  if [[ -z "${proxy_protocol}" || -z "${proxy_host}" || -z "${proxy_port}" ]]; then
-    echo "Usage: proxy:set <protocol> <host> <port> [no_proxy]" >&2
-    echo "Or set PROXY_PROTOCOL, PROXY_HOST, and PROXY_PORT in ${HOME}/.exports" >&2
-    return 1
+  if info="$(launchctl print "gui/$(id -u)/${label}" 2>/dev/null)"; then
+    print -r -- "${info}" | grep -E $'^\t(state|pid|last exit code) = '
+  else
+    log warning "Found no loaded agent (${label})"
   fi
 
-  local proxy_addr="${proxy_protocol}://${proxy_host}:${proxy_port}"
-
-  export http_proxy="${proxy_addr}"
-  export https_proxy="${proxy_addr}"
-  export ftp_proxy="${proxy_addr}"
-  export all_proxy="${proxy_addr}"
-  export HTTP_PROXY="${proxy_addr}"
-  export HTTPS_PROXY="${proxy_addr}"
-  export FTP_PROXY="${proxy_addr}"
-  export ALL_PROXY="${proxy_addr}"
-  export PIP_PROXY="${proxy_addr}"
-  export no_proxy="${no_proxy}"
-  export NO_PROXY="${no_proxy}"
-  export MAVEN_OPTS="-Dhttp.proxyHost=${proxy_host} -Dhttp.proxyPort=${proxy_port} -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port}"
-
-  launchctl setenv HTTP_PROXY "${proxy_addr}" 2>/dev/null
-  launchctl setenv HTTPS_PROXY "${proxy_addr}" 2>/dev/null
-  launchctl setenv ALL_PROXY "${proxy_addr}" 2>/dev/null
-  launchctl setenv NO_PROXY "${no_proxy}" 2>/dev/null
-}
-
-# Clear everything proxy:set exported, in the shell and in the launchd session.
-proxy:unset() {
-  local var
-  # NO_PROXY and no_proxy stay. They are configuration from .exports, not proxy
-  # state, and proxy:set reads NO_PROXY back as the default for its fourth
-  # argument. Unsetting them here left a later proxy:set in the same shell
-  # exporting an empty exemption list. They are inert while nothing else here
-  # names a proxy.
-  for var in http_proxy https_proxy ftp_proxy all_proxy \
-             HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY \
-             PIP_PROXY MAVEN_OPTS; do
-    unset "$var"
-  done
-
-  for var in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; do
-    launchctl unsetenv "$var" 2>/dev/null
-  done
-}
-
-# Turn the proxy on or off depending on whether the corporate proxy answers.
-# Pass the literal keyword "dns" to switch the DNS servers to match.
-# Usage: proxy:probe ["dns"]
-proxy:probe() {
-  local with_dns="${1:-}"
-
-  if nc -z -w 3 "${PROXY_HOST}" "${PROXY_PORT}" &>/dev/null; then
-    log info "Enabling proxy (corporate network detected)…"
-    proxy:set "${PROXY_PROTOCOL}" "${PROXY_HOST}" "${PROXY_PORT}" "${NO_PROXY}"
-
-    if [[ "${with_dns}" == "dns" ]]; then
-      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${PROXY_DNS}" ]]; then
-        dns:change "${PROXY_NETWORK_SERVICE}" "${PROXY_DNS}"
-      else
-        log warning "Skipped DNS change (PROXY_NETWORK_SERVICE or PROXY_DNS not set)"
-      fi
-    fi
-  else
-    log info "Disabling proxy (no corporate network detected)…"
-    proxy:unset
-
-    if [[ "${with_dns}" == "dns" ]]; then
-      if [[ -n "${PROXY_NETWORK_SERVICE}" && -n "${NO_PROXY_DNS}" ]]; then
-        dns:change "${PROXY_NETWORK_SERVICE}" "${NO_PROXY_DNS}"
-      else
-        log warning "Skipped DNS change (PROXY_NETWORK_SERVICE or NO_PROXY_DNS not set)"
-      fi
-    fi
-  fi
-}
-
-# Reload the proxy-watchd LaunchAgent so plist changes take effect.
-proxyd:reload() {
-  local label="local.proxy-watchd"
-  local plist="${HOME}/Library/LaunchAgents/${label}.plist"
-
-  [[ -f "${plist}" ]] || { log error "Failed to find plist (${plist})"; return 1; }
-
-  # bootout returns before launchd has finished tearing the service down, and a
-  # bootstrap that lands in that window fails with "Bootstrap failed: 5:
-  # Input/output error", which the message below would then blame on the plist.
-  # Waiting for the service to disappear closes that window, the same way
-  # run_onchange_after_05-proxy-launchagent does for the unattended path.
-  launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
-  local attempt
-  for attempt in {1..50}; do
-    launchctl print "gui/$(id -u)/${label}" &>/dev/null || break
-    sleep 0.1
-  done
-  launchctl bootstrap "gui/$(id -u)" "${plist}" \
-    || { log error "Failed to bootstrap ${label} (check the plist and retry)"; return 1; }
-  log success "Reloaded ${label}"
-}
-
-# Show whether proxy-watchd is loaded, when it last switched, and the proxy
-# variables currently in effect.
-proxyd:status() {
-  local label="local.proxy-watchd"
-  local state_file="${HOME}/.cache/proxy-state"
-
-  if launchctl print "gui/$(id -u)/${label}" &>/dev/null; then
-    echo "Agent:  loaded (trigger-based, runs on network change)"
-  else
-    log warning "Found no loaded agent"
-  fi
-
-  if [[ -f "${state_file}" ]]; then
-    echo "Proxy:  $(< "${state_file}") (since $(stat -f '%Sm' "${state_file}"))"
-  else
-    log warning "Found no state file"
+  # Alpaca logs how it authenticates once per start, and every start opens with
+  # its NTLM line, so awk keeps the startup lines after the last one.
+  if [[ -r "${logfile}" ]]; then
+    echo ""
+    echo "  Latest start (${logfile}):"
+    grep -E ': (NTLM credentials not available|Found (NoMAD )?credentials|Kerberos ticket found|No Kerberos ticket at startup|Kerberos/Negotiate authentication available|Proxy auth allowlist|No authentication methods|Listening on)' "${logfile}" \
+      | awk '/NTLM credentials not available|Found (NoMAD )?credentials/ { n = 0 }
+             { line[++n] = $0 }
+             END { for (i = 1; i <= n; i++) print "    " line[i] }'
   fi
 
   local _v
   echo ""
-  echo "  Active (toggled by proxy:set/proxy:unset):"
-  for _v in HTTP_PROXY HTTPS_PROXY ALL_PROXY FTP_PROXY PIP_PROXY NO_PROXY MAVEN_OPTS; do
-    printf "    %-15s %s\n" "${_v}" "${(P)_v:-<unset>}"
-  done
-
-  echo ""
-  echo "  Configuration (static, set by chezmoi):"
-  # NTLM_CREDENTIALS is a live credential from the keychain, and this is the
-  # command you run while something is broken, which is when terminal output
-  # gets pasted into a ticket. Report only whether it is set. The nested form
-  # still prints <unset> for the set-but-empty value personal machines carry.
-  printf "    %-30s %s\n" "NTLM_CREDENTIALS" "${${NTLM_CREDENTIALS:+<set>}:-<unset>}"
-  for _v in NODE_EXTRA_CA_CERTS NODE_TLS_REJECT_UNAUTHORIZED NODE_USE_ENV_PROXY SSL_BUNDLE_KEYCHAIN_CERTS SSL_BUNDLE_REMOTE_CERTS; do
-    printf "    %-30s %s\n" "${_v}" "${(P)_v:-<unset>}"
+  echo "  This shell:"
+  for _v in http_proxy https_proxy no_proxy; do
+    printf "    %-12s %s\n" "${_v}" "${(P)_v:-<unset>}"
   done
 }
 
-# Show proxy-watchd entries from the unified log (default last 5 minutes).
-# Usage: proxyd:log [duration]
-proxyd:log() {
-  /usr/bin/log show --predicate 'eventMessage CONTAINS "proxy-watchd"' --last "${1:-5m}"
+# Restart the Alpaca LaunchAgent, which also drops connections a VPN drop left
+# hanging. Shells opened while it was down export no proxy, so reopen them.
+alpaca:restart() {
+  local label="local.alpaca"
+
+  if ! launchctl kickstart -k "gui/$(id -u)/${label}"; then
+    log error "Failed to restart ${label} (load it with 'launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/${label}.plist')"
+    return 1
+  fi
+  log success "Restarted ${label}"
 }
 
 # Repair the broken Drive TLS state, trying the cheapest fix first.

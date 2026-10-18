@@ -12,7 +12,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - ☁️ **iCloud-synced:** SSH, GPG, SSL, kubeconfig, VPN, and machine `config.toml`
 - 💻 **Machine-type aware:** `personal` vs `work` drives Brewfile, mise tools, proxy, SSL, VPN, npm, `/etc/hosts`
 - 🌱 **Auto-activating runtimes:** `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, and `.java-version` detected on every `cd`
-- 🚦 **Event-driven proxy:** LaunchAgent watches network changes (Wi-Fi, VPN), toggles automatically
+- 🚦 **Network-aware proxy:** [Alpaca](https://github.com/samuong/alpaca) routes every request through the corporate proxy or directly, following Wi-Fi and VPN changes
 - ⚡ **Performance:** Compiled-binary version resolution, daily-gated mise/brew/plugin checks, cached completions
 - 🧠 **Agent Skills:** 200+ skills declared in one file, fetched once, read by Claude Code, Codex, Copilot, and Gemini
 - 🛠️ **Shell toolkit:** 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases
@@ -156,7 +156,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
 ## 🐚 Shell Loading Order
 
 ```text
-~/.zshenv ───────── mise shims (every zsh, including non-interactive)
+~/.zshenv ───────── mise shims, proxy variables on work (every zsh, including non-interactive)
         │
 /etc/zprofile ───── macOS path_helper rebuilds PATH (login shells only)
         │
@@ -164,7 +164,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
         │
 Kiro CLI pre ────── Launches figterm (must stay first in ~/.zshrc)
         │
-~/.exports ──────── Env vars, proxy, locale, history, zsh options
+~/.exports ──────── Env vars, locale, history, zsh options
         │
 ~/.functions ────── Utility functions
         │
@@ -176,7 +176,7 @@ plugins:load ────── Oh My Zsh plugins, compiled by antidote from ~/.
         │
 ~/.completions ──── Completions, zsh plugins, autosuggestions, syntax highlighting
         │
-Runtime hooks ───── proxy state, SSH agent, daily mise, brew, and plugin checks
+Runtime hooks ───── SSH agent, daily mise, brew, and plugin checks
         │
 Kiro CLI post ───── Prompt and keybinding hooks (must stay last in ~/.zshrc)
 ```
@@ -192,7 +192,7 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── .chezmoidata.toml                        # Shared non-secret defaults
 ├── .chezmoidata/                            # Agent Skills inventory, Zed extension list
 ├── .chezmoiignore                           # Files excluded from $HOME
-├── .chezmoitemplates/                       # Reusable templates: keychain lookup + shell helpers
+├── .chezmoitemplates/                       # Reusable templates: keychain lookup, shell helpers, Alpaca PAC
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
 ├── symlink_dot_ssh.tmpl                     # ~/.ssh → iCloud
@@ -201,12 +201,10 @@ earlier lands behind `/usr/bin` instead of in front of it.
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
-├── dot_local/bin/
-│   └── executable_proxy-watchd.tmpl         # Proxy probe on network change, exports proxy vars for GUI apps (work only)
 ├── Library/LaunchAgents/
-│   └── local.proxy-watchd.plist.tmpl        # LaunchAgent watching network changes (work only)
+│   └── private_local.alpaca.plist.tmpl      # Alpaca proxy agent (0600, NTLM from keychain, work only)
 │
-├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims)
+├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, proxy variables)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
 ├── private_dot_exports.tmpl                 # Env vars, history, locale, zsh options (0600, reads the keychain)

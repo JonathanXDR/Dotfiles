@@ -17,38 +17,6 @@ export KUBECONFIG_PATH="$HOME/.kube"
 
 {{ end -}}
 
-# ---------------------------- Proxy Configuration --------------------------- #
-
-# Read by the proxy:* functions and by .zshrc. When ALWAYS_PROXY_PROBE is true,
-# .zshrc restores the cached proxy state at startup and probes only when no
-# usable cached state exists. The proxy-watchd LaunchAgent gets its own copy
-# baked in by chezmoi, so it does not read these.
-export ALWAYS_PROXY_PROBE={{ .always_proxy_probe | quote }}
-export PROXY_PROTOCOL={{ .proxy_protocol | quote }}
-export PROXY_HOST={{ .proxy_host | quote }}
-export PROXY_PORT={{ .proxy_port | quote }}
-export PROXY_DNS={{ .proxy_dns | quote }}
-# Network service whose DNS servers `proxy:probe dns` changes, for example
-# "Wi-Fi". Read with the dig template function, because the key reaches
-# chezmoi.toml only on the next `chezmoi init`, and a bare reference would fail
-# the apply on machines initialized before it existed. Empty leaves DNS
-# untouched.
-export PROXY_NETWORK_SERVICE={{ dig "proxy_network_service" "" . | quote }}
-export NO_PROXY={{ .no_proxy | quote }}
-export NO_PROXY_DNS={{ .no_proxy_dns | quote }}
-
-# ----------------------------------- Auth ----------------------------------- #
-
-# Corporate proxy credentials, empty on personal machines
-{{ if eq .machine_type "work" -}}
-{{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) -}}
-export NTLM_CREDENTIALS={{ $ntlm | quote }}
-
-{{ else -}}
-export NTLM_CREDENTIALS=""
-
-{{ end -}}
-
 # ----------------------------------- Node ----------------------------------- #
 
 # Verify TLS certificates by default, keeping whatever value this shell

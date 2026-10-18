@@ -14,3 +14,20 @@ typeset -gU PATH path
 # `path_helper -s` moves the entry to the end of PATH. .zprofile repeats the
 # prepend for that case.
 [[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
+
+{{ if eq .machine_type "work" -}}
+# Alpaca picks the corporate proxy or a direct connection per request, so these
+# values never change with the network. `zsh -c`, ssh sessions and cron need
+# them too, hence .zshenv. The proxy URLs are exported only while the agent's
+# PID is alive, so a new shell never points at a proxy that is not running. The
+# braces silence the error for a missing PID file, which the redirection alone
+# does not.
+export no_proxy={{ .no_proxy | quote }}
+export NO_PROXY="$no_proxy"
+if { kill -0 "$(<"$HOME/.cache/alpaca.pid")" } 2>/dev/null; then
+  export http_proxy="http://localhost:{{ .alpaca_port }}"
+  export https_proxy="$http_proxy" HTTP_PROXY="$http_proxy" HTTPS_PROXY="$http_proxy"
+else
+  unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+fi
+{{ end -}}

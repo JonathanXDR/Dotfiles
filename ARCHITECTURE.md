@@ -75,6 +75,7 @@ Dotfiles/
 │   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
 ├── .chezmoiignore                                       # Files excluded from $HOME
 ├── .chezmoitemplates/
+│   ├── alpaca.pac                                       # PAC the Alpaca LaunchAgent embeds (work only)
 │   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
 │   ├── keychain-flag                                    # The `security` flag that matches the lookup field
 │   └── shell-helpers                                    # Reusable bash helpers for run scripts
@@ -87,7 +88,7 @@ Dotfiles/
 │   ├── run_once_before_02-*                             # Import keychain tokens from iCloud
 │   ├── run_onchange_after_03-*                          # Install Homebrew packages (re-runs on Brewfile change)
 │   ├── run_onchange_after_04-*                          # Fix iCloud symlink permissions (re-runs on config change)
-│   ├── run_onchange_after_05-*                          # Bootstrap the proxy LaunchAgent on work, remove it on personal
+│   ├── run_onchange_after_05-*                          # Bootstrap the Alpaca LaunchAgent on work, remove it on personal
 │   ├── run_onchange_after_06-*                          # Install language runtimes and global CLI packages (re-runs on list change)
 │   ├── run_once_after_07-*                              # Fix zsh completion permissions
 │   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
@@ -110,16 +111,14 @@ Dotfiles/
 ├── private_dot_kube/                                    # ~/.kube/config → iCloud
 │   └── symlink_config.tmpl
 │
-│   # Proxy daemon (work only, ignored on personal via .chezmoiignore)
+│   # Proxy agent (work only, ignored on personal via .chezmoiignore)
 │
-├── dot_local/bin/
-│   └── executable_proxy-watchd.tmpl                     # Proxy state script run by LaunchAgent (work only)
 ├── Library/LaunchAgents/
-│   └── local.proxy-watchd.plist.tmpl                    # LaunchAgent watching network changes (work only)
+│   └── private_local.alpaca.plist.tmpl                  # Alpaca with its PAC and NTLM credentials (0600, from keychain)
 │
 │   # Shell configuration (sourced on every terminal open)
 │
-├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims)
+├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims, proxy variables)
 ├── dot_zprofile                                         # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                            # Shell orchestrator
 ├── private_dot_exports.tmpl                             # Env vars, history, locale, zsh options (0600, reads the keychain)
@@ -224,7 +223,7 @@ chezmoi merges template data from multiple sources (later layers override earlie
 │  chezmoi.toml [data]                                                                │
 │                                                                                     │
 │    email, name, gpg_key, machine_type, icloud_secrets,                              │
-│    always_proxy_probe, proxy_*, ssl_bundle_*, forgeops_path, ...                    │
+│    proxy_*, no_proxy, ssl_bundle_*, forgeops_path, ...                              │
 │                                                                                     │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
@@ -294,6 +293,7 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 │                                                           │
 │   ~/.npmrc              ~/.exports                        │
 │   ~/.wakatime.cfg       ~/.config/zed/settings.json       │
+│   ~/Library/LaunchAgents/local.alpaca.plist (work)        │
 │                                                           │
 └────────────────────────────┬──────────────────────────────┘
                              │
@@ -353,10 +353,10 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_npmrc.tmpl`                    | GitHub Packages token                   | Always    |
 | `private_dot_npmrc.tmpl`                    | Corporate Artifactory tokens            | Work only |
 | `private_dot_exports.tmpl`                  | Infisical machine identity credentials  | Always    |
-| `private_dot_exports.tmpl`                  | NTLM proxy credentials                  | Work only |
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | GitLab MCP OAuth client ID and secret   | Work only |
+| `Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy credentials | Work only |
 | `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
 For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
@@ -418,10 +418,10 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 | ------------------ | --------------------------------------- | --------------------------------------------------------- |
 | **Brewfile**       | `Brewfile.personal`                     | `Brewfile.work`                                           |
 | **mise tools**     | `config.toml` + `conf.d/personal.toml`  | `config.toml` only                                        |
-| **Proxy**          | Disabled (`always_proxy_probe = false`) | Event-driven via LaunchAgent + `proxy:probe` fallback     |
+| **Proxy**          | None                                    | Alpaca LaunchAgent, routed per request by a generated PAC |
 | **SSL**            | No extra CA certs                       | Corporate CA bundle symlinked from iCloud                 |
 | **VPN**            | No config                               | Cisco AnyConnect config symlinked from iCloud             |
-| **Auth**           | No NTLM                                 | NTLM credentials for Alpaca proxy                         |
+| **Auth**           | None                                    | Kerberos ticket, or an NTLM hash only Alpaca holds        |
 | **npm registries** | Public only                             | Public + Artifactory, always through its public host      |
 | **/etc/hosts**     | Standard entries only                   | Work-specific hostnames added via `dot_config/hosts.tmpl` |
 
@@ -430,7 +430,7 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 When a new terminal opens, startup runs in this exact order. zsh reads the first three files on its own, then `~/.zshrc` drives the rest:
 
 ```text
-  ~/.zshenv ────────────── mise shims (every zsh, including non-interactive)
+  ~/.zshenv ────────────── mise shims, proxy variables on work (every zsh, including non-interactive)
           │
           v
   /etc/zprofile ────────── macOS path_helper rebuilds PATH (login shells only),
@@ -442,7 +442,7 @@ When a new terminal opens, startup runs in this exact order. zsh reads the first
   Kiro CLI pre-hook ────── (if installed)
           │
           v
-  ~/.exports ───────────── Env vars, proxy, locale, history, zsh options
+  ~/.exports ───────────── Env vars, locale, history, zsh options
           │
           v
   ~/.functions ─────────── Utility functions (proxy, VPN, secrets, toolchain, Git, ...)
@@ -460,7 +460,7 @@ When a new terminal opens, startup runs in this exact order. zsh reads the first
   ~/.completions ───────── zsh completions, autosuggestions, syntax highlighting
           │
           v
-  Runtime hooks ────────── proxy state load, SSH agent
+  Runtime hooks ────────── SSH agent
           │
           v
   Daily checks ─────────── mise tool upgrades, brew deprecation/outdated, plugin updates (once per 24h)
@@ -530,8 +530,10 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Symlink a new directory to iCloud    | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                            |
 | Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                             |
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                                  |
-| Debug proxy daemon                   | `proxyd:status`, `proxyd:log`, or `proxyd:log 1h`                                                  |
-| Reload proxy daemon                  | `proxyd:reload`                                                                                    |
+| Debug the Alpaca proxy               | `alpaca:status`, then `~/Library/Logs/alpaca.log`                                                  |
+| Restart the Alpaca proxy             | `alpaca:restart`                                                                                   |
+| Switch the proxy to Kerberos         | `secret:remove Proxy <account>` on every Mac that shares the tokens file, then `chezmoi apply`     |
+| Rotate the proxy's NTLM hash         | `alpaca -d <DOMAIN> -u <account> -H`, then `secret:remove` and `secret:set` `Proxy` with the quoted value on every Mac that shares the tokens file, then `chezmoi apply` |
 
 ## 💡 Design Decisions
 
@@ -551,7 +553,9 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **`run_once_` for setup, `run_onchange_` for content-driven**  | Embedded content hashes reinstall Homebrew packages and the mise tool list only when their source files change. Each script also embeds a presence marker for the tool it drives, so a run skipped because `brew` or `mise` was missing re-fires the day that tool arrives instead of recording the skip as final.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Separate Brewfiles per machine type**                        | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one list full of conditionals. Each file is named after the `machine_type` value it serves (`Brewfile.personal`, `Brewfile.work`), which chezmoi constrains to those two, so the run script and `brew:dump` derive the name instead of mapping it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **`scriptEnv` for Homebrew flags**                             | `HOMEBREW_NO_AUTO_UPDATE=1` stops Homebrew from auto-updating during scripted installs, which keeps apply fast and deterministic. `HOMEBREW_NO_INSTALL_CLEANUP=1` keeps `brew cleanup` off the install path for the same reason. `NONINTERACTIVE=1` is read by the Homebrew installer script in `run_once_before_01`, not by `brew` itself.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **LaunchAgent for proxy detection**                            | Replaces a per-shell `nc` probe (~3s) with an event-driven daemon that watches `/Library/Preferences/SystemConfiguration` and `/var/run/resolv.conf` (covering Wi-Fi and VPN). Shell startup only reads a cached state file (~0ms), falling back to `proxy:probe` on first boot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Alpaca with a generated PAC**                                | Replaces an `nc` probe that toggled the shell and launchd variables. Alpaca picks the route for every request, so the variables stay constant and no shell goes stale when the network changes. The PAC comes from `proxy_host`, `proxy_port`, and `proxy_network`, not from the system settings. Alpaca reads only a top-level system PAC URL, which a split-tunnel VPN never sets, and a PAC download that fails after a network change leaves it direct until the next change. The proxy is used only while its host resolves into `proxy_network`, so a captive portal or a wildcard resolver that answers outside that range gets no traffic or credentials. A network that controls DNS and routing can still answer inside it, and only Kerberos mode keeps credentials from it. The agent is a repo-owned plist, because `brew services` cannot pass flags or restart a crashed Alpaca.    |
+| **Proxy variables follow the agent's PID**                     | The wrapper in the plist writes Alpaca's PID to `~/.cache/alpaca.pid`, and `.zshenv` exports the proxy only while `kill -0` finds that process, so a new shell never points at a proxy that is not running. A loopback connect through `zsh/net/tcp` measured about 5 ms per shell, against 0.04 ms for the PID check. The wrapper also publishes the lowercase and uppercase variables with `launchctl setenv`, because `brew autoupdate` and many other apps launchd starts never read a shell file, and brew drops the uppercase `HTTP_PROXY` and `NO_PROXY`. Those stay published while Alpaca restarts after a crash, which shells are not affected by.                                                                                                                                                                                                                                       |
+| **Credentials only for the corporate proxy**                   | `ALPACA_PROXY_AUTH_ALLOWLIST` is `proxy_host`. Without it Alpaca answers any 407 with credentials, even one from a host it reached directly. An NTLM hash in the keychain selects NTLM and adds `-no-kerberos`, otherwise Alpaca uses the macOS Kerberos ticket. Keeping the two apart matters, because a Kerberos error ends Alpaca's authentication chain with a 502 instead of falling back to NTLM. At runtime the hash sits in the 0600 plist and the Alpaca process, not in the environment of every shell.                                                                                                                                                                                                                                                                                                                                                                                  |
 | **One registry host for `@swisscom`**                          | Both hosts front the same virtual repo. The scope used to follow the network, switching to the internal host on the corporate network, which also wrote whichever host was active into lockfiles. It now always uses the public host, which npm reaches directly because the work `no_proxy` list covers it. The internal host keeps its credentials in `.npmrc`, for lockfiles that already pin its tarball URLs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **mise activated last in `.zshrc`**                            | mise resolves versions inside a compiled binary, not a sourced shell script, so there is no lazy-loading trick and no `cd` hook of our own to maintain. Ordering is the one hard rule. Activation snapshots `PATH` and re-derives from that snapshot on every prompt, so it must run after `brew shellenv` and every `path:add`. Homebrew keeps its own `node` as a dependency of eslint, prettier, and vercel, and this ordering keeps that copy behind mise's.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **`.zprofile` restores the mise shims**                        | `.zshenv` puts the shims first, then macOS `/etc/zprofile` runs `path_helper -s`, which rebuilds `PATH` and appends the rest at the end. On a login shell the shims land behind `/opt/homebrew/bin`, so Homebrew's node wins. Interactive shells recover through `mise activate zsh`, but login shells that never read `.zshrc` do not, and those are the shells `.zshenv` exists to cover. Chosen over `setopt no_global_rcs`, which disables `/etc/zprofile` outright.                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -563,7 +567,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **antidote for Oh My Zsh plugins**                             | Plugins are listed in `dot_plugins` and compiled into one flat `~/.cache/zsh/plugins.zsh`. A normal startup sources that single file and does no plugin resolution, because antidote itself loads only when the list is newer than the compiled bundle. Same shape as `mise/config.toml`: a plain tracked file, symlinked rather than rendered, so editing `~/.plugins` edits the source and the next shell rebuilds. The compiled output lives under `~/.cache` because it is derived, which keeps `$HOME` to the one file you edit. Chosen over a full Oh My Zsh install, which brings a framework that sets its own options and prompt, and over a hand-rolled clone, which would mean owning the update logic. A `run_onchange_` script was considered and rejected, because it would only move the one-time build from the first shell to `chezmoi apply`, at the cost of a second code path. |
 | **`plugins:update` on the daily stamp**                        | antidote clones a plugin once and never revisits it, so without this the Oh My Zsh checkout would stay at whatever commit it had on the day it was cloned. `run:daily plugins plugins:update` puts it on the same 24-hour stamp as `mise:update` and `brew:check`. It rebuilds the bundle in place rather than deleting it, so a failed rebuild leaves a working older bundle instead of a shell with no plugins. The four Homebrew plugins in `.completions` are unaffected, because `brew upgrade` already covers those.                                                                                                                                                                                                                                                                                                                                                                         |
 | **Completion cache enabled in `plugins:load`**                 | `zstyle ':completion:*' use-cache on`, with a `cache-path` under `ZSH_CACHE_DIR`. zsh ships this off, and several plugins call `_retrieve_cache` and `_store_cache` while they load. Without it the composer plugin re-runs `composer global config bin-dir` on every shell to find its vendor path, measured at 236 ms against 6 ms once the cache answers. It has to be set in `plugins:load` rather than `.completions`, because the plugins ask for it before `.completions` runs.                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **`plugins:load` is a function, not inline `.zshrc`**          | `.zshrc` is an orchestrator that calls named functions (`proxy:set`, `run:daily`, `ssh:agent`), so the plugin loader is one too. Sourcing the bundle inside a function was checked rather than assumed: aliases, functions, and `typeset -g` values all survive it, and the only value that stops reaching the shell is the git plugin's `git_version` scratch variable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **`plugins:load` is a function, not inline `.zshrc`**          | `.zshrc` is an orchestrator that calls named functions (`run:daily`, `ssh:agent`), so the plugin loader is one too. Sourcing the bundle inside a function was checked rather than assumed: aliases, functions, and `typeset -g` values all survive it, and the only value that stops reaching the shell is the git plugin's `git_version` scratch variable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **`alias:shadows` over a longer correction list**              | The bundle has no equivalent of `alias:safe`, so a plugin update can quietly claim a command name. Rather than trying to predict that once, `alias:shadows` prints the current answer, and the corrections list in `.aliases` records the decisions already taken. It is what caught the nestjs plugin claiming `ng` from the Angular CLI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **`have:fzf` gate on fzf**                                     | fzf's setup evaluates `fzf --zsh`, which saves and restores shell options. A shell with no terminal has no ZLE to restore, so `zsh -ic` printed `can't change option: zle` twice. Such a shell has no use for key bindings anyway. The guard tests for the binary too, because the plugin probes eight fixed directories and then tells the reader to set `FZF_BASE`, which is what a machine whose Brewfile omits fzf prints on every prompt.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Plugins load before `.aliases`**                             | The bundle claims over 800 names and `.aliases` declares about 135, of which roughly two dozen overlap. Loading plugins first makes `.aliases` the authority on its own names, so every override is a visible line in a tracked file rather than a silent win for whichever file loaded last. Seven names went to the plugins instead (`l`, `la`, `gba`, `gbd`, `gcl`, `glg`, `grep`) and were deleted from `.aliases` rather than redeclared, so no third-party alias text is copied into this repo.                                                                                                                                                                                                                                                                                                                                                                                              |
