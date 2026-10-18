@@ -597,7 +597,6 @@ ssl:bundle() {
   # reached over a VPN that is often only partly up, where a plain curl sits on
   # the connect for more than a minute per certificate.
   local -a curl_args=(-fsSL --connect-timeout 5 --max-time 30)
-  [[ -n "${http_proxy:-}" ]] && curl_args+=(--proxy "$http_proxy")
 
   local url raw
   for url in "${remote_certs[@]}"; do
