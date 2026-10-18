@@ -236,8 +236,9 @@ Homebrew runs before the tool paths because `brew shellenv` prepends its own
 
 1. 📖 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for a walkthrough of how the pieces fit together.
 2. 🔀 Fork this repo and adapt `config.toml`, the Brewfiles, and the machine types to your setup.
-3. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
-4. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
+3. 🔄 Start daily Homebrew upgrades with `brew autoupdate start --upgrade --sudo`. The setup counts on them, for example to keep mise current.
+4. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
+5. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
 
 ## ⚖️ License
 
