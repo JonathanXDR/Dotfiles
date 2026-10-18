@@ -23,10 +23,6 @@ export KUBECONFIG_PATH="$HOME/.kube"
 # inherited from its parent environment
 export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 
-# Whether Node.js honors HTTP(S)_PROXY in fetch(). Off by default, override for
-# a single shell with NODE_USE_ENV_PROXY=1.
-export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-0}"
-
 # Corporate CA bundle built by ssl:bundle, set only when keychain certificate
 # CNs are configured.
 {{ if and (eq .machine_type "work") (ne .ssl_bundle_keychain_certs "") -}}

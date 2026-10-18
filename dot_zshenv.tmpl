@@ -24,6 +24,8 @@ typeset -gU PATH path
 # does not.
 export no_proxy={{ .no_proxy | quote }}
 export NO_PROXY="$no_proxy"
+# Node.js ignores HTTP(S)_PROXY in fetch() and its http(s) agents without this
+export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-1}"
 if { kill -0 "$(<"$HOME/.cache/alpaca.pid")" } 2>/dev/null; then
   export http_proxy="http://localhost:{{ .alpaca_port }}"
   export https_proxy="$http_proxy" HTTP_PROXY="$http_proxy" HTTPS_PROXY="$http_proxy"
