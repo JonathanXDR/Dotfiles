@@ -58,7 +58,8 @@ export LANG="${LANG:-en_US.UTF-8}"
 
 HISTSIZE={{ .history_size }}
 SAVEHIST=$HISTSIZE
-HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+# Unconditional, because /etc/zshrc has already set it to $ZDOTDIR/.zsh_history
+HISTFILE="$HOME/.zsh_history"
 
 setopt HIST_IGNORE_DUPS       # skip consecutive duplicates
 setopt HIST_IGNORE_SPACE      # skip commands starting with space
