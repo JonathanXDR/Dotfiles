@@ -66,12 +66,11 @@ else
 fi
 
 # `mise install` treats an existing install directory as proof the tool is
-# there, and the `incomplete` marker that would say otherwise lives under the
-# java cache tree that the clear above deletes. An apply interrupted while java
-# was downloading therefore leaves an empty install directory that every later
-# run reads as installed. mise 2026.8.12 taught `mise doctor` to report exactly
-# that. Only real problems set a non-zero status, so the standing "new mise
-# version available" warning never trips this.
+# there. The `incomplete` marker that says otherwise lives in mise's cache, so a
+# manual `mise cache clear` or mise's age-based cache pruning can remove it and
+# leave an interrupted java install looking complete. mise 2026.8.12 taught
+# `mise doctor` to report exactly that. Only real problems set a non-zero
+# status, so the standing "new mise version available" warning never trips this.
 if ! mise -C "$HOME" doctor >/dev/null 2>&1; then
   _log warning "Detected mise problems (run 'mise doctor' for details)"
 fi
