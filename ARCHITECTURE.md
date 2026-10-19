@@ -532,6 +532,7 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                                  |
 | Debug the Alpaca proxy               | `alpaca:status`, then `~/Library/Logs/alpaca.log`                                                  |
 | Restart the Alpaca proxy             | `alpaca:restart`                                                                                   |
+| Build the Node.js CA bundle          | `ssl:bundle`, and again when the corporate certificates change                                     |
 | Switch the proxy to Kerberos         | `secret:remove Proxy <account>` on every Mac that shares the tokens file, then `chezmoi apply`     |
 | Rotate the proxy's NTLM hash         | `alpaca -d <DOMAIN> -u <account> -H`, then `secret:remove` and `secret:set` `Proxy` with the quoted value on every Mac that shares the tokens file, then `chezmoi apply` |
 
