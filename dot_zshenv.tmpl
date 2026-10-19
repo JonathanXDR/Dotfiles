@@ -20,15 +20,17 @@ export LANG="${LANG:-en_US.UTF-8}"
 
 {{ if eq .machine_type "work" -}}
 # Alpaca picks the corporate proxy or a direct connection per request, so these
-# values never change with the network. `zsh -c`, ssh sessions and cron need
-# them too, hence .zshenv. The proxy URLs are exported only while the agent's
-# PID is alive, so a new shell never points at a proxy that is not running. The
-# braces silence the error for a missing PID file, which the redirection alone
-# does not.
+# values never change with the network.
 export no_proxy={{ .no_proxy | quote }}
 export NO_PROXY="$no_proxy"
 # Node.js ignores HTTP(S)_PROXY in fetch() and its http(s) agents without this
 export NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-1}"
+{{ if ne .ssl_bundle_keychain_certs "" -}}
+# CA bundle that ssl:bundle builds
+export NODE_EXTRA_CA_CERTS="$HOME/.ssl/ca-bundle.pem"
+{{ end -}}
+# The braces silence the error for a missing PID file, which the redirection
+# alone does not.
 if { kill -0 "$(<"$HOME/.cache/alpaca.pid")" } 2>/dev/null; then
   export http_proxy="http://localhost:{{ .alpaca_port }}"
   export https_proxy="$http_proxy" HTTP_PROXY="$http_proxy" HTTPS_PROXY="$http_proxy"
