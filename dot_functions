@@ -574,9 +574,7 @@ ssl:bundle() {
   mkdir -p "${output:h}"
 
   local tmp="$(mktemp)"
-  # Bake the path in, because a function-scoped EXIT trap runs after locals are
-  # popped and a deferred "$tmp" would expand to the empty string, removing
-  # nothing.
+  # Bake the path in, because the EXIT trap runs after the locals are gone
   trap "command rm -f ${(q)tmp}" EXIT
   local cert_count=0
 
@@ -595,9 +593,9 @@ ssl:bundle() {
 
   local -a remote_certs
   IFS=',' read -rA remote_certs <<< "${SSL_BUNDLE_REMOTE_CERTS:-}"
-  # Bounded the way the vpn:* probes below are. These URLs are corporate hosts
-  # reached over a VPN that is often only partly up, where a plain curl sits on
-  # the connect for more than a minute per certificate.
+  # These URLs are corporate hosts reached over a VPN that is often only partly
+  # up, where a plain curl sits on the connect for more than a minute per
+  # certificate.
   local -a curl_args=(-fsSL --connect-timeout 5 --max-time 30)
 
   local url raw pem
@@ -632,9 +630,6 @@ ssl:bundle() {
     return 1
   fi
 
-  # Checked, because the EXIT trap removes the assembled bundle on the way out.
-  # A failed mv would otherwise report success while NODE_EXTRA_CA_CERTS points
-  # at a missing or stale file, which surfaces much later as an opaque TLS error.
   if ! command mv -f "$tmp" "$output"; then
     log error "Failed to write the bundle to ${output}"
     return 1

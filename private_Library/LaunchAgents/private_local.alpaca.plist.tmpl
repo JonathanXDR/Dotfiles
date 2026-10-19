@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-{{- /* An NTLM hash in the keychain selects NTLM. Without one, Alpaca uses the
-       macOS Kerberos ticket. -no-kerberos keeps the two apart, because a
-       Kerberos error ends Alpaca's authentication chain with a 502 instead of
-       falling back to NTLM. */}}
+{{- /* Without an NTLM hash, Alpaca uses the macOS Kerberos ticket.
+       -no-kerberos keeps the two apart, because a Kerberos error ends Alpaca's
+       authentication chain with a 502 instead of falling back to NTLM. */}}
 {{- $ntlm := includeTemplate "keychain" (list "Proxy" "taarujo6" .keychain_name .keychain_lookup_field) }}
 {{- /* Alpaca ignores a malformed value and answers every proxied request with
        a 502, so it has to stop the render instead. */}}

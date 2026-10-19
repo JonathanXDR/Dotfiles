@@ -1,12 +1,12 @@
-{{- /* Alpaca runs this in otto, so it has to stay ES5.
+{{- /* Alpaca runs this in otto, so it has to stay ES5. Comments stay template
+       comments, which keeps them out of the base64 PAC in the plist.
 
-       The values are checked before they are pasted into the script. A
-       malformed host or port would break it. An IP address as the host would
-       match the range on every network. An invalid network address, leading
-       zeros included, would make isInNet match every name that does not
-       resolve, sending traffic to the proxy off the corporate network.
-       proxy_network is read with dig, because a chezmoi.toml written before the
-       key existed lacks it until the next `chezmoi init`. */ -}}
+       An IP address as the host would match the range on every network. An
+       invalid network address, leading zeros included, would make isInNet
+       match every name that does not resolve, sending traffic to the proxy
+       off the corporate network. proxy_network is read with dig, because a
+       chezmoi.toml written before the key existed lacks it until the next
+       `chezmoi init`. */ -}}
 {{- if not (regexMatch `^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z][a-z0-9-]*$` .proxy_host) -}}
 {{-   fail "proxy_host must be a lowercase host name such as proxy.company.com (set it in config.toml, then run chezmoi init)" -}}
 {{- end -}}
@@ -28,15 +28,17 @@
 {{-   $mask = append $mask (index (list 0 128 192 224 240 248 252 254 255) (max 0 (min 8 (sub $bits (mul $i 8))))) -}}
 {{- end -}}
 function FindProxyForURL(url, host) {
-  // Loopback stays on this machine, also for clients that miss it in NO_PROXY
+  {{- /* Loopback stays on this machine, also for clients that miss it in
+         NO_PROXY */}}
   if (host == "localhost" || dnsDomainIs(host, ".localhost") ||
       shExpMatch(host, "127.*") || host == "::1") {
     return "DIRECT";
   }
-  // The proxy host resolves into the corporate range only on the office
-  // network or over the VPN. Checking the range, not just the lookup, keeps
-  // captive portals and wildcard resolvers from getting traffic or credentials.
-  // Inside the network there is deliberately no direct fallback.
+  {{- /* The proxy host resolves into the corporate range only on the office
+         network or over the VPN. Checking the range, not just the lookup,
+         keeps captive portals and wildcard resolvers from getting traffic or
+         credentials. Inside the network there is deliberately no direct
+         fallback. */}}
   if (isInNet("{{ .proxy_host }}", "{{ join "." (slice $parts 0 4) }}", "{{ join "." $mask }}")) {
     return "PROXY {{ .proxy_host }}:{{ .proxy_port }}";
   }
