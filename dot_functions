@@ -565,7 +565,9 @@ getcertnames() {
 
 # Bundle corporate CA certificates into one PEM file for NODE_EXTRA_CA_CERTS.
 # Sources are SSL_BUNDLE_KEYCHAIN_CERTS (common names in the System keychain)
-# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma-separated.
+# and SSL_BUNDLE_REMOTE_CERTS (URLs), both comma-separated. A downloaded
+# certificate is kept only if a keychain certificate signed it, because the
+# URLs are typically plain HTTP.
 # Usage: ssl:bundle [output_path]
 ssl:bundle() {
   local output="${1:-$HOME/.ssl/ca-bundle.pem}"
@@ -598,7 +600,7 @@ ssl:bundle() {
   # the connect for more than a minute per certificate.
   local -a curl_args=(-fsSL --connect-timeout 5 --max-time 30)
 
-  local url raw
+  local url raw pem
   for url in "${remote_certs[@]}"; do
     read -r url <<< "$url"
     [[ -z "$url" ]] && continue
@@ -610,14 +612,19 @@ ssl:bundle() {
       continue
     fi
 
-    # Accept either encoding, PEM first then DER
-    if openssl x509 -inform PEM -in "$raw" -outform PEM >> "$tmp" 2>/dev/null \
-    || openssl x509 -inform DER -in "$raw" -outform PEM >> "$tmp" 2>/dev/null; then
-      ((cert_count++))
-    else
+    pem="$(mktemp)"
+    if ! openssl x509 -inform PEM -in "$raw" -out "$pem" 2>/dev/null \
+    && ! openssl x509 -inform DER -in "$raw" -out "$pem" 2>/dev/null; then
       log warning "Skipped ${url:t} (not a valid PEM or DER certificate)"
+    # -trusted, unlike -CAfile, keeps OpenSSL's default certificate directory
+    # out of the check, so only the keychain certificates can vouch for it.
+    elif ! openssl verify -trusted "$tmp" "$pem" &>/dev/null; then
+      log warning "Skipped ${url:t} (not signed by a system keychain certificate)"
+    else
+      cat "$pem" >> "$tmp"
+      ((cert_count++))
     fi
-    command rm -f "$raw"
+    command rm -f "$raw" "$pem"
   done
 
   if ((cert_count == 0)); then
@@ -626,8 +633,8 @@ ssl:bundle() {
   fi
 
   # Checked, because the EXIT trap removes the assembled bundle on the way out.
-  # An unchecked mv reported success while NODE_EXTRA_CA_CERTS still pointed at
-  # a missing or stale file, which surfaces much later as an opaque TLS error.
+  # A failed mv would otherwise report success while NODE_EXTRA_CA_CERTS points
+  # at a missing or stale file, which surfaces much later as an opaque TLS error.
   if ! command mv -f "$tmp" "$output"; then
     log error "Failed to write the bundle to ${output}"
     return 1
