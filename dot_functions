@@ -796,10 +796,10 @@ vpn:reset-filter() {
   open -a "Cisco Secure Client"
 }
 
-# Show the agent's state, how Alpaca authenticates, and this shell's proxy
-# variables. Only selected `launchctl print` lines pass through, because the
-# full output lists the agent's environment, NTLM credentials included, and this
-# output tends to get pasted into tickets.
+# Show the agent's state, how Alpaca authenticates, and the proxy variables of
+# this shell and of the apps launchd starts. Only selected `launchctl print`
+# lines pass through, because the full output lists the agent's environment,
+# NTLM credentials included, and this output tends to get pasted into tickets.
 alpaca:status() {
   local label="local.alpaca"
   local logfile="${HOME}/Library/Logs/alpaca.log"
@@ -827,6 +827,12 @@ alpaca:status() {
   echo "  This shell:"
   for _v in http_proxy https_proxy no_proxy; do
     printf "    %-12s %s\n" "${_v}" "${(P)_v:-<unset>}"
+  done
+
+  echo ""
+  echo "  Apps (launchctl getenv):"
+  for _v in http_proxy https_proxy no_proxy; do
+    printf "    %-12s %s\n" "${_v}" "${$(launchctl getenv "${_v}"):-<unset>}"
   done
 }
 

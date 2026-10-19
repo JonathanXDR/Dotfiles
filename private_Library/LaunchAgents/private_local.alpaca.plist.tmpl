@@ -23,23 +23,26 @@
   <array>
     <string>/bin/sh</string>
     <string>-c</string>
-    <string>if [ ! -x "$1" ]; then
+    <string>log="$HOME/Library/Logs/alpaca.log"
+mkdir -p "$HOME/.cache" "$HOME/Library/Logs"
+[ "$(stat -f %z "$log" 2&gt;/dev/null || echo 0)" -lt 10485760 ] || : &gt;"$log"
+exec 2&gt;&gt;"$log"
+if [ ! -x "$1" ]; then
+  echo "Alpaca not found at $1" &gt;&amp;2
   for name in http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; do
     launchctl unsetenv "$name"
   done
   rm -f "$HOME/.cache/alpaca.pid"
   exit 0
 fi
-mkdir -p "$HOME/.cache" &amp;&amp; echo $$ &gt;"$HOME/.cache/alpaca.pid"
+echo $$ &gt;"$HOME/.cache/alpaca.pid"
 for name in http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; do
   launchctl setenv "$name" "$ALPACA_URL"
 done
 for name in no_proxy NO_PROXY; do
   launchctl setenv "$name" "$NO_PROXY"
 done
-log="$HOME/Library/Logs/alpaca.log"
-[ "$(stat -f %z "$log" 2&gt;/dev/null || echo 0)" -lt 10485760 ] || : &gt;"$log"
-exec "$@" 2&gt;&gt;"$log"</string>
+exec "$@"</string>
     <string>alpaca</string>
     <string>/opt/homebrew/opt/alpaca/bin/alpaca</string>
     <string>-p</string>
@@ -73,14 +76,11 @@ exec "$@" 2&gt;&gt;"$log"</string>
   <true/>
 
   <!-- Restart after a crash or a fatal error, but not after the wrapper's
-       quiet exit for a missing binary. -->
+       exit for a missing binary. -->
   <key>KeepAlive</key>
   <dict>
     <key>SuccessfulExit</key>
     <false/>
   </dict>
-
-  <key>StandardErrorPath</key>
-  <string>{{ .chezmoi.homeDir }}/Library/Logs/alpaca.log</string>
 </dict>
 </plist>

@@ -28,8 +28,7 @@
 {{-   $mask = append $mask (index (list 0 128 192 224 240 248 252 254 255) (max 0 (min 8 (sub $bits (mul $i 8))))) -}}
 {{- end -}}
 function FindProxyForURL(url, host) {
-  // Loopback stays on this machine, also for clients whose NO_PROXY parser
-  // misses 127.0.0.1/32 or ::1.
+  // Loopback stays on this machine, also for clients that miss it in NO_PROXY
   if (host == "localhost" || dnsDomainIs(host, ".localhost") ||
       shExpMatch(host, "127.*") || host == "::1") {
     return "DIRECT";
