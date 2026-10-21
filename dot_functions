@@ -807,12 +807,13 @@ alpaca:status() {
   fi
 
   # Alpaca logs how it authenticates once per start, and every start opens with
-  # its NTLM line, so awk keeps the startup lines after the last one.
+  # its NTLM line or the wrapper's missing-binary line, so awk keeps the startup
+  # lines after the last one. A port that is taken ends Alpaca with `listen tcp`.
   if [[ -r "${logfile}" ]]; then
     echo ""
     echo "  Latest start (${logfile}):"
-    grep -E ': (NTLM credentials not available|Found (NoMAD )?credentials|Kerberos ticket found|No Kerberos ticket at startup|Kerberos/Negotiate authentication available|Proxy auth allowlist|No authentication methods|Listening on)' "${logfile}" \
-      | awk '/NTLM credentials not available|Found (NoMAD )?credentials/ { n = 0 }
+    grep -E '^Alpaca not found at |^[0-9/]+ [0-9:.]+ [a-z_]+\.go:[0-9]+: (NTLM credentials not available|Found (NoMAD )?credentials|Kerberos ticket found|No Kerberos ticket at startup|Kerberos/Negotiate authentication available|Proxy auth allowlist|No authentication methods|Listening on|listen tcp)' "${logfile}" \
+      | awk '/^Alpaca not found at |NTLM credentials not available|Found (NoMAD )?credentials/ { n = 0 }
              { line[++n] = $0 }
              END { for (i = 1; i <= n; i++) print "    " line[i] }'
   fi
