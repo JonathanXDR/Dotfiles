@@ -240,7 +240,7 @@ The source maps onto `$HOME` like this:
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
 ├── private_Library/                         # ~/Library (0700)
 │   ├── Application Support/Code/User/       # VS Code settings & keybindings
-│   └── LaunchAgents/                        # Alpaca proxy agent (0600, NTLM from keychain, work only)
+│   └── LaunchAgents/                        # Alpaca proxy agent (0600, Kerberos or a keychain NTLM hash, work only)
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
 └── Brewfile.work                            # Homebrew packages (work)

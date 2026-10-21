@@ -114,7 +114,7 @@ Dotfiles/
 │   # Proxy agent (work only, ignored on personal via .chezmoiignore)
 │
 ├── private_Library/LaunchAgents/
-│   └── private_local.alpaca.plist.tmpl                  # Alpaca with its PAC and NTLM credentials (0600, from keychain)
+│   └── private_local.alpaca.plist.tmpl                  # Alpaca with its PAC, signing in with Kerberos or a keychain NTLM hash (0600)
 │
 │   # Shell configuration (sourced on every terminal open)
 │
@@ -356,7 +356,7 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | GitLab MCP OAuth client ID and secret   | Work only |
-| `private_Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy credentials | Work only |
+| `private_Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy hash, optional | Work only |
 | `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
 For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
