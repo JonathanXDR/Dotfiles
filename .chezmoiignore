@@ -7,4 +7,5 @@ Brewfile.*
 .ssl
 .vpn
 Library/LaunchAgents/local.alpaca.plist
+Library/Application Support/rancher-desktop
 {{ end }}

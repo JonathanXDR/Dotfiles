@@ -239,7 +239,9 @@ The source maps onto `$HOME` like this:
 │   ├── private_hooks/                       # Claude Code guard hooks and session notices
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
 ├── private_Library/                         # ~/Library (0700)
-│   ├── Application Support/Code/User/       # VS Code settings & keybindings
+│   ├── Application Support/
+│   │   ├── Code/User/                       # VS Code settings & keybindings
+│   │   └── private_rancher-desktop/         # Rancher Desktop engine proxy (0700, work only)
 │   └── LaunchAgents/                        # Alpaca proxy agent (0600, Kerberos or a keychain NTLM hash, work only)
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
