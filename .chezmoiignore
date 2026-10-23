@@ -4,7 +4,6 @@ LICENSE
 Brewfile.*
 
 {{ if ne .machine_type "work" }}
-.vpn
 Library/LaunchAgents/local.alpaca.plist
 Library/Application Support/rancher-desktop
 {{ end }}

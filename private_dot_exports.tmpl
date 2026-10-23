@@ -74,10 +74,6 @@ export SECRETS_KEYCHAIN_LOOKUP_FIELD={{ .keychain_lookup_field | quote }}
 # Not exported, because only functions in this shell read it
 typeset +x SECRETS_KEYCHAIN_PASSWORD={{ if hasKey . "keychain_password" }}{{ .keychain_password | shellQuote }}{{ else }}""{{ end }}
 
-# Cisco VPN binary the vpn:* functions drive
-export CISCO_VPN_BIN={{ .cisco_vpn_bin | quote }}
-export VPN_DEFAULT_HOST={{ .vpn_default_host | quote }}
-
 # Paths the tre and trec functions hide from the tree view
 export TREE_IGNORE={{ .tree_ignore | quote }}
 

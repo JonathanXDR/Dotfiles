@@ -33,15 +33,8 @@ dock_apps = [
 # Basenames that rm deletes outright instead of trashing, exported as TRASH_SKIP
 trash_skip = ["node_modules"]
 
-# Binary that the vpn:* functions drive, exported as CISCO_VPN_BIN
-cisco_vpn_bin = "/opt/cisco/secureclient/bin/vpn"
-
 # Alpaca LaunchAgent port, which the work proxy variables point at
 alpaca_port = 3128
-
-# Host vpn:full-refresh reconnects to when called without an argument,
-# exported as VPN_DEFAULT_HOST. Empty means the argument is required.
-vpn_default_host = ""
 
 # Dedicated keychain for managed secrets, separate from the login keychain.
 # `keychain_name` becomes ~/Library/Keychains/<name>.keychain-db.
