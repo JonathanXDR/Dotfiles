@@ -2,10 +2,8 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-{{ $brewfile_name := printf "Brewfile.%s" .machine_type -}}
-
 # Brewfile content hash (triggers a re-run when the Brewfile changes):
-# {{ include $brewfile_name | sha256sum }}
+# {{ include "Brewfile" | sha256sum }}
 #
 # Homebrew presence is part of the trigger too. Without it, a run skipped for a
 # missing brew would record its state and never retry, leaving the packages
@@ -29,7 +27,7 @@ if ! _cmd_exists brew; then
   exit 0
 fi
 
-BREWFILE="{{ .chezmoi.sourceDir }}/{{ $brewfile_name }}"
+BREWFILE="{{ .chezmoi.sourceDir }}/Brewfile"
 FAILED_MARKER="{{ .chezmoi.cacheDir }}/brew-bundle-failed"
 
 if [[ ! -f "$BREWFILE" ]]; then

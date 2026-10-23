@@ -2,9 +2,8 @@
 set -euo pipefail
 {{ template "shell-helpers" . }}
 
-# mise config content hashes (trigger a re-run when the config changes):
+# mise config content hash (triggers a re-run when the config changes):
 # {{ include "dot_config/mise/config.toml" | sha256sum }}
-# {{ includeTemplate "dot_config/mise/conf.d/personal.toml.tmpl" . | sha256sum }}
 #
 # mise presence is part of the trigger for the same reason as in script 03. mise
 # itself arrives through Homebrew, so a run before that happens must not record

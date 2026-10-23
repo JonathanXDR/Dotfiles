@@ -1,48 +1,29 @@
-{{- $machine_type := promptChoiceOnce $ "machine_type" "Machine type" (list "personal" "work") -}}
-
-{{- /* Defaults for this machine type, from the iCloud Drive config */ -}}
+{{- /* Defaults from the iCloud Drive config */ -}}
 {{- $icloudSecrets := joinPath .chezmoi.homeDir "Documents/General/Developer/.dotfiles" -}}
 {{- $icloudConfigPath := joinPath $icloudSecrets "config.toml" -}}
-{{- $machineConfig := dict -}}
+{{- $icloudConfig := dict -}}
 {{- if stat $icloudConfigPath -}}
-{{-   $allConfig := include $icloudConfigPath | fromToml -}}
-{{-   if hasKey $allConfig $machine_type -}}
-{{-     $machineConfig = index $allConfig $machine_type -}}
-{{-   end -}}
+{{-   $icloudConfig = include $icloudConfigPath | fromToml -}}
 {{- end -}}
 
 {{- /* Every config key with its fallback value, which is also the default the
       prompt below offers. */ -}}
 {{- $config := dict
-      "email"                      ""
-      "name"                       ""
-      "gpg_key"                    ""
-      "enterprise_domain"          "" -}}
+      "email"    ""
+      "name"     ""
+      "gpg_key"  "" -}}
 
 {{- /* Prompt text `chezmoi init` shows for keys config.toml omits */ -}}
 {{- $configPrompts := dict
-      "email"                      "Git email address"
-      "name"                       "Git full name"
-      "gpg_key"                    "GPG signing key ID (leave empty to disable signing)"
-      "enterprise_domain"          "Enterprise domain (leave empty for none)" -}}
+      "email"    "Git email address"
+      "name"     "Git full name"
+      "gpg_key"  "GPG signing key ID (leave empty to disable signing)" -}}
 
-{{- /* Keys resolved on every machine type */ -}}
-{{- $sharedKeys := list "email" "name" "gpg_key" -}}
-
-{{- /* Keys resolved only on work machines */ -}}
-{{- $workKeys := list "enterprise_domain" -}}
-
-{{- /* Resolve the keys this machine type needs. A value from config.toml wins,
-      otherwise promptStringOnce asks for it and caches the answer in
-      chezmoi.toml. Personal machines skip the work keys and keep their
-      fallbacks. */ -}}
-{{- $keys := $sharedKeys -}}
-{{- if eq $machine_type "work" -}}
-{{-   $keys = concat $sharedKeys $workKeys -}}
-{{- end -}}
-{{- range $key := $keys -}}
-{{-   if hasKey $machineConfig $key -}}
-{{-     $_ := set $config $key (index $machineConfig $key) -}}
+{{- /* A value from config.toml wins, otherwise promptStringOnce asks for it and
+      caches the answer in chezmoi.toml. The list keeps the prompt order. */ -}}
+{{- range $key := list "email" "name" "gpg_key" -}}
+{{-   if hasKey $icloudConfig $key -}}
+{{-     $_ := set $config $key (index $icloudConfig $key) -}}
 {{-   else -}}
 {{-     $_ := set $config $key (promptStringOnce $ $key (index $configPrompts $key) (index $config $key)) -}}
 {{-   end -}}
@@ -61,11 +42,7 @@ mode = "symlink"
   email = {{ index $config "email" | quote }}
   name = {{ index $config "name" | quote }}
   gpg_key = {{ index $config "gpg_key" | quote }}
-  machine_type = {{ $machine_type | quote }}
   icloud_secrets = {{ $icloudSecrets | quote }}
-
-  # Enterprise (populated on work machines, empty elsewhere)
-  enterprise_domain = {{ index $config "enterprise_domain" | quote }}
 
   # Master password for the dotfiles keychain (empty means no password, so the
   # keychain follows the login session's unlock state)

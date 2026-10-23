@@ -1,16 +1,15 @@
 # Dotfiles
 
-Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
+Keychain-backed, iCloud-synced macOS dotfiles.
 
 > [!IMPORTANT]
 > This is a personal setup. Fork it freely, but expect macOS-only assumptions and opinionated defaults.
 
 ## Features
 
-- 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
+- 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders templates at apply time.
 - 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
 - ☁️ **iCloud sync:** Shares SSH, GPG, kubeconfig, and `config.toml` across Macs.
-- 💻 **Machine types:** Adapts packages to personal or work Macs.
 - 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
 - ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
 - 🧠 **Agent Skills:** Declares 400+ skills in one file for Claude Code, Codex, Copilot, and Gemini.
@@ -25,7 +24,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - macOS with Xcode Command Line Tools (`xcode-select --install`)
 - [chezmoi](https://chezmoi.io/install/) (`sh -c "$(curl -fsLS get.chezmoi.io)"`)
 - iCloud Drive signed in (for keys, config, and the tokens file)
-- The App Store signed in (both Brewfiles install App Store apps through `mas`)
+- The App Store signed in (the Brewfile installs App Store apps through `mas`)
 
 ## 🚀 Quick Start
 
@@ -37,14 +36,14 @@ git clone https://github.com/JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dot
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
+`chezmoi init` asks for your email, name, and GPG key, then an optional keychain password. Every answer except the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
 1. Installs Homebrew if it is missing, asking for your password once
 2. Imports your tokens from iCloud Drive into the `dotfiles` keychain
 3. Links `~/.ssh`, `~/.gnupg`, and `~/.kube` to their iCloud Drive copies, and the shell config into `$HOME`
-4. Installs everything in the Brewfile for your machine type
+4. Installs everything in the Brewfile
 5. Installs language runtimes and global CLI packages with mise
 6. Installs `/etc/hosts` from `dot_config/hosts`, asking for your password whenever it changes
 7. Downloads the declared Agent Skills and links them into every agent that needs a link
@@ -228,7 +227,6 @@ The source maps onto `$HOME` like this:
 ├── dot_config/                              # ~/.config
 │   ├── hosts                                # /etc/hosts source
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
-│   ├── mise/conf.d/personal.toml.tmpl       # Global CLI packages (personal only)
 │   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)
 ├── private_dot_claude/                      # ~/.claude/ (0700)
 │   ├── private_CLAUDE.md                    # Global Claude Code instructions (all projects)
@@ -239,14 +237,13 @@ The source maps onto `$HOME` like this:
 │   └── Application Support/
 │       └── Code/User/                       # VS Code settings & keybindings
 │
-├── Brewfile.personal                        # Homebrew packages (personal)
-└── Brewfile.work                            # Homebrew packages (work)
+└── Brewfile                                 # Homebrew packages
 ```
 
 ## ⛰️ Next Steps
 
 1. 📖 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for a walkthrough of how the pieces fit together.
-2. 🔀 Fork this repo and adapt `config.toml`, the Brewfiles, and the machine types to your setup.
+2. 🔀 Fork this repo and adapt `config.toml` and the Brewfile to your setup.
 3. 🔐 Move your secrets into the macOS Keychain with `secret:set`.
 4. 🐛 Hit a bug or have an idea? [Open an issue](https://github.com/JonathanXDR/Dotfiles/issues).
 

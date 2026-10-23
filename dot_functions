@@ -1337,7 +1337,7 @@ brew:check() {
   log info "Detected ${#outdated_lines} outdated Homebrew package(s) (run 'brew upgrade' to update)"
 }
 
-# Rewrite this machine's Brewfile from what Homebrew currently has installed.
+# Rewrite the Brewfile from what Homebrew currently has installed.
 #
 # --no-npm is why this wrapper exists. `brew bundle dump` runs `npm ls -g`
 # against the first npm on PATH, which under mise is not Homebrew's, so a plain
@@ -1351,11 +1351,9 @@ brew:dump() {
   cmd:exists brew || { log error "Failed to find brew"; return 1; }
   cmd:exists chezmoi || { log error "Failed to find chezmoi"; return 1; }
 
-  # Brewfiles are named after the machine type, which chezmoi constrains to
-  # personal or work. No mapping is needed, so this cannot drift from the file
-  # run_onchange_after_03-brew-packages installs.
-  local brewfile
-  brewfile="$(chezmoi execute-template '{{ .chezmoi.sourceDir }}/Brewfile.{{ .machine_type }}')" || return 1
+  local source_dir brewfile
+  source_dir="$(chezmoi source-path)" || return 1
+  brewfile="${source_dir}/Brewfile"
 
   if brew bundle dump --file="$brewfile" --force --no-npm; then
     log success "Dumped Homebrew packages to ${brewfile:t}"
