@@ -104,8 +104,6 @@ brew "git-filter-repo"
 brew "git-lfs"
 # Bootstrap GitHub SSH configuration
 brew "github-keygen"
-# Open-source GitLab command-line tool
-brew "glab"
 # GNU implementation of the famous stream editor
 brew "gnu-sed"
 # GNU Privacy Guard (OpenPGP)
@@ -258,8 +256,6 @@ brew "uv"
 brew "uvicorn"
 # Add declarative schema to .env files using @env-spec decorator comments
 brew "varlock"
-# Disaster recovery for Kubernetes resources and persistent volumes
-brew "velero"
 # Command-line interface for Vercel
 brew "vercel"
 # Next generation frontend tooling. It's fast!
@@ -334,8 +330,6 @@ cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
 # OpenAI's official ChatGPT desktop app
 cask "chatgpt"
-# Managed desktop virtualization solution
-cask "citrix-workspace", args: { appdir: "/Applications" }
 # Anthropic's official Claude AI desktop app
 cask "claude"
 # Download and manage your addons and mods
@@ -384,8 +378,6 @@ cask "httpie-desktop", args: { appdir: "/Applications" }
 cask "inkscape"
 # Java IDE by JetBrains
 cask "intellij-idea", args: { appdir: "/Applications" }
-# App to manage access to corporate apps, data, and resources
-cask "intune-company-portal", args: { appdir: "/Applications" }
 # JetBrains tools manager
 cask "jetbrains-toolbox"
 # AI-powered productivity tool for the command-line
@@ -587,7 +579,6 @@ vscode "hediet.vscode-drawio"
 vscode "hnw.vscode-auto-open-markdown-preview"
 vscode "hollowtree.vue-snippets"
 vscode "humao.rest-client"
-vscode "hurly.sqltools-oracle-driver"
 vscode "ian-sanders.sx-to-css"
 vscode "inferrinizzard.prettier-sql-vscode"
 vscode "ipedrazas.kubernetes-snippets"
@@ -597,7 +588,6 @@ vscode "james-yu.latex-workshop"
 vscode "janisdd.vscode-edit-csv"
 vscode "jannisx11.batch-rename-extension"
 vscode "jbockle.jbockle-format-files"
-vscode "jfrog.jfrog-vscode-extension"
 vscode "jianbingfang.dupchecker"
 vscode "jnbt.vscode-rufo"
 vscode "jock.svg"
@@ -606,7 +596,6 @@ vscode "johnpapa.vscode-peacock"
 vscode "johnpapa.winteriscoming"
 vscode "kamikillerto.vscode-colorize"
 vscode "kevinrose.vsc-python-indent"
-vscode "kirkslota.karate-runner"
 vscode "kleber-swf.unity-code-snippets"
 vscode "leizongmin.node-module-intellisense"
 vscode "lokalise.i18n-ally"
@@ -668,14 +657,12 @@ vscode "ms-vscode.vscode-speech-language-pack-de-de"
 vscode "ms-vscode.vscode-typescript-next"
 vscode "ms-vsliveshare.vsliveshare"
 vscode "mtxr.sqltools"
-vscode "mycelo.oracle-plsql"
 vscode "mylesmurphy.prettify-ts"
 vscode "nicolasvuillamy.vscode-groovy-lint"
 vscode "njpwerner.autodocstring"
 vscode "nuxtr.nuxtr-vscode"
 vscode "oderwat.indent-rainbow"
 vscode "openai.chatgpt"
-vscode "oracle.sql-developer"
 vscode "oven.bun-vscode"
 vscode "pkief.material-icon-theme"
 vscode "pleiades.java-extension-pack-jdk"
@@ -707,7 +694,6 @@ vscode "roerohan.mongo-snippets-for-node-js"
 vscode "rogalmic.bash-debug"
 vscode "rpinski.shebang-snippets"
 vscode "rvest.vs-code-prettier-eslint"
-vscode "sansbrina.garbage-oracle"
 vscode "sapse.vscode-cds"
 vscode "scala-lang.scala"
 vscode "scalameta.metals"
