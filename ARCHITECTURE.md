@@ -225,7 +225,7 @@ chezmoi merges template data from multiple sources (later layers override earlie
 │  chezmoi.toml [data]                                                                │
 │                                                                                     │
 │    email, name, gpg_key, machine_type, icloud_secrets,                              │
-│    proxy_*, no_proxy, ssl_bundle_*, forgeops_path, ...                              │
+│    proxy_*, no_proxy, ssl_bundle_*, ...                                             │
 │                                                                                     │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │

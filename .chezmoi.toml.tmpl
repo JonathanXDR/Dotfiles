@@ -23,8 +23,7 @@
       "no_proxy"                   "localhost,127.0.0.1"
       "ssl_bundle_keychain_certs"  ""
       "ssl_bundle_remote_certs"    ""
-      "enterprise_domain"          ""
-      "forgeops_path"              "" -}}
+      "enterprise_domain"          "" -}}
 
 {{- /* Prompt text `chezmoi init` shows for keys config.toml omits */ -}}
 {{- $configPrompts := dict
@@ -37,14 +36,13 @@
       "no_proxy"                   "Hosts that bypass the proxy (comma-separated)"
       "ssl_bundle_keychain_certs"  "SSL bundle certificate CNs in the System keychain (comma-separated, leave empty for none)"
       "ssl_bundle_remote_certs"    "SSL bundle certificate URLs to download (comma-separated, leave empty for none)"
-      "enterprise_domain"          "Enterprise domain (leave empty for none)"
-      "forgeops_path"              "ForgeOps repo path (e.g. $HOME/Developer/Git/Swisscom/wfidb)" -}}
+      "enterprise_domain"          "Enterprise domain (leave empty for none)" -}}
 
 {{- /* Keys resolved on every machine type */ -}}
 {{- $sharedKeys := list "email" "name" "gpg_key" -}}
 
 {{- /* Keys resolved only on work machines */ -}}
-{{- $workKeys := list "proxy_host" "proxy_port" "proxy_network" "no_proxy" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" "forgeops_path" -}}
+{{- $workKeys := list "proxy_host" "proxy_port" "proxy_network" "no_proxy" "ssl_bundle_keychain_certs" "ssl_bundle_remote_certs" "enterprise_domain" -}}
 
 {{- /* Resolve the keys this machine type needs. A value from config.toml wins,
       otherwise promptStringOnce asks for it and caches the answer in
@@ -88,7 +86,6 @@ mode = "symlink"
   ssl_bundle_keychain_certs = {{ index $config "ssl_bundle_keychain_certs" | quote }}
   ssl_bundle_remote_certs = {{ index $config "ssl_bundle_remote_certs" | quote }}
   enterprise_domain = {{ index $config "enterprise_domain" | quote }}
-  forgeops_path = {{ index $config "forgeops_path" | quote }}
 
   # Master password for the dotfiles keychain (empty means no password, so the
   # keychain follows the login session's unlock state)

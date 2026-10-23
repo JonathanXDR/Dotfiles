@@ -7,12 +7,6 @@ export KUBE_EDITOR={{ .editor | quote }}
 export INFISICAL_CLIENT_ID={{ includeTemplate "keychain" (list "Infisical Client ID" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
 export INFISICAL_CLIENT_SECRET={{ includeTemplate "keychain" (list "Infisical Client Secret" "jonathan" .keychain_name .keychain_lookup_field) | quote }}
 
-{{ if eq .machine_type "work" -}}
-export FORGEOPS_PATH={{ .forgeops_path | quote }}
-export KUBECONFIG_PATH="$HOME/.kube"
-
-{{ end -}}
-
 # ----------------------------------- Node ----------------------------------- #
 
 # Verify TLS certificates by default, keeping whatever value this shell
