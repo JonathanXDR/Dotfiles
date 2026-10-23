@@ -25,7 +25,6 @@ dock_apps = [
   "Zed",
   "Notion",
   "Visual Studio Code",
-  "Microsoft Teams",
   "Discord",
   "GitKraken",
 ]
