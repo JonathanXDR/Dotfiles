@@ -635,9 +635,6 @@ mise.local.toml
 
 **/CLAUDE.md
 
-# ---- ForgeOps ----
-forgeops
-
 # ---- Secrets & credentials ----
 # Kept last on purpose. gitignore resolves by last match, so these patterns stay in
 # force even inside a folder that an earlier `!` rule re-included.
