@@ -179,23 +179,6 @@
         "read_only": true,
       },
     },
-{{- if eq .machine_type "work" }}
-    "GitLab (Swisscom)": {
-      "command": "bunx",
-      "args": ["@swisscom/red-gitlab-mcp@latest"],
-      "env": {
-        "GITLAB_API_URL": "https://code.swisscom.com/api/v4",
-        "GITLAB_USE_OAUTH": "true",
-        "GITLAB_OAUTH_CLIENT_ID": {{ includeTemplate "keychain" (list "GitLab MCP Client ID" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
-        "GITLAB_OAUTH_CLIENT_SECRET": {{ includeTemplate "keychain" (list "GitLab MCP Client Secret" "taarujo6" .keychain_name .keychain_lookup_field) | quote }},
-        "GITLAB_OAUTH_REDIRECT_URI": "http://127.0.0.1:8888/callback",
-        "GITLAB_READ_ONLY_MODE": "true",
-        "USE_PIPELINE": "true",
-        "USE_MILESTONE": "true",
-        "USE_GITLAB_WIKI": "true",
-      },
-    },
-{{- end }}
     "mcp-server-figma": {
       "enabled": true,
       "remote": false,

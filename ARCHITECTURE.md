@@ -356,7 +356,6 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_exports.tmpl`                  | Infisical machine identity credentials  | Always    |
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
-| `dot_config/zed/private_settings.json.tmpl` | GitLab MCP OAuth client ID and secret   | Work only |
 | `private_Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy hash, optional | Work only |
 | `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
