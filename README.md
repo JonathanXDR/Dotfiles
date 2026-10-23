@@ -47,7 +47,7 @@ From there, chezmoi does the rest:
 3. Links `~/.ssh`, `~/.gnupg`, and `~/.kube` to their iCloud Drive copies (plus `~/.ssl` and `~/.vpn` on work machines), and the shell config into `$HOME`
 4. Installs everything in the Brewfile for your machine type
 5. Installs language runtimes and global CLI packages with mise
-6. Installs `/etc/hosts` from `dot_config/hosts.tmpl`, asking for your password whenever it changes
+6. Installs `/etc/hosts` from `dot_config/hosts`, asking for your password whenever it changes
 7. Downloads the declared Agent Skills and links them into every agent that needs a link
 
 Finish by starting daily Homebrew upgrades, which the setup counts on to keep mise current:
@@ -229,7 +229,7 @@ The source maps onto `$HOME` like this:
 ├── private_dot_npmrc.tmpl                   # npm registry tokens (0600, from keychain)
 ├── private_dot_wakatime.cfg.tmpl            # WakaTime API key (0600, from keychain)
 ├── dot_config/                              # ~/.config
-│   ├── hosts.tmpl                           # /etc/hosts source
+│   ├── hosts                                # /etc/hosts source
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
 │   ├── mise/conf.d/personal.toml.tmpl       # Global CLI packages (personal only)
 │   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)

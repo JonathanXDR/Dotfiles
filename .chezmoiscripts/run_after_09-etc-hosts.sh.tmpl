@@ -3,8 +3,8 @@ set -euo pipefail
 {{ template "shell-helpers" . }}
 
 # The chezmoi destination for this repo is $HOME, so /etc/hosts cannot be a
-# managed file. chezmoi renders ~/.config/hosts like any other target and this
-# script installs a root-owned copy of it over /etc/hosts.
+# managed file. chezmoi symlinks ~/.config/hosts like any other plain file and
+# this script installs a root-owned copy of it over /etc/hosts.
 #
 # A copy, not a symlink. Pointing /etc/hosts at a file in $HOME handed every
 # process running as this user the ability to rewrite system name resolution
@@ -19,8 +19,8 @@ set -euo pipefail
 HOSTS_SRC="{{ .chezmoi.homeDir }}/.config/hosts"
 
 if [[ ! -f "$HOSTS_SRC" ]]; then
-  _log error "Failed to find rendered hosts file ($HOSTS_SRC)"
-  _log info "Run 'chezmoi apply ~/.config/hosts' to render it, then apply again"
+  _log error "Failed to find the hosts file ($HOSTS_SRC)"
+  _log info "Run 'chezmoi apply ~/.config/hosts' to link it, then apply again"
   exit 1
 fi
 
