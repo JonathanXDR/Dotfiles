@@ -9,23 +9,3 @@ registry=https://registry.npmjs.org/
 {{- if ne $github_packages_token "" }}
 //npm.pkg.github.com/:_authToken={{ $github_packages_token }}
 {{- end }}
-{{- if eq .machine_type "work" }}
-{{- $swisscom_artifactory := includeTemplate "keychain" (list "JFrog Artifactory" "taarujo6" .keychain_name .keychain_lookup_field) }}
-{{- $swisscom_bin := includeTemplate "keychain" (list "JFrog Artifactory (Bin)" "taarujo6" .keychain_name .keychain_lookup_field) }}
-{{- if ne $swisscom_artifactory "" }}
-//artifactory.swisscom.com/artifactory/api/npm/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
-{{- end }}
-{{- if ne $swisscom_bin "" }}
-//bin.swisscom.com/artifactory/api/npm/:_auth={{ printf "taarujo6:%s" $swisscom_bin | b64enc }}
-{{- end }}
-; Both hosts serve the same virtual repo. One fixed host keeps lockfiles
-; network-independent, and artifactory keeps its credentials for lockfiles that
-; already pin its tarball URLs.
-@swisscom:registry=https://bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/
-{{- if ne $swisscom_artifactory "" }}
-//artifactory.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_artifactory | b64enc }}
-{{- end }}
-{{- if ne $swisscom_bin "" }}
-//bin.swisscom.com/artifactory/api/npm/swisscom-npm-virtual/:_auth={{ printf "taarujo6:%s" $swisscom_bin | b64enc }}
-{{- end }}
-{{- end }}

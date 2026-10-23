@@ -10,7 +10,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
 - 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
 - ☁️ **iCloud sync:** Shares SSH, GPG, SSL, kubeconfig, VPN, and `config.toml` across Macs.
-- 💻 **Machine types:** Adapts packages, proxy, SSL, VPN, npm, and `/etc/hosts` to personal or work Macs.
+- 💻 **Machine types:** Adapts packages, proxy, SSL, VPN, and `/etc/hosts` to personal or work Macs.
 - 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
 - 🚦 **Network-aware proxy:** Routes work traffic through the corporate proxy or directly with [Alpaca](https://github.com/samuong/alpaca).
 - ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
