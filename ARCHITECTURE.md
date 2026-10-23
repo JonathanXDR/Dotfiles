@@ -22,7 +22,7 @@ This is a **macOS dotfiles system built on [chezmoi](https://chezmoi.io)** runni
 │                            ┌─────────────────────────────────────────────────┐                                  │
 │                            │ chezmoi.toml [data]                             │                                  │
 │                            │ email, name, gpg_key, machine_type,             │                                  │
-│                            │ proxy, icloud_secrets, ...                      │                                  │
+│                            │ icloud_secrets, ...                             │                                  │
 │                            └─────────────────────────────────────────────────┘                                  │
 │                                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -75,7 +75,6 @@ Dotfiles/
 │   └── zed.toml                                         # Installed Zed extensions (written by zed:dump)
 ├── .chezmoiignore                                       # Files excluded from $HOME
 ├── .chezmoitemplates/
-│   ├── alpaca.pac                                       # PAC the Alpaca LaunchAgent embeds (work only)
 │   ├── keychain                                         # Keychain lookup (list "<id>" "<account>" <keychain> <field>)
 │   ├── keychain-flag                                    # The `security` flag that matches the lookup field
 │   └── shell-helpers                                    # Reusable bash helpers for run scripts
@@ -88,7 +87,6 @@ Dotfiles/
 │   ├── run_once_before_02-*                             # Import keychain tokens from iCloud
 │   ├── run_onchange_after_03-*                          # Install Homebrew packages (re-runs on Brewfile change)
 │   ├── run_onchange_after_04-*                          # Fix iCloud symlink permissions (re-runs on config change)
-│   ├── run_onchange_after_05-*                          # Bootstrap the Alpaca LaunchAgent on work, remove it on personal
 │   ├── run_onchange_after_06-*                          # Install language runtimes and global CLI packages (re-runs on list change)
 │   ├── run_once_after_07-*                              # Fix zsh completion permissions
 │   ├── run_after_08-*                                   # Export keychain to iCloud (every apply)
@@ -109,16 +107,9 @@ Dotfiles/
 ├── private_dot_kube/                                    # ~/.kube/config → iCloud
 │   └── symlink_config.tmpl
 │
-│   # Proxy (work only, ignored on personal via .chezmoiignore)
-│
-├── private_Library/LaunchAgents/
-│   └── private_local.alpaca.plist.tmpl                  # Alpaca with its PAC, signing in with Kerberos or a keychain NTLM hash (0600)
-├── private_Library/Application Support/private_rancher-desktop/lima/_config/
-│   └── create_override.yaml.tmpl                        # Proxy for Rancher Desktop's container engines, written only if missing
-│
 │   # Shell configuration (sourced on every terminal open)
 │
-├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims, locale, proxy variables)
+├── dot_zshenv.tmpl                                      # PATH for non-interactive shells (mise shims, locale)
 ├── dot_zprofile                                         # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                            # Shell orchestrator
 ├── private_dot_exports.tmpl                             # Env vars, history, zsh options (0600, reads the keychain)
@@ -217,8 +208,7 @@ chezmoi merges template data from multiple sources (later layers override earlie
 │  Layer 3 (highest priority)                                                         │
 │  chezmoi.toml [data]                                                                │
 │                                                                                     │
-│    email, name, gpg_key, machine_type, icloud_secrets,                              │
-│    proxy_*, no_proxy, ...                                                           │
+│    email, name, gpg_key, machine_type, icloud_secrets, ...                          │
 │                                                                                     │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
@@ -242,7 +232,7 @@ chezmoi merges template data from multiple sources (later layers override earlie
 
 Layer 3 values come from two sources, resolved at `chezmoi init` time:
 
-1. **iCloud `config.toml`**: chezmoi reads machine-type config (proxy, enterprise) from `~/Documents/General/Developer/.dotfiles/config.toml`, under the `[work]` or `[personal]` section matching the selected `machine_type`. The file syncs through iCloud and stays outside the repo, so sensitive infrastructure details are never committed.
+1. **iCloud `config.toml`**: chezmoi reads machine-type config (enterprise) from `~/Documents/General/Developer/.dotfiles/config.toml`, under the `[work]` or `[personal]` section matching the selected `machine_type`. The file syncs through iCloud and stays outside the repo, so sensitive infrastructure details are never committed.
 2. **Interactive prompts (fallback)**: If `config.toml` is not found or is missing a key, chezmoi uses `promptStringOnce`, which asks once and caches the answer.
 
 Both `dot_*` templates and the run scripts in `.chezmoiscripts/` can read all three layers.
@@ -288,7 +278,6 @@ Secrets live in a dedicated `dotfiles` keychain (`~/Library/Keychains/dotfiles.k
 │                                                           │
 │   ~/.npmrc              ~/.exports                        │
 │   ~/.wakatime.cfg       ~/.config/zed/settings.json       │
-│   ~/Library/LaunchAgents/local.alpaca.plist (work)        │
 │                                                           │
 └────────────────────────────┬──────────────────────────────┘
                              │
@@ -349,7 +338,6 @@ chezmoi prompts for the **master password** once during `chezmoi init` (`promptS
 | `private_dot_exports.tmpl`                  | Infisical machine identity credentials  | Always    |
 | `private_dot_wakatime.cfg.tmpl`             | WakaTime API key                        | Always    |
 | `dot_config/zed/private_settings.json.tmpl` | Zed editor MCP server tokens (multiple) | Always    |
-| `private_Library/LaunchAgents/private_local.alpaca.plist.tmpl` | NTLM proxy hash, optional | Work only |
 | `.chezmoiscripts/run_after_10-agent-skills.sh.tmpl` | HeroUI Pro license token        | Always    |
 
 For the live values (ID / Account / Kind / Used by / Where), run `secrets:list`.
@@ -411,15 +399,13 @@ The `machine_type` variable (`personal` or `work`), set once during `chezmoi ini
 | ------------------ | --------------------------------------- | --------------------------------------------------------- |
 | **Brewfile**       | `Brewfile.personal`                     | `Brewfile.work`                                           |
 | **mise tools**     | `config.toml` + `conf.d/personal.toml`  | `config.toml` only                                        |
-| **Proxy**          | None                                    | Alpaca LaunchAgent, routed per request by a generated PAC |
-| **Auth**           | None                                    | Kerberos ticket, or an NTLM hash only Alpaca holds        |
 
 ### Shell Loading Order
 
 When a new terminal opens, startup runs in this exact order. zsh reads the first three files on its own, then `~/.zshrc` drives the rest:
 
 ```text
-  ~/.zshenv ────────────── mise shims, locale, proxy variables on work (every zsh, including non-interactive)
+  ~/.zshenv ────────────── mise shims, locale (every zsh, including non-interactive)
           │
           v
   /etc/zprofile ────────── macOS path_helper rebuilds PATH (login shells only),
@@ -434,7 +420,7 @@ When a new terminal opens, startup runs in this exact order. zsh reads the first
   ~/.exports ───────────── Env vars, history, zsh options
           │
           v
-  ~/.functions ─────────── Utility functions (proxy, secrets, toolchain, Git, ...)
+  ~/.functions ─────────── Utility functions (secrets, toolchain, Git, ...)
           │
           v
   PATH setup ───────────── Homebrew first, then tool paths, then mise (must be last)
@@ -519,10 +505,6 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | Symlink a new directory to iCloud    | Create a `symlink_dot_<name>.tmpl` with the iCloud path                                            |
 | Add a new setup step                 | Create a numbered `run_*` script in `.chezmoiscripts/`                                             |
 | Modify shared script helpers         | `.chezmoitemplates/shell-helpers`                                                                  |
-| Debug the Alpaca proxy               | `alpaca:status`, then `~/Library/Logs/alpaca.log`                                                  |
-| Restart the Alpaca proxy             | `alpaca:restart`                                                                                   |
-| Switch the proxy to Kerberos         | `secret:remove Proxy <account>` on every Mac that shares the tokens file, then `chezmoi apply`     |
-| Rotate the proxy's NTLM hash         | `alpaca -d <DOMAIN> -u <account> -H`, then `secret:remove` and `secret:set` `Proxy` with the quoted value on every Mac that shares the tokens file, then `chezmoi apply` |
 
 ## 💡 Design Decisions
 
@@ -536,16 +518,12 @@ Every script includes `{{ template "shell-helpers" . }}`, which provides shared 
 | **Tokens file mode `0600`**                                    | Enforced by `_secrets:ensure-tokens-file` (an idempotent `chmod`). Defends against reads by other local users on a shared Mac, even though the file is also encrypted in iCloud and covered by FileVault at rest.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | **Configurable keychain via `.chezmoidata.toml`**              | The `keychain_name` value lets a fork change the keychain filename without touching any template. `keychain_lookup_field` selects the `security` flag that lookups use, but only `name` (Label) works with the current call sites, because `_secrets:install` always writes the `<id>` into the Label. Keeping URLs out of committed `.tmpl` files is what `name` buys.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **Action-first log convention**                                | Every `log` / `_log` message starts with a verb (`Imported`, `Failed to update`, `Skipped`, `Installing…`) and keeps formatting colons out of the body, so the `<Level>:` prefix carries the only formatting colon. Colons inside data values, such as URLs or a function name like `secret:rename`, are fine. Failures can be found with a `^Error:` grep, and the level and the action both read in one line.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **iCloud `config.toml` over init prompts**                     | Proxy hosts and enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]` and `[personal]` sections keeps them out of the repo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **iCloud `config.toml` over init prompts**                     | Enterprise domains are sensitive organizational details. A TOML file on iCloud with `[work]` and `[personal]` sections keeps them out of the repo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **`keychain` template helper**                                 | Wraps `security find-generic-password` in a reusable one-liner. Returns an empty string for a missing key, whereas chezmoi's `keyring` panics.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Numbered run scripts**                                       | Deterministic ordering rules out race conditions (the keychain import in script 02 has to finish before any template reads a secret).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **`run_once_` for setup, `run_onchange_` for content-driven**  | Embedded content hashes reinstall Homebrew packages and the mise tool list only when their source files change. Each script also embeds a presence marker for the tool it drives, so a run skipped because `brew` or `mise` was missing re-fires the day that tool arrives instead of recording the skip as final.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Separate Brewfiles per machine type**                        | Personal and work machines have very different toolchains. Two focused lists are easier to maintain than one list full of conditionals. Each file is named after the `machine_type` value it serves (`Brewfile.personal`, `Brewfile.work`), which chezmoi constrains to those two, so the run script and `brew:dump` derive the name instead of mapping it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **`scriptEnv` for Homebrew flags**                             | `HOMEBREW_NO_AUTO_UPDATE=1` stops Homebrew from auto-updating during scripted installs, which keeps apply fast and deterministic. `HOMEBREW_NO_INSTALL_CLEANUP=1` keeps `brew cleanup` off the install path for the same reason. `NONINTERACTIVE=1` is read by the Homebrew installer script in `run_once_before_01`, not by `brew` itself.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Alpaca with a generated PAC**                                | Replaces an `nc` probe that toggled the shell and launchd variables. Alpaca picks the route for every request, so the variables stay constant and no shell goes stale when the network changes. The PAC comes from `proxy_host`, `proxy_port`, and `proxy_network`, not from the system settings. Alpaca reads only a top-level system PAC URL, which a split-tunnel VPN never sets, and a PAC download that fails after a network change leaves it direct until the next change. The proxy is used only while its host resolves into `proxy_network`, so a captive portal or a wildcard resolver that answers outside that range gets no traffic or credentials. A network that controls DNS and routing can still answer inside it, and only Kerberos mode keeps credentials from it. The agent is a repo-owned plist, because `brew services` cannot pass flags or restart a crashed Alpaca.    |
-| **Proxy variables follow the agent's PID**                     | The wrapper in the plist writes Alpaca's PID to `~/.cache/alpaca.pid`, and `.zshenv` exports the proxy only while `kill -0` finds that process, so a new shell never points at a proxy that is not running. A loopback connect through `zsh/net/tcp` measured about 5 ms per shell, against 0.04 ms for the PID check. The wrapper also publishes the lowercase and uppercase variables with `launchctl setenv`, because `brew autoupdate` and many other apps launchd starts never read a shell file, and brew drops the uppercase `HTTP_PROXY` and `NO_PROXY`. Those stay published while Alpaca restarts after a crash, which shells are not affected by.                                                                                                                                                                                                                                       |
-| **Credentials only for the corporate proxy**                   | `ALPACA_PROXY_AUTH_ALLOWLIST` is `proxy_host`. Without it Alpaca answers any 407 with credentials, even one from a host it reached directly. An NTLM hash in the keychain selects NTLM and adds `-no-kerberos`, otherwise Alpaca uses the macOS Kerberos ticket. Keeping the two apart matters, because a Kerberos error ends Alpaca's authentication chain with a 502 instead of falling back to NTLM. At runtime the hash sits in the 0600 plist and the Alpaca process, not in the environment of every shell.                                                                                                                                                                                                                                                                                                                                                                                  |
-| **Rancher Desktop override as `create_`**                      | Rancher Desktop starts docker, containerd and buildkitd through sudo and OpenRC, which drop the proxy variables. A Lima provision step in `override.yaml` therefore writes them to `/etc/rc.conf.d` in the VM, which OpenRC reads before every service. `create_` writes the file only when it is missing, so chezmoi keeps the contents of an `override.yaml` written by hand, and the next apply restores one a factory reset deleted. In return, a changed `no_proxy` reaches the VM only after you delete the file, apply again and restart Rancher Desktop.                                                                                                                                                                                                                                                                                                                                   |
 | **mise activated last in `.zshrc`**                            | mise resolves versions inside a compiled binary, not a sourced shell script, so there is no lazy-loading trick and no `cd` hook of our own to maintain. Ordering is the one hard rule. Activation snapshots `PATH` and re-derives from that snapshot on every prompt, so it must run after `brew shellenv` and every `path:add`. Homebrew keeps its own `node` as a dependency of eslint, prettier, and vercel, and this ordering keeps that copy behind mise's.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **`.zprofile` restores the mise shims**                        | `.zshenv` puts the shims first, then macOS `/etc/zprofile` runs `path_helper -s`, which rebuilds `PATH` and appends the rest at the end. On a login shell the shims land behind `/opt/homebrew/bin`, so Homebrew's node wins. Interactive shells recover through `mise activate zsh`, but login shells that never read `.zshrc` do not, and those are the shells `.zshenv` exists to cover. Chosen over `setopt no_global_rcs`, which disables `/etc/zprofile` outright.                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | **Every mise command pins itself to `$HOME`**                  | mise resolves `[tools]` from the working directory upward, and trust does not gate that: it asks for trust before running `[env]`, `[tasks]`, and `[hooks]`, never before reading a tool list. An unscoped `mise upgrade` from `run:daily` would therefore install the toolchain of whatever project the first terminal of the day opened in. `install`, `upgrade`, `prune`, `doctor`, and `cache path` all run with `-C "$HOME"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

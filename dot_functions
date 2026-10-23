@@ -586,59 +586,6 @@ dns:change() {
   sudo networksetup -setdnsservers "${network_service}" "${nameservers[@]}"
 }
 
-# Show the agent's state, how Alpaca authenticates, and the proxy variables of
-# this shell and of the apps launchd starts. Only selected `launchctl print`
-# lines pass through, because the full output lists the agent's environment,
-# NTLM credentials included, and this output tends to get pasted into tickets.
-alpaca:status() {
-  local label="local.alpaca"
-  local logfile="${HOME}/Library/Logs/alpaca.log"
-  local info
-
-  if info="$(launchctl print "gui/$(id -u)/${label}" 2>/dev/null)"; then
-    print -r -- "${info}" | grep -E $'^\t(state|pid|last exit code) = '
-  else
-    log warning "Found no loaded agent (${label})"
-  fi
-
-  # Alpaca logs how it authenticates once per start, and every start opens with
-  # its NTLM line or the wrapper's missing-binary line, so awk keeps the startup
-  # lines after the last one. A port that is taken ends Alpaca with `listen tcp`.
-  if [[ -r "${logfile}" ]]; then
-    echo ""
-    echo "  Latest start (${logfile}):"
-    grep -E '^Alpaca not found at |^[0-9/]+ [0-9:.]+ [a-z_]+\.go:[0-9]+: (NTLM credentials not available|Found (NoMAD )?credentials|Kerberos ticket found|No Kerberos ticket at startup|Kerberos/Negotiate authentication available|Proxy auth allowlist|No authentication methods|Listening on|listen tcp)' "${logfile}" \
-      | awk '/^Alpaca not found at |NTLM credentials not available|Found (NoMAD )?credentials/ { n = 0 }
-             { line[++n] = $0 }
-             END { for (i = 1; i <= n; i++) print "    " line[i] }'
-  fi
-
-  local _v
-  echo ""
-  echo "  This shell:"
-  for _v in http_proxy https_proxy no_proxy; do
-    printf "    %-12s %s\n" "${_v}" "${(P)_v:-<unset>}"
-  done
-
-  echo ""
-  echo "  Apps (launchctl getenv):"
-  for _v in http_proxy https_proxy no_proxy; do
-    printf "    %-12s %s\n" "${_v}" "${$(launchctl getenv "${_v}"):-<unset>}"
-  done
-}
-
-# Restart the Alpaca LaunchAgent, which also drops connections a VPN drop left
-# hanging. Shells opened while it was down export no proxy, so reopen them.
-alpaca:restart() {
-  local label="local.alpaca"
-
-  if ! launchctl kickstart -k "gui/$(id -u)/${label}"; then
-    log error "Failed to restart ${label} (load it with 'launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/${label}.plist')"
-    return 1
-  fi
-  log success "Restarted ${label}"
-}
-
 # ------------------------------------ SSH ----------------------------------- #
 
 # Adopt a forwarded ssh-agent socket left behind in /tmp by an earlier session.

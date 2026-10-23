@@ -10,12 +10,11 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
 - 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
 - ☁️ **iCloud sync:** Shares SSH, GPG, kubeconfig, and `config.toml` across Macs.
-- 💻 **Machine types:** Adapts packages and proxy to personal or work Macs.
+- 💻 **Machine types:** Adapts packages to personal or work Macs.
 - 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
-- 🚦 **Network-aware proxy:** Routes work traffic through the corporate proxy or directly with [Alpaca](https://github.com/samuong/alpaca).
 - ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
 - 🧠 **Agent Skills:** Declares 400+ skills in one file for Claude Code, Codex, Copilot, and Gemini.
-- 🛠️ **Shell toolkit:** Adds 70+ functions for proxy, Docker, secrets, toolchains, and Git, plus 125+ aliases.
+- 🛠️ **Shell toolkit:** Adds 70+ functions for Docker, secrets, toolchains, and Git, plus 125+ aliases.
 - ♻️ **Idempotent bootstrap:** Sets up Homebrew, packages, tools, and secrets, and is safe to re-run.
 
 ## 📋 Prerequisites
@@ -38,7 +37,7 @@ git clone https://github.com/JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dot
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for proxy and enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
+`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
@@ -170,7 +169,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md#agent-skills) for the full picture.
 Every new terminal runs these files and hooks in this order:
 
 ```text
-~/.zshenv ───────── mise shims, locale, proxy variables on work (every zsh, including non-interactive)
+~/.zshenv ───────── mise shims, locale (every zsh, including non-interactive)
         │
 /etc/zprofile ───── macOS path_helper rebuilds PATH (login shells only)
         │
@@ -206,14 +205,14 @@ The source maps onto `$HOME` like this:
 ├── .chezmoidata.toml                        # Shared non-secret defaults
 ├── .chezmoidata/                            # Agent Skills inventory, Zed extension list
 ├── .chezmoiignore                           # Files excluded from $HOME
-├── .chezmoitemplates/                       # Reusable templates: keychain lookup, shell helpers, Alpaca PAC
+├── .chezmoitemplates/                       # Reusable templates: keychain lookup, shell helpers
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
 ├── symlink_dot_ssh.tmpl                     # ~/.ssh → iCloud
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
-├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale, proxy variables)
+├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
 ├── private_dot_exports.tmpl                 # Env vars, history, zsh options (0600, reads the keychain)
@@ -237,10 +236,8 @@ The source maps onto `$HOME` like this:
 │   ├── private_hooks/                       # Claude Code guard hooks and session notices
 │   └── private_plugins/                     # Claude Code plugin and marketplace state
 ├── private_Library/                         # ~/Library (0700)
-│   ├── Application Support/
-│   │   ├── Code/User/                       # VS Code settings & keybindings
-│   │   └── private_rancher-desktop/         # Rancher Desktop engine proxy (0700, work only)
-│   └── LaunchAgents/                        # Alpaca proxy agent (0600, Kerberos or a keychain NTLM hash, work only)
+│   └── Application Support/
+│       └── Code/User/                       # VS Code settings & keybindings
 │
 ├── Brewfile.personal                        # Homebrew packages (personal)
 └── Brewfile.work                            # Homebrew packages (work)

@@ -2,8 +2,3 @@ README.md
 ARCHITECTURE.md
 LICENSE
 Brewfile.*
-
-{{ if ne .machine_type "work" }}
-Library/LaunchAgents/local.alpaca.plist
-Library/Application Support/rancher-desktop
-{{ end }}

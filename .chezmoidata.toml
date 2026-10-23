@@ -33,9 +33,6 @@ dock_apps = [
 # Basenames that rm deletes outright instead of trashing, exported as TRASH_SKIP
 trash_skip = ["node_modules"]
 
-# Alpaca LaunchAgent port, which the work proxy variables point at
-alpaca_port = 3128
-
 # Dedicated keychain for managed secrets, separate from the login keychain.
 # `keychain_name` becomes ~/Library/Keychains/<name>.keychain-db.
 # `keychain_lookup_field` picks the attribute the template helper searches on:
