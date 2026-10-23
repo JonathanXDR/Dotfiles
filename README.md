@@ -212,7 +212,7 @@ The source maps onto `$HOME` like this:
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud
 │
-├── dot_zshenv.tmpl                          # PATH for non-interactive shells (mise shims, locale)
+├── dot_zshenv                               # PATH for non-interactive shells (mise shims, locale)
 ├── dot_zprofile                             # Restores the mise shims after macOS path_helper (login shells)
 ├── dot_zshrc                                # Shell orchestrator
 ├── private_dot_exports.tmpl                 # Env vars, history, zsh options (0600, reads the keychain)
