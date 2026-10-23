@@ -67,7 +67,6 @@ fi
 # same-named binary from Homebrew or mise.
 path:add "$HOME/.local/bin"
 path:add "$HOME/.cargo/bin"
-path:add "$HOME/.rd/bin"
 path:add "$HOME/.console-ninja/.bin"
 path:add "/Library/Frameworks/Python.framework/Versions/Current/bin"
 path:add "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
