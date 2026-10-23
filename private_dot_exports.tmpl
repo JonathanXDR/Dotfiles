@@ -13,10 +13,6 @@ export INFISICAL_CLIENT_SECRET={{ includeTemplate "keychain" (list "Infisical Cl
 # inherited from its parent environment
 export NODE_TLS_REJECT_UNAUTHORIZED="${NODE_TLS_REJECT_UNAUTHORIZED:-1}"
 
-# Inputs to ssl:bundle
-export SSL_BUNDLE_KEYCHAIN_CERTS={{ .ssl_bundle_keychain_certs | quote }}
-export SSL_BUNDLE_REMOTE_CERTS={{ .ssl_bundle_remote_certs | quote }}
-
 # Persistent REPL history for `node`
 export NODE_REPL_HISTORY="${NODE_REPL_HISTORY:-$HOME/.node_history}"
 export NODE_REPL_HISTORY_SIZE="${NODE_REPL_HISTORY_SIZE:-32768}"

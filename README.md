@@ -9,13 +9,13 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 
 - 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
 - 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
-- ☁️ **iCloud sync:** Shares SSH, GPG, SSL, kubeconfig, VPN, and `config.toml` across Macs.
-- 💻 **Machine types:** Adapts packages, proxy, SSL, and VPN to personal or work Macs.
+- ☁️ **iCloud sync:** Shares SSH, GPG, kubeconfig, VPN, and `config.toml` across Macs.
+- 💻 **Machine types:** Adapts packages, proxy, and VPN to personal or work Macs.
 - 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
 - 🚦 **Network-aware proxy:** Routes work traffic through the corporate proxy or directly with [Alpaca](https://github.com/samuong/alpaca).
 - ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
 - 🧠 **Agent Skills:** Declares 400+ skills in one file for Claude Code, Codex, Copilot, and Gemini.
-- 🛠️ **Shell toolkit:** Adds 90+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases.
+- 🛠️ **Shell toolkit:** Adds 80+ functions for proxy, VPN, Docker, secrets, toolchains, and Git, plus 125+ aliases.
 - ♻️ **Idempotent bootstrap:** Sets up Homebrew, packages, tools, and secrets, and is safe to re-run.
 
 ## 📋 Prerequisites
@@ -38,13 +38,13 @@ git clone https://github.com/JonathanXDR/Dotfiles.git ~/Developer/Git/GitHub/Dot
 chezmoi init --source ~/Developer/Git/GitHub/Dotfiles --apply
 ```
 
-`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for proxy, SSL, and enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
+`chezmoi init` asks for your machine type, then your email, name, and GPG key, and finally an optional keychain password. Work machines are also asked for proxy and enterprise settings. Every answer except the machine type and the keychain password comes from `config.toml` on iCloud Drive when that file has the key. Your answers are cached, so later runs stay quiet.
 
 From there, chezmoi does the rest:
 
 1. Installs Homebrew if it is missing, asking for your password once
 2. Imports your tokens from iCloud Drive into the `dotfiles` keychain
-3. Links `~/.ssh`, `~/.gnupg`, and `~/.kube` to their iCloud Drive copies (plus `~/.ssl` and `~/.vpn` on work machines), and the shell config into `$HOME`
+3. Links `~/.ssh`, `~/.gnupg`, and `~/.kube` to their iCloud Drive copies (plus `~/.vpn` on work machines), and the shell config into `$HOME`
 4. Installs everything in the Brewfile for your machine type
 5. Installs language runtimes and global CLI packages with mise
 6. Installs `/etc/hosts` from `dot_config/hosts`, asking for your password whenever it changes
@@ -210,7 +210,6 @@ The source maps onto `$HOME` like this:
 ├── .chezmoiscripts/                         # Numbered run scripts (run_before_*, run_once_*, run_onchange_*, run_after_*)
 │
 ├── symlink_dot_ssh.tmpl                     # ~/.ssh → iCloud
-├── symlink_dot_ssl.tmpl                     # ~/.ssl → iCloud (work only)
 ├── symlink_dot_vpn.tmpl                     # ~/.vpn → iCloud (work only)
 ├── private_dot_gnupg/                       # ~/.gnupg/* → iCloud (6 symlinks)
 ├── private_dot_kube/                        # ~/.kube/config → iCloud

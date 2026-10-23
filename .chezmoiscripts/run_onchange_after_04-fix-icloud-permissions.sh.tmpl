@@ -48,9 +48,6 @@ fi
 [[ -f "$ICLOUD/.kube/config" ]] && chmod 600 "$ICLOUD/.kube/config"
 
 {{ if eq .machine_type "work" -}}
-# SSL: dirs 700, files 600
-_fix_dir "$ICLOUD/.ssl"
-
 # VPN: dir 755, files 644
 if [[ -d "$ICLOUD/.vpn" ]]; then
   _ensure_icloud "$ICLOUD/.vpn"
