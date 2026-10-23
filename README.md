@@ -10,7 +10,7 @@ Keychain-backed, iCloud-synced, machine-aware macOS dotfiles.
 - 🪨 **Foundation:** Links dotfiles with [chezmoi](https://chezmoi.io) in symlink mode and renders per-machine templates.
 - 🔐 **Keychain secrets:** Stores every secret in a dedicated macOS keychain, backed up to iCloud Drive.
 - ☁️ **iCloud sync:** Shares SSH, GPG, SSL, kubeconfig, VPN, and `config.toml` across Macs.
-- 💻 **Machine types:** Adapts packages, proxy, SSL, VPN, and `/etc/hosts` to personal or work Macs.
+- 💻 **Machine types:** Adapts packages, proxy, SSL, and VPN to personal or work Macs.
 - 🌱 **Auto-activating runtimes:** Switches Node, Python, Ruby, and Java to the pinned version on `cd`.
 - 🚦 **Network-aware proxy:** Routes work traffic through the corporate proxy or directly with [Alpaca](https://github.com/samuong/alpaca).
 - ⚡ **Fast startup:** Caches completions and plugins, and runs the mise, brew, and plugin checks once a day.
@@ -229,7 +229,7 @@ The source maps onto `$HOME` like this:
 ├── private_dot_npmrc.tmpl                   # npm registry tokens (0600, from keychain)
 ├── private_dot_wakatime.cfg.tmpl            # WakaTime API key (0600, from keychain)
 ├── dot_config/                              # ~/.config
-│   ├── hosts.tmpl                           # /etc/hosts source (machine-type aware)
+│   ├── hosts.tmpl                           # /etc/hosts source
 │   ├── mise/config.toml                     # Language runtimes + global CLI packages
 │   ├── mise/conf.d/personal.toml.tmpl       # Global CLI packages (personal only)
 │   └── zed/private_settings.json.tmpl       # Zed editor settings (0600, from keychain)
