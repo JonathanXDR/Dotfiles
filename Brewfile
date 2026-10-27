@@ -424,6 +424,8 @@ cask "postman", args: { appdir: "/Applications" }
 cask "proxyman"
 # Control your tools with a few keystrokes
 cask "raycast", args: { appdir: "/Applications" }
+# Remote desktop client and server application
+cask "realvnc-connect"
 # Monitors the computer system and optimises its performance
 cask "sensei"
 # Tool that provides consistent, highly configurable symbols for apps
@@ -448,6 +450,7 @@ cask "the-unarchiver"
 cask "tor-browser"
 # Your home for Mac updates
 cask "updatest/tap/updatest"
+cask "updatest@beta"
 # Virtual machines UI using QEMU
 cask "utm"
 # Open-source code editor
