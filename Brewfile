@@ -454,11 +454,9 @@ cask "zen"
 # OpenJDK distribution from Azul
 cask "zulu"
 mas "AdBlock Pro", id: 1018301773
-mas "Compressor", id: 6746516157
 mas "Compressor", id: 424390742
 mas "Developer", id: 640199958
 mas "Elmedia Video Player", id: 1044549675
-mas "Final Cut Pro", id: 1631624924
 mas "Final Cut Pro", id: 424389933
 mas "Flighty", id: 1358823008
 mas "Folder Preview", id: 6698876601
@@ -470,19 +468,15 @@ mas "iMovie", id: 408981434
 mas "iPreview", id: 1519213509
 mas "Keynote", id: 361285480
 mas "Logic Pro", id: 634148309
-mas "Logic Pro", id: 1615087040
 mas "Mactracker", id: 430255202
-mas "MainStage", id: 6746637089
 mas "MainStage", id: 634159523
 mas "Markdown Preview", id: 6739955340
-mas "Motion", id: 6746637149
 mas "Motion", id: 434290957
 mas "NeonBeats", id: 1527569581
 mas "Numbers", id: 361304891
 mas "Pages", id: 361309726
 mas "Photomator", id: 1444636541
 mas "Pixelmator Pro", id: 1289583905
-mas "Pixelmator Pro", id: 6746662575
 mas "Prime Video", id: 545519333
 mas "quack", id: 6756529269
 mas "ReadKit", id: 1615798039
