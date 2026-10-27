@@ -142,13 +142,13 @@ path = "harlan-agent-kit/skills/hogwild"
 repo = "harlan-zw/harlan-agent-kit"
 path = "harlan-agent-kit/skills/i-dont-know-just-keep-working"
 
-[agent_skills.im-a-fly]
+[agent_skills.im-not-a-human]
 repo = "harlan-zw/brundlefly"
-path = "skills/im-a-fly"
+path = "skills/im-not-a-human"
 
-[agent_skills.im-not-a-fly]
+[agent_skills.im-part-human]
 repo = "harlan-zw/brundlefly"
-path = "skills/im-not-a-fly"
+path = "skills/im-part-human"
 
 [agent_skills.implement]
 repo = "mattpocock/skills"
@@ -283,8 +283,8 @@ repo = "harlan-zw/brundlefly"
 path = "skills/readme"
 
 [agent_skills.release-notes]
-repo = "harlan-zw/harlan-agent-kit"
-path = "harlan-agent-kit/skills/release-notes"
+repo = "harlan-zw/brundlefly"
+path = "skills/release-notes"
 
 [agent_skills.research]
 repo = "mattpocock/skills"
