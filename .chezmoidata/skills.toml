@@ -556,10 +556,6 @@ repo = "zarazhangrui/frontend-slides"
 repo = "wshobson/agents"
 path = "plugins/hr-legal-compliance/skills/gdpr-data-handling"
 
-[agent_skills.general-video]
-repo = "heygen-com/hyperframes"
-path = "skills/general-video"
-
 [agent_skills.gh-fix-ci]
 repo = "openai/skills"
 path = "skills/.curated/gh-fix-ci"
@@ -671,37 +667,13 @@ repo = "blader/humanizer"
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes"
 
-[agent_skills.hyperframes-animation]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-animation"
-
-[agent_skills.hyperframes-audio]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-audio"
-
 [agent_skills.hyperframes-cli]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-cli"
 
-[agent_skills.hyperframes-core]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-core"
-
-[agent_skills.hyperframes-creative]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-creative"
-
-[agent_skills.hyperframes-keyframes]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-keyframes"
-
 [agent_skills.hyperframes-registry]
 repo = "heygen-com/hyperframes"
 path = "skills/hyperframes-registry"
-
-[agent_skills.hyperframes-studio]
-repo = "heygen-com/hyperframes"
-path = "skills/hyperframes-studio"
 
 [agent_skills.i-have-adhd]
 repo = "ayghri/i-have-adhd"
@@ -805,10 +777,6 @@ path = "skills/mobile-native"
 [agent_skills.modern-web-guidance]
 repo = "GoogleChrome/modern-web-guidance"
 path = "skills/modern-web-guidance"
-
-[agent_skills.motion-graphics]
-repo = "heygen-com/hyperframes"
-path = "skills/motion-graphics"
 
 [agent_skills.multi-agent-review]
 repo = "riekelt/multi-agent-review"
@@ -970,10 +938,6 @@ path = "skills/ppt-master"
 repo = "anthropics/skills"
 path = "skills/pptx"
 
-[agent_skills.pr-to-video]
-repo = "heygen-com/hyperframes"
-path = "skills/pr-to-video"
-
 [agent_skills.principal-engineering]
 repo = "riekelt/principal-engineer"
 path = "plugins/principal-engineer/skills/principal-engineering"
@@ -993,10 +957,6 @@ path = "prisma-database-setup"
 [agent_skills.prisma-upgrade-v7]
 repo = "prisma/skills"
 path = "prisma-upgrade-v7"
-
-[agent_skills.product-launch-video]
-repo = "heygen-com/hyperframes"
-path = "skills/product-launch-video"
 
 [agent_skills.programmatic-seo]
 repo = "coreyhaines31/marketingskills"
