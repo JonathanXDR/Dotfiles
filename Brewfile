@@ -73,6 +73,8 @@ brew "libtiff"
 brew "php"
 # Dependency Manager for PHP
 brew "composer"
+# Create and run Linux containers using lightweight virtual machines
+brew "container"
 # Utility to configure multi-display resolutions and arrangements
 brew "displayplacer"
 # Synchronize your DNS to multiple providers from a simple DSL
@@ -155,6 +157,8 @@ brew "kubernetes-cli"
 brew "kubo"
 # Template-free customization of Kubernetes YAML manifests
 brew "kustomize"
+# Sophisticated file transfer program
+brew "lftp"
 # Conversion library
 brew "libiconv"
 # Next-gen compiler infrastructure
