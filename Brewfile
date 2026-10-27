@@ -335,12 +335,15 @@ cask "blender", args: { appdir: "/Applications" }
 cask "burp-suite"
 # OpenAI's official ChatGPT desktop app
 cask "chatgpt"
+cask "citra"
 # Anthropic's official Claude AI desktop app
 cask "claude"
 # Download and manage your addons and mods
 cask "curseforge"
 # Disk space visualiser
 cask "daisydisk"
+# Nintendo DS emulator
+cask "desmume", args: { appdir: "/Applications" }
 # Voice and text chat software
 cask "discord", args: { appdir: "/Applications" }
 # Window peeking utility app
@@ -393,6 +396,8 @@ cask "logi-options+"
 cask "loopback"
 # Detailed information on every Apple product ever made
 cask "mactracker"
+# Nintendo DS and DSi emulator
+cask "melonds"
 # Office suite
 cask "microsoft-office-businesspro"
 # Sandbox construction video game
@@ -407,6 +412,8 @@ cask "nordvpn", args: { appdir: "/Applications" }
 cask "notion", args: { appdir: "/Applications" }
 # Open-source software for live streaming and screen recording
 cask "obs", args: { appdir: "/Applications" }
+# Retro video game emulation
+cask "openemu", args: { appdir: "/Applications" }
 # Limitless clipboard
 cask "paste"
 # Control your smart light system
