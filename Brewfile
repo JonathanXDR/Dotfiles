@@ -5,6 +5,7 @@ tap "domt4/autoupdate", trusted: true
 tap "elastic/tap", trusted: true
 tap "go-task/tap", trusted: true
 tap "hashicorp/tap", trusted: true
+tap "homebrew/autoupdate", "https://github.com/DomT4/homebrew-autoupdate.git", trusted: true
 tap "hpedrorodrigues/tools", trusted: true
 tap "infisical/get-cli", trusted: true
 tap "minio/stable", trusted: true
@@ -16,8 +17,6 @@ tap "updatest/tap", "https://github.com/updatest/tap.git", trusted: true
 brew "act"
 # Plugin manager for zsh, inspired by antigen and antibody
 brew "antidote"
-# Cryptography and SSL/TLS Toolkit
-brew "openssl@3"
 # Tool for generating GNU Standards-compliant Makefiles
 brew "automake"
 # Official Amazon AWS command-line interface
@@ -26,6 +25,8 @@ brew "awscli"
 brew "bash"
 # Programmable completion for Bash 4.2+
 brew "bash-completion@2"
+# Cryptography and SSL/TLS Toolkit
+brew "openssl@3"
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
 # 7-Zip (high compression file archiver) implementation
@@ -295,7 +296,7 @@ brew "coursier/formulas/coursier"
 # Distributed search & analytics engine
 brew "elastic/tap/elasticsearch-full"
 # Vault
-brew "hashicorp/tap/vault"
+brew "hashicorp/tap/vault", trusted: true
 # The official Infisical CLI
 brew "infisical/get-cli/infisical"
 # High-performance, schema-free, document-oriented database
@@ -472,7 +473,7 @@ mas "Hand Mirror", id: 1502839586
 mas "iMovie", id: 408981434
 mas "iPreview", id: 1519213509
 mas "Keynote", id: 361285480
-mas "Logic Pro", id: 634148309
+mas "Logic Pro", id: 634148309
 mas "Logic Pro", id: 1615087040
 mas "Mactracker", id: 430255202
 mas "MainStage", id: 6746637089
