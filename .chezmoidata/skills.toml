@@ -226,7 +226,7 @@ repo = "nextlevelbuilder/ui-ux-pro-max-skill"
 path = ".claude/skills/brand"
 
 [agent_skills.brandkit]
-repo = "Leonxlnx/taste-skill"
+repo = "Leonxlnx/imagegen-skills"
 path = "skills/brandkit"
 
 [agent_skills.browse]
@@ -708,8 +708,8 @@ repo = "ayghri/i-have-adhd"
 path = "skills/i-have-adhd"
 
 [agent_skills.image-to-code]
-repo = "Leonxlnx/taste-skill"
-path = "skills/image-to-code-skill"
+repo = "Leonxlnx/imagegen-skills"
+path = "skills/image-to-code"
 
 [agent_skills.impeccable]
 repo = "pbakaus/impeccable"
