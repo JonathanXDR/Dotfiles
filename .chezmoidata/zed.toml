@@ -112,6 +112,7 @@ zed_extensions = [
   "scss",
   "solid-typescript-snippets",
   "sql",
+  "ssh-config",
   "stylelint",
   "svelte",
   "svelte-mcp",
